@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package livemap;
+
+enum Classification {
+    NONE = 0;
+    BOGON = 1;
+    HIJACK = 2;
+    ROUTE_LEAK = 3;
+    OUTAGE = 4;
+    DDOS_MITIGATION = 5;
+    FLAP = 6;
+    TRAFFIC_ENGINEERING = 7;
+    PATH_HUNTING = 8;
+    DISCOVERY = 9;
+}
+
+message GeoData {
+    float lat = 1;
+    float lon = 2;
+    optional string city = 3;
+    optional string country = 4;
+}
+
+message AggregatedEvent {
+    GeoData geo = 1;
+    Classification classification = 2;
+    uint32 count = 3;
+}
+
+message StreamEventsResponse {
+    repeated AggregatedEvent events = 1;
+}
+
+message StreamEventsRequest {}
+
+message SummaryRequest {}
+
+message ClassificationCount {
+    Classification classification = 1;
+    uint32 count = 2;
+}
+
+message SummaryResponse {
+    float messages_per_second = 1;
+    uint32 asn_count = 2;
+    uint32 prefix_count = 3;
+    uint32 ip_count = 4;
+    repeated ClassificationCount classification_counts = 5;
+}
+
+service LiveMap {
+    rpc SubscribeEvents(StreamEventsRequest) returns (stream StreamEventsResponse);
+    rpc GetSummary(SummaryRequest) returns (SummaryResponse);
+}
