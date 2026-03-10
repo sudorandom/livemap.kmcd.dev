@@ -39,6 +39,14 @@ message SummaryRequest {}
 message ClassificationCount {
     Classification classification = 1;
     uint32 count = 2;
+    float messages_per_second = 3;
+    uint32 asn_count = 4;
+    uint32 prefix_count = 5;
+    uint32 ip_count = 6;
+    uint32 ipv4_prefix_count = 7;
+    uint32 ipv6_prefix_count = 8;
+    uint32 ipv4_count = 9;
+    uint32 ipv6_count = 10;
 }
 
 message SummaryResponse {
@@ -47,6 +55,10 @@ message SummaryResponse {
     uint32 prefix_count = 3;
     uint32 ip_count = 4;
     repeated ClassificationCount classification_counts = 5;
+    uint32 ipv4_prefix_count = 6;
+    uint32 ipv6_prefix_count = 7;
+    uint32 ipv4_count = 8;
+    uint32 ipv6_count = 9;
 }
 
 service LiveMap {

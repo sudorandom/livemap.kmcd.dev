@@ -68,6 +68,32 @@ struct LiveMapService {
     state: Arc<RwLock<AppState>>,
 }
 
+struct Stats {
+    count: u32,
+    asn_set: std::collections::HashSet<u32>,
+    prefix_set: std::collections::HashSet<String>,
+    ipv4_prefix_set: std::collections::HashSet<String>,
+    ipv6_prefix_set: std::collections::HashSet<String>,
+    ip_set: std::collections::HashSet<IpAddr>,
+    ipv4_set: std::collections::HashSet<IpAddr>,
+    ipv6_set: std::collections::HashSet<IpAddr>,
+}
+
+impl Stats {
+    fn new() -> Self {
+        Self {
+            count: 0,
+            asn_set: std::collections::HashSet::new(),
+            prefix_set: std::collections::HashSet::new(),
+            ipv4_prefix_set: std::collections::HashSet::new(),
+            ipv6_prefix_set: std::collections::HashSet::new(),
+            ip_set: std::collections::HashSet::new(),
+            ipv4_set: std::collections::HashSet::new(),
+            ipv6_set: std::collections::HashSet::new(),
+        }
+    }
+}
+
 #[tonic::async_trait]
 impl LiveMap for LiveMapService {
     type SubscribeEventsStream = ReceiverStream<Result<StreamEventsResponse, Status>>;
@@ -87,37 +113,64 @@ impl LiveMap for LiveMapService {
     ) -> Result<Response<SummaryResponse>, Status> {
         let state = self.state.read().await;
         
-        let mut asn_set = std::collections::HashSet::new();
-        let mut prefix_set = std::collections::HashSet::new();
-        let mut ip_set = std::collections::HashSet::new();
-        let mut class_counts: HashMap<ClassificationType, u32> = HashMap::new();
+        let mut global_stats = Stats::new();
+        let mut class_stats: HashMap<ClassificationType, Stats> = HashMap::new();
 
         for (_, event) in &state.recent_events {
-            asn_set.insert(event.asn);
-            prefix_set.insert(event.prefix.clone());
-            
+            global_stats.count += 1;
+            global_stats.asn_set.insert(event.asn);
+            global_stats.prefix_set.insert(event.prefix.clone());
+
+            let c_stats = class_stats.entry(event.classification_type).or_insert_with(Stats::new);
+            c_stats.count += 1;
+            c_stats.asn_set.insert(event.asn);
+            c_stats.prefix_set.insert(event.prefix.clone());
+
             let parts: Vec<&str> = event.prefix.split('/').collect();
             if let Ok(ip) = parts[0].parse::<IpAddr>() {
-                ip_set.insert(ip);
-            }
+                global_stats.ip_set.insert(ip);
+                c_stats.ip_set.insert(ip);
 
-            *class_counts.entry(event.classification_type).or_insert(0) += 1;
+                if ip.is_ipv4() {
+                    global_stats.ipv4_prefix_set.insert(event.prefix.clone());
+                    global_stats.ipv4_set.insert(ip);
+                    c_stats.ipv4_prefix_set.insert(event.prefix.clone());
+                    c_stats.ipv4_set.insert(ip);
+                } else if ip.is_ipv6() {
+                    global_stats.ipv6_prefix_set.insert(event.prefix.clone());
+                    global_stats.ipv6_set.insert(ip);
+                    c_stats.ipv6_prefix_set.insert(event.prefix.clone());
+                    c_stats.ipv6_set.insert(ip);
+                }
+            }
         }
 
-        let classification_counts = class_counts
+        let classification_counts = class_stats
             .into_iter()
             .map(|(k, v)| ClassificationCount {
                 classification: map_classification(k).into(),
-                count: v,
+                count: v.count,
+                messages_per_second: v.count as f32 / 60.0,
+                asn_count: v.asn_set.len() as u32,
+                prefix_count: v.prefix_set.len() as u32,
+                ip_count: v.ip_set.len() as u32,
+                ipv4_prefix_count: v.ipv4_prefix_set.len() as u32,
+                ipv6_prefix_count: v.ipv6_prefix_set.len() as u32,
+                ipv4_count: v.ipv4_set.len() as u32,
+                ipv6_count: v.ipv6_set.len() as u32,
             })
             .collect();
 
         Ok(Response::new(SummaryResponse {
             messages_per_second: state.message_count_60s as f32 / 60.0,
-            asn_count: asn_set.len() as u32,
-            prefix_count: prefix_set.len() as u32,
-            ip_count: ip_set.len() as u32,
+            asn_count: global_stats.asn_set.len() as u32,
+            prefix_count: global_stats.prefix_set.len() as u32,
+            ip_count: global_stats.ip_set.len() as u32,
             classification_counts,
+            ipv4_prefix_count: global_stats.ipv4_prefix_set.len() as u32,
+            ipv6_prefix_count: global_stats.ipv6_prefix_set.len() as u32,
+            ipv4_count: global_stats.ipv4_set.len() as u32,
+            ipv6_count: global_stats.ipv6_set.len() as u32,
         }))
     }
 }
