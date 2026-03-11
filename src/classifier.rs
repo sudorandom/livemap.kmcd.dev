@@ -1,14 +1,14 @@
+use bgpkit_parser::BgpElem;
+use ipnet::IpNet;
+use lru::LruCache;
+use serde::{Deserialize, Serialize};
+use sled::Db;
 use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr};
+use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use lru::LruCache;
-use serde::{Deserialize, Serialize};
-use ipnet::IpNet;
-use bgpkit_parser::BgpElem;
-use std::num::NonZeroUsize;
-use sled::Db;
 
 pub struct DiskTrie {
     tree: sled::Tree,
@@ -134,7 +134,10 @@ pub struct PrefixState {
 
 impl Default for PrefixState {
     fn default() -> Self {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
         Self {
             peer_last_attrs: HashMap::new(),
             buckets: HashMap::new(),
@@ -195,7 +198,7 @@ impl Classifier {
         }
 
         let mut states = self.prefix_states.lock().unwrap();
-        
+
         let mut state = states.get(&prefix).cloned();
         if state.is_none() {
             if let Some(ref db) = self.state_db {
@@ -204,10 +207,10 @@ impl Classifier {
                 }
             }
         }
-        
+
         let mut state = state.unwrap_or_default();
         state.last_update_ts = ctx.now;
-        
+
         let minute_ts = (ctx.now / 60) * 60;
         let cutoff = ctx.now - 600;
         state.buckets.retain(|&ts, _| ts >= cutoff);
@@ -225,19 +228,22 @@ impl Classifier {
                 bucket.withdrawals += 1;
             }
             let session_key = format!("{}:{}", ctx.host, ctx.peer);
-            let last = state.peer_last_attrs.entry(session_key).or_insert_with(|| LastAttrs {
-                path: String::new(),
-                communities: String::new(),
-                next_hop: String::new(),
-                aggregator: String::new(),
-                last_path_len: 0,
-                origin_asn: 0,
-                med: None,
-                local_pref: None,
-                last_update_ts: ctx.now,
-                host: ctx.host.clone(),
-                withdrawn: true,
-            });
+            let last = state
+                .peer_last_attrs
+                .entry(session_key)
+                .or_insert_with(|| LastAttrs {
+                    path: String::new(),
+                    communities: String::new(),
+                    next_hop: String::new(),
+                    aggregator: String::new(),
+                    last_path_len: 0,
+                    origin_asn: 0,
+                    med: None,
+                    local_pref: None,
+                    last_update_ts: ctx.now,
+                    host: ctx.host.clone(),
+                    withdrawn: true,
+                });
             last.withdrawn = true;
             last.last_update_ts = ctx.now;
         } else {
@@ -256,7 +262,11 @@ impl Classifier {
             if ctx.now - state.classified_time_ts > expiry {
                 state.classified_type = ClassificationType::None;
             } else if state.classified_type == ClassificationType::Outage && !ctx.is_withdrawal {
-                let bucket_ann = state.buckets.get(&minute_ts).map(|b| b.announcements).unwrap_or(0);
+                let bucket_ann = state
+                    .buckets
+                    .get(&minute_ts)
+                    .map(|b| b.announcements)
+                    .unwrap_or(0);
                 if bucket_ann > 2 {
                     // Outage recovery
                     state.classified_type = ClassificationType::None;
@@ -272,7 +282,9 @@ impl Classifier {
                                 leaker_asn: state.leaker_asn,
                                 victim_asn: state.victim_asn,
                             })
-                        } else { None },
+                        } else {
+                            None
+                        },
                         anomaly_details: None,
                     });
                 }
@@ -288,7 +300,9 @@ impl Classifier {
                             leaker_asn: state.leaker_asn,
                             victim_asn: state.victim_asn,
                         })
-                    } else { None },
+                    } else {
+                        None
+                    },
                     anomaly_details: None,
                 });
             }
@@ -299,21 +313,19 @@ impl Classifier {
         }
 
         // If still no classification and it's an announcement, check if it's new
-        if result.is_none() && !ctx.is_withdrawal {
-            if historical_origin_asn == 0 {
-                result = Some(PendingEvent {
-                    prefix: prefix.clone(),
-                    asn: ctx.origin_asn,
-                    historical_asn: 0,
-                    classification_type: ClassificationType::Discovery,
-                    leak_detail: None,
-                    anomaly_details: None,
-                });
-                
-                if let Some(ref seen_db) = self.seen_db {
-                    if let Ok(net) = IpNet::from_str(&prefix) {
-                        let _ = seen_db.insert(net, &ctx.origin_asn.to_be_bytes());
-                    }
+        if result.is_none() && !ctx.is_withdrawal && historical_origin_asn == 0 {
+            result = Some(PendingEvent {
+                prefix: prefix.clone(),
+                asn: ctx.origin_asn,
+                historical_asn: 0,
+                classification_type: ClassificationType::Discovery,
+                leak_detail: None,
+                anomaly_details: None,
+            });
+
+            if let Some(ref seen_db) = self.seen_db {
+                if let Ok(net) = IpNet::from_str(&prefix) {
+                    let _ = seen_db.insert(net, &ctx.origin_asn.to_be_bytes());
                 }
             }
         }
@@ -344,14 +356,23 @@ impl Classifier {
         0
     }
 
-    fn update_announcement_stats(&self, state: &mut PrefixState, minute_ts: i64, ctx: &MessageContext) {
+    fn update_announcement_stats(
+        &self,
+        state: &mut PrefixState,
+        minute_ts: i64,
+        ctx: &MessageContext,
+    ) {
         let bucket = state.buckets.entry(minute_ts).or_default();
         bucket.announcements += 1;
 
         let session_key = format!("{}:{}", ctx.host, ctx.peer);
         if let Some(last) = state.peer_last_attrs.get_mut(&session_key) {
-            if ctx.path_str != last.path { bucket.path_changes += 1; }
-            if ctx.comm_str != last.communities { bucket.community_changes += 1; }
+            if ctx.path_str != last.path {
+                bucket.path_changes += 1;
+            }
+            if ctx.comm_str != last.communities {
+                bucket.community_changes += 1;
+            }
             if (ctx.path_len as i32) != last.last_path_len && last.last_path_len != 0 {
                 if (ctx.path_len as i32) > last.last_path_len {
                     bucket.path_length_increases += 1;
@@ -361,46 +382,66 @@ impl Classifier {
             }
         }
 
-        state.peer_last_attrs.insert(session_key, LastAttrs {
-            path: ctx.path_str.clone(),
-            communities: ctx.comm_str.clone(),
-            next_hop: String::new(),
-            aggregator: String::new(),
-            last_path_len: ctx.path_len as i32,
-            origin_asn: ctx.origin_asn,
-            med: None,
-            local_pref: None,
-            last_update_ts: ctx.now,
-            host: ctx.host.clone(),
-            withdrawn: false,
-        });
+        state.peer_last_attrs.insert(
+            session_key,
+            LastAttrs {
+                path: ctx.path_str.clone(),
+                communities: ctx.comm_str.clone(),
+                next_hop: String::new(),
+                aggregator: String::new(),
+                last_path_len: ctx.path_len as i32,
+                origin_asn: ctx.origin_asn,
+                med: None,
+                local_pref: None,
+                last_update_ts: ctx.now,
+                host: ctx.host.clone(),
+                withdrawn: false,
+            },
+        );
     }
 
-    fn evaluate_prefix_state(&self, prefix: &str, state: &mut PrefixState, historical_origin_asn: u32, ctx: &MessageContext) -> Option<PendingEvent> {
+    fn evaluate_prefix_state(
+        &self,
+        prefix: &str,
+        state: &mut PrefixState,
+        historical_origin_asn: u32,
+        ctx: &MessageContext,
+    ) -> Option<PendingEvent> {
         let stats = self.aggregate_recent_buckets(state, ctx.now, ctx.origin_asn);
         let elapsed = (ctx.now - stats.earliest_ts).max(1);
 
-        if let Some(event) = self.find_critical_anomaly(prefix, &stats, elapsed as f64, ctx, historical_origin_asn) {
-             state.classified_type = event.classification_type;
-             state.classified_time_ts = ctx.now;
-             if let Some(ref ld) = event.leak_detail {
-                 state.leak_type = ld.leak_type;
-                 state.leaker_asn = ld.leaker_asn;
-                 state.victim_asn = ld.victim_asn;
-             }
-             return Some(event);
+        if let Some(event) =
+            self.find_critical_anomaly(prefix, &stats, elapsed as f64, ctx, historical_origin_asn)
+        {
+            state.classified_type = event.classification_type;
+            state.classified_time_ts = ctx.now;
+            if let Some(ref ld) = event.leak_detail {
+                state.leak_type = ld.leak_type;
+                state.leaker_asn = ld.leaker_asn;
+                state.victim_asn = ld.victim_asn;
+            }
+            return Some(event);
         }
 
         None
     }
 
-    fn aggregate_recent_buckets(&self, state: &mut PrefixState, now: i64, current_origin_asn: u32) -> AggregatedStats {
+    fn aggregate_recent_buckets(
+        &self,
+        state: &mut PrefixState,
+        now: i64,
+        current_origin_asn: u32,
+    ) -> AggregatedStats {
         let mut s = AggregatedStats::new(now);
         let cutoff = now - 600;
 
         for (&ts, b) in &state.buckets {
-            if ts < cutoff { continue; }
-            if ts < s.earliest_ts { s.earliest_ts = ts; }
+            if ts < cutoff {
+                continue;
+            }
+            if ts < s.earliest_ts {
+                s.earliest_ts = ts;
+            }
             s.total_ann += b.announcements;
             s.total_with += b.withdrawals;
             s.total_msgs += b.total_messages;
@@ -421,7 +462,14 @@ impl Classifier {
         s
     }
 
-    fn find_critical_anomaly(&self, prefix: &str, s: &AggregatedStats, elapsed: f64, ctx: &MessageContext, historical_origin_asn: u32) -> Option<PendingEvent> {
+    fn find_critical_anomaly(
+        &self,
+        prefix: &str,
+        s: &AggregatedStats,
+        elapsed: f64,
+        ctx: &MessageContext,
+        historical_origin_asn: u32,
+    ) -> Option<PendingEvent> {
         // 1. Bogon
         if self.is_bogon(prefix, ctx) {
             return Some(PendingEvent {
@@ -435,7 +483,10 @@ impl Classifier {
         }
 
         // 2. Hijack
-        if historical_origin_asn != 0 && ctx.origin_asn != 0 && ctx.origin_asn != historical_origin_asn {
+        if historical_origin_asn != 0
+            && ctx.origin_asn != 0
+            && ctx.origin_asn != historical_origin_asn
+        {
             // Check if it's a known relation (conceptual, here just basic check)
             if !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn) {
                 return Some(PendingEvent {
@@ -452,7 +503,7 @@ impl Classifier {
         // 3. Outage
         let total_known_peers = s.unique_peers.len() + s.withdrawn_peers.len();
         if elapsed > 30.0 && total_known_peers >= 3 && s.unique_peers.is_empty() {
-             return Some(PendingEvent {
+            return Some(PendingEvent {
                 prefix: prefix.to_string(),
                 asn: ctx.origin_asn,
                 historical_asn: historical_origin_asn,
@@ -538,15 +589,27 @@ impl Classifier {
             }
             match addr {
                 IpAddr::V4(v4) => {
-                    if v4.is_private() || v4.is_link_local() { return true; }
+                    if v4.is_private() || v4.is_link_local() {
+                        return true;
+                    }
                     let octets = v4.octets();
-                    if octets[0] == 100 && (octets[1] & 0b11000000) == 64 { return true; }
-                    if octets[0] == 192 && octets[1] == 0 && octets[2] == 2 { return true; }
-                    if octets[0] == 198 && octets[1] == 51 && octets[2] == 100 { return true; }
-                    if octets[0] == 203 && octets[1] == 0 && octets[2] == 113 { return true; }
+                    if octets[0] == 100 && (octets[1] & 0b11000000) == 64 {
+                        return true;
+                    }
+                    if octets[0] == 192 && octets[1] == 0 && octets[2] == 2 {
+                        return true;
+                    }
+                    if octets[0] == 198 && octets[1] == 51 && octets[2] == 100 {
+                        return true;
+                    }
+                    if octets[0] == 203 && octets[1] == 0 && octets[2] == 113 {
+                        return true;
+                    }
                 }
                 IpAddr::V6(v6) => {
-                    if v6.is_unicast_link_local() { return true; }
+                    if v6.is_unicast_link_local() {
+                        return true;
+                    }
                 }
             }
         }
@@ -555,10 +618,12 @@ impl Classifier {
 
     fn detect_route_leak(&self, ctx: &MessageContext) -> Option<LeakDetail> {
         let path = self.parse_path(&ctx.path_str);
-        if path.len() < 3 { return None; }
+        if path.len() < 3 {
+            return None;
+        }
 
-        for i in 0..path.len()-2 {
-            let (p1, p2, p3) = (path[i], path[i+1], path[i+2]);
+        for i in 0..path.len() - 2 {
+            let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
             // Valley-free violation: provider-peer-provider or similar
             if self.is_tier1(p1) && !self.is_large_network(p2) && self.is_tier1(p3) {
                 return Some(LeakDetail {
@@ -575,7 +640,10 @@ impl Classifier {
         // Look for common DDoS mitigation communities or ASNs
         // Cloudflare (13335), Akamai (20940), Imperva (19551), etc.
         let path = self.parse_path(&ctx.path_str);
-        if path.iter().any(|&asn| matches!(asn, 13335 | 20940 | 19551 | 19324 | 19281)) {
+        if path
+            .iter()
+            .any(|&asn| matches!(asn, 13335 | 20940 | 19551 | 19324 | 19281))
+        {
             return true;
         }
         // Blackhole communities
@@ -591,30 +659,51 @@ impl Classifier {
         match (asn1, asn2) {
             (13335, 132892) => true, // Cloudflare
             (15169, 16591) => true,  // Google
-            _ => false
+            _ => false,
         }
     }
 
     fn parse_path(&self, path_str: &str) -> Vec<u32> {
-        path_str.trim_matches(|c| c == '[' || c == ']')
+        path_str
+            .trim_matches(|c| c == '[' || c == ']')
             .split_whitespace()
             .filter_map(|s| s.parse::<u32>().ok())
             .collect()
     }
 
     fn is_tier1(&self, asn: u32) -> bool {
-        match asn {
-            209 | 701 | 702 | 1239 | 1299 | 2828 | 2914 | 3257 | 3320 | 3356 | 3491 | 3549 | 3561 | 5511 | 6453 | 6461 | 6762 | 6830 | 7018 | 12956 => true,
-            _ => false
-        }
+        matches!(
+            asn,
+            209 | 701
+                | 702
+                | 1239
+                | 1299
+                | 2828
+                | 2914
+                | 3257
+                | 3320
+                | 3356
+                | 3491
+                | 3549
+                | 3561
+                | 5511
+                | 6453
+                | 6461
+                | 6762
+                | 6830
+                | 7018
+                | 12956
+        )
     }
 
     fn is_large_network(&self, asn1: u32) -> bool {
-        if self.is_tier1(asn1) { return true; }
-        match asn1 {
-            174 | 6939 | 9002 | 1273 | 4637 | 7922 | 4134 | 4809 | 4837 | 7473 | 9808 => true,
-            _ => false
+        if self.is_tier1(asn1) {
+            return true;
         }
+        matches!(
+            asn1,
+            174 | 6939 | 9002 | 1273 | 4637 | 7922 | 4134 | 4809 | 4837 | 7473 | 9808
+        )
     }
 }
 

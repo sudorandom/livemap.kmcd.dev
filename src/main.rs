@@ -97,22 +97,6 @@ impl CumulativeStats {
             }
         }
     }
-
-    fn calculate_ipv4_count(&self) -> u64 {
-        let ipv4_nets: Vec<Ipv4Net> = self.prefixes_v4.iter().cloned().collect();
-        let ipv4_aggregated = Ipv4Net::aggregate(&ipv4_nets);
-        ipv4_aggregated
-            .iter()
-            .map(|n| {
-                let len = n.prefix_len();
-                if len == 0 {
-                    u32::MAX as u64 + 1
-                } else {
-                    1u64 << (32 - len)
-                }
-            })
-            .sum()
-    }
 }
 
 struct AppState {
@@ -142,6 +126,7 @@ impl LiveMap for LiveMapService {
         &self,
         _request: Request<SummaryRequest>,
     ) -> Result<Response<SummaryResponse>, Status> {
+        // First, quickly cleanup sliding windows while holding the write lock
         let mut state = self.state.write().await;
         let now = Utc::now().timestamp();
 
@@ -150,37 +135,162 @@ impl LiveMap for LiveMapService {
             c_stats.cleanup_sliding_window(now);
         }
 
-        let g_ipv4_count = state.global_stats.calculate_ipv4_count();
+        // Compute counts that do not require heavy aggregation
+        let msgs_per_sec = state.global_stats.message_timestamps.len() as f32 / 60.0;
+        let global_asn_count = state.global_stats.asns.len() as u32;
+        let global_prefix_count =
+            (state.global_stats.prefixes_v4.len() + state.global_stats.prefixes_v6.len()) as u32;
+        let global_ipv4_prefix_count = state.global_stats.prefixes_v4.len() as u32;
+        let global_ipv6_prefix_count = state.global_stats.prefixes_v6.len() as u32;
 
-        let classification_counts = state
-            .class_stats
+        // Clone the v4 prefixes to compute the heavy aggregation outside the lock
+        let global_ipv4_nets: Vec<Ipv4Net> =
+            state.global_stats.prefixes_v4.iter().cloned().collect();
+
+        let mut class_data = Vec::new();
+        for (&k, v) in state.class_stats.iter() {
+            class_data.push((
+                k,
+                v.msg_count,
+                v.message_timestamps.len() as f32 / 60.0,
+                v.asns.len() as u32,
+                (v.prefixes_v4.len() + v.prefixes_v6.len()) as u32,
+                v.prefixes_v4.len() as u32,
+                v.prefixes_v6.len() as u32,
+                v.prefixes_v4.iter().cloned().collect::<Vec<Ipv4Net>>(),
+            ));
+        }
+
+        // Drop the write lock so we don't block the ingestion stream
+        drop(state);
+
+        // Perform the heavy compute
+        let g_ipv4_count = Ipv4Net::aggregate(&global_ipv4_nets)
             .iter()
-            .map(|(&k, v)| {
-                let c_ipv4_count = v.calculate_ipv4_count();
-                ClassificationCount {
-                    classification: map_classification(k).into(),
-                    count: v.msg_count,
-                    messages_per_second: v.message_timestamps.len() as f32 / 60.0,
-                    asn_count: v.asns.len() as u32,
-                    prefix_count: (v.prefixes_v4.len() + v.prefixes_v6.len()) as u32,
-                    ipv4_prefix_count: v.prefixes_v4.len() as u32,
-                    ipv6_prefix_count: v.prefixes_v6.len() as u32,
-                    ipv4_count: c_ipv4_count,
+            .map(|n| {
+                let len = n.prefix_len();
+                if len == 0 {
+                    u32::MAX as u64 + 1
+                } else {
+                    1u64 << (32 - len)
                 }
             })
+            .sum();
+
+        let classification_counts = class_data
+            .into_iter()
+            .map(
+                |(
+                    k,
+                    msg_count,
+                    msgs_per_sec,
+                    asn_count,
+                    prefix_count,
+                    ipv4_prefix_count,
+                    ipv6_prefix_count,
+                    ipv4_nets,
+                )| {
+                    let c_ipv4_count = Ipv4Net::aggregate(&ipv4_nets)
+                        .iter()
+                        .map(|n| {
+                            let len = n.prefix_len();
+                            if len == 0 {
+                                u32::MAX as u64 + 1
+                            } else {
+                                1u64 << (32 - len)
+                            }
+                        })
+                        .sum();
+
+                    ClassificationCount {
+                        classification: map_classification(k).into(),
+                        count: msg_count,
+                        messages_per_second: msgs_per_sec,
+                        asn_count,
+                        prefix_count,
+                        ipv4_prefix_count,
+                        ipv6_prefix_count,
+                        ipv4_count: c_ipv4_count,
+                    }
+                },
+            )
             .collect();
 
         Ok(Response::new(SummaryResponse {
-            messages_per_second: state.global_stats.message_timestamps.len() as f32 / 60.0,
-            asn_count: state.global_stats.asns.len() as u32,
-            prefix_count: (state.global_stats.prefixes_v4.len()
-                + state.global_stats.prefixes_v6.len()) as u32,
+            messages_per_second: msgs_per_sec,
+            asn_count: global_asn_count,
+            prefix_count: global_prefix_count,
             classification_counts,
-            ipv4_prefix_count: state.global_stats.prefixes_v4.len() as u32,
-            ipv6_prefix_count: state.global_stats.prefixes_v6.len() as u32,
+            ipv4_prefix_count: global_ipv4_prefix_count,
+            ipv6_prefix_count: global_ipv6_prefix_count,
             ipv4_count: g_ipv4_count,
         }))
     }
+}
+
+fn process_ris_live_message(
+    text: &str,
+    classifier: &Classifier,
+    tx: &mpsc::Sender<(PendingEvent, bool)>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let live_msg: bgpkit_parser::parser::rislive::messages::RisLiveMessage =
+        serde_json::from_str(text)?;
+
+    let bgpkit_parser::parser::rislive::messages::RisLiveMessage::RisMessage(ris_msg) = live_msg
+    else {
+        return Ok(());
+    };
+
+    let host = ris_msg.host.clone();
+    let bgp_msg = parse_ris_live_message(text)?;
+    let now = Utc::now().timestamp();
+
+    for elem in bgp_msg {
+        let origin_asn = elem
+            .origin_asns
+            .as_ref()
+            .and_then(|v| v.first())
+            .map(|asn: &Asn| u32::from(*asn))
+            .unwrap_or_default();
+        let ctx = MessageContext {
+            elem: &elem,
+            now,
+            host: host.clone(),
+            peer: elem.peer_ip.to_string(),
+            is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
+            path_str: elem
+                .as_path
+                .as_ref()
+                .map(|p| p.to_string())
+                .unwrap_or_default(),
+            comm_str: elem
+                .communities
+                .as_ref()
+                .map(|c| {
+                    c.iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                })
+                .unwrap_or_default(),
+            origin_asn,
+            path_len: elem.as_path.as_ref().map(|p| p.segments.len()).unwrap_or(0),
+        };
+
+        let event = classifier.classify_event(elem.prefix.to_string(), &ctx);
+        let is_classified = event.is_some();
+        let pending = event.unwrap_or_else(|| PendingEvent {
+            prefix: elem.prefix.to_string(),
+            asn: origin_asn,
+            historical_asn: 0,
+            classification_type: ClassificationType::None,
+            leak_detail: None,
+            anomaly_details: None,
+        });
+        let _ = tx.blocking_send((pending, is_classified));
+    }
+
+    Ok(())
 }
 
 fn consume_ris_live(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent, bool)>) {
@@ -207,42 +317,9 @@ fn consume_ris_live(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent,
                     match socket.read() {
                         Ok(msg) => {
                             if let WsMessage::Text(text) = msg {
-                                if let Ok(live_msg) = serde_json::from_str::<
-                                    bgpkit_parser::parser::rislive::messages::RisLiveMessage,
-                                >(&text)
-                                {
-                                    if let bgpkit_parser::parser::rislive::messages::RisLiveMessage::RisMessage(ris_msg) = live_msg {
-                                        let host = ris_msg.host.clone();
-                                        if let Ok(bgp_msg) = parse_ris_live_message(&text) {
-                                            let now = Utc::now().timestamp();
-                                            for elem in bgp_msg {
-                                                let origin_asn = elem.origin_asns.as_ref().and_then(|v| v.first()).map(|asn: &Asn| u32::from(*asn)).unwrap_or_default();
-                                                let ctx = MessageContext {
-                                                    elem: &elem,
-                                                    now,
-                                                    host: host.clone(),
-                                                    peer: elem.peer_ip.to_string(),
-                                                    is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
-                                                    path_str: elem.as_path.as_ref().map(|p| p.to_string()).unwrap_or_default(),
-                                                    comm_str: elem.communities.as_ref().map(|c| c.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(" ")).unwrap_or_default(),
-                                                    origin_asn,
-                                                    path_len: elem.as_path.as_ref().map(|p| p.segments.iter().count()).unwrap_or(0),
-                                                };
-
-                                                let event = classifier.classify_event(elem.prefix.to_string(), &ctx);
-                                                let is_classified = event.is_some();
-                                                let pending = event.unwrap_or_else(|| PendingEvent {
-                                                    prefix: elem.prefix.to_string(),
-                                                    asn: origin_asn,
-                                                    historical_asn: 0,
-                                                    classification_type: ClassificationType::None,
-                                                    leak_detail: None,
-                                                    anomaly_details: None,
-                                                });
-                                                let _ = tx.blocking_send((pending, is_classified));
-                                            }
-                                        }
-                                    }
+                                if let Err(_e) = process_ris_live_message(&text, &classifier, &tx) {
+                                    // Log parse errors at a lower level or ignore
+                                    // as not all messages might be valid BGP elements
                                 }
                             }
                         }
@@ -263,6 +340,73 @@ fn consume_ris_live(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent,
             }
         }
     }
+}
+
+async fn process_routeviews_message(
+    payload: &[u8],
+    classifier: &Classifier,
+    tx: &mpsc::Sender<(PendingEvent, bool)>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut bytes = Bytes::copy_from_slice(payload);
+    let header = parse_openbmp_header(&mut bytes)?;
+    let msg = parse_bmp_msg(&mut bytes)?;
+    let now = Utc::now().timestamp();
+
+    if let (Some(per_peer_header), BmpMessageBody::RouteMonitoring(rm)) =
+        (msg.per_peer_header, msg.message_body)
+    {
+        for elem in Elementor::bgp_to_elems(
+            rm.bgp_message,
+            header.timestamp,
+            &per_peer_header.peer_ip,
+            &per_peer_header.peer_asn,
+        ) {
+            let origin_asn = elem
+                .origin_asns
+                .as_ref()
+                .and_then(|v| v.first())
+                .map(|asn: &Asn| u32::from(*asn))
+                .unwrap_or_default();
+            let ctx = MessageContext {
+                elem: &elem,
+                now,
+                host: "routeviews".to_string(),
+                peer: elem.peer_ip.to_string(),
+                is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
+                path_str: elem
+                    .as_path
+                    .as_ref()
+                    .map(|p| p.to_string())
+                    .unwrap_or_default(),
+                comm_str: elem
+                    .communities
+                    .as_ref()
+                    .map(|c| {
+                        c.iter()
+                            .map(|v| v.to_string())
+                            .collect::<Vec<String>>()
+                            .join(" ")
+                    })
+                    .unwrap_or_default(),
+                origin_asn,
+                path_len: elem.as_path.as_ref().map(|p| p.segments.len()).unwrap_or(0),
+            };
+
+            let event = classifier.classify_event(elem.prefix.to_string(), &ctx);
+            let is_classified = event.is_some();
+            let pending = event.unwrap_or_else(|| PendingEvent {
+                prefix: elem.prefix.to_string(),
+                asn: origin_asn,
+                historical_asn: 0,
+                classification_type: ClassificationType::None,
+                leak_detail: None,
+                anomaly_details: None,
+            });
+            let _ = tx.send((pending, is_classified)).await;
+        }
+    }
+
+    Ok(())
 }
 
 async fn consume_routeviews(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent, bool)>) {
@@ -291,56 +435,10 @@ async fn consume_routeviews(classifier: Arc<Classifier>, tx: mpsc::Sender<(Pendi
                         Ok(m) => {
                             use rdkafka::Message;
                             if let Some(payload) = m.payload() {
-                                let mut bytes = Bytes::copy_from_slice(payload);
-                                if let Ok(header) = parse_openbmp_header(&mut bytes) {
-                                    if let Ok(msg) = parse_bmp_msg(&mut bytes) {
-                                        let now = Utc::now().timestamp();
-                                        if let (
-                                            Some(per_peer_header),
-                                            BmpMessageBody::RouteMonitoring(rm),
-                                        ) = (msg.per_peer_header, msg.message_body)
-                                        {
-                                            for elem in Elementor::bgp_to_elems(
-                                                rm.bgp_message,
-                                                header.timestamp,
-                                                &per_peer_header.peer_ip,
-                                                &per_peer_header.peer_asn,
-                                            ) {
-                                                let origin_asn = elem
-                                                    .origin_asns
-                                                    .as_ref()
-                                                    .and_then(|v| v.first())
-                                                    .map(|asn: &Asn| u32::from(*asn))
-                                                    .unwrap_or_default();
-                                                let ctx = MessageContext {
-                                                    elem: &elem,
-                                                    now,
-                                                    host: "routeviews".to_string(),
-                                                    peer: elem.peer_ip.to_string(),
-                                                    is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
-                                                    path_str: elem.as_path.as_ref().map(|p| p.to_string()).unwrap_or_default(),
-                                                    comm_str: elem.communities.as_ref().map(|c| c.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(" ")).unwrap_or_default(),
-                                                    origin_asn,
-                                                    path_len: elem.as_path.as_ref().map(|p| p.segments.iter().count()).unwrap_or(0),
-                                                };
-
-                                                let event = classifier
-                                                    .classify_event(elem.prefix.to_string(), &ctx);
-                                                let is_classified = event.is_some();
-                                                let pending =
-                                                    event.unwrap_or_else(|| PendingEvent {
-                                                        prefix: elem.prefix.to_string(),
-                                                        asn: origin_asn,
-                                                        historical_asn: 0,
-                                                        classification_type:
-                                                            ClassificationType::None,
-                                                        leak_detail: None,
-                                                        anomaly_details: None,
-                                                    });
-                                                let _ = tx.send((pending, is_classified)).await;
-                                            }
-                                        }
-                                    }
+                                if let Err(_e) =
+                                    process_routeviews_message(payload, &classifier, &tx).await
+                                {
+                                    // Parsing errors might occur for fragmented or incomplete messages
                                 }
                             }
                         }
@@ -371,7 +469,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let seen_db = DiskTrie::new(seen_tree);
 
     let classifier = Arc::new(Classifier::new(1000, Some(seen_db), Some(state_db.clone())));
-    let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(1000);
+    let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(10000);
 
     let c1 = classifier.clone();
     let tx1 = tx.clone();
@@ -393,33 +491,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load from DB
     println!("Loading historical data from DB...");
     let now = Utc::now().timestamp();
-    for item in state_db.iter() {
-        if let Ok((key, value)) = item {
-            if let Ok(state) = serde_json::from_slice::<classifier::PrefixState>(&value) {
-                let prefix = String::from_utf8_lossy(&key).to_string();
-                let event = PendingEvent {
-                    prefix: prefix.clone(),
-                    asn: state.last_origin_asn,
-                    historical_asn: 0,
-                    classification_type: state.classified_type,
-                    leak_detail: None,
-                    anomaly_details: None,
-                };
+    for (key, value) in state_db.iter().flatten() {
+        if let Ok(state) = serde_json::from_slice::<classifier::PrefixState>(&value) {
+            let prefix = String::from_utf8_lossy(&key).to_string();
+            let event = PendingEvent {
+                prefix: prefix.clone(),
+                asn: state.last_origin_asn,
+                historical_asn: 0,
+                classification_type: state.classified_type,
+                leak_detail: None,
+                anomaly_details: None,
+            };
 
-                // For global stats we consider everything in the DB as a known prefix
-                global_stats.add_event(&event, state.last_update_ts);
+            // For global stats we consider everything in the DB as a known prefix
+            global_stats.add_event(&event, state.last_update_ts);
 
-                if state.classified_type != ClassificationType::None {
-                    let c_stats = class_stats.entry(state.classified_type).or_default();
-                    c_stats.add_event(&event, state.classified_time_ts);
-                }
+            if state.classified_type != ClassificationType::None {
+                let c_stats = class_stats.entry(state.classified_type).or_default();
+                c_stats.add_event(&event, state.classified_time_ts);
+            }
 
-                // Add messages count from buckets for sliding window if within range
-                for (ts, bucket) in state.buckets {
-                    if ts >= now - 60 {
-                        for _ in 0..bucket.total_messages {
-                            global_stats.message_timestamps.push_back(ts);
-                        }
+            // Add messages count from buckets for sliding window if within range
+            for (ts, bucket) in state.buckets {
+                if ts >= now - 60 {
+                    for _ in 0..bucket.total_messages {
+                        global_stats.message_timestamps.push_back(ts);
                     }
                 }
             }
@@ -440,26 +536,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         loop {
             tokio::select! {
-                Some((pending_event, is_classified)) = rx.recv() => {
+                Some(first_msg) = rx.recv() => {
                     let now = Utc::now().timestamp();
+                    let mut batched_events = Vec::new();
+                    batched_events.push(first_msg);
+
+                    // Try to drain up to 1000 messages at once
+                    while let Ok(msg) = rx.try_recv() {
+                        batched_events.push(msg);
+                        if batched_events.len() >= 1000 {
+                            break;
+                        }
+                    }
+
                     let mut state = app_state_agg.write().await;
-                    state.global_stats.add_event(&pending_event, now);
+                    for (pending_event, is_classified) in batched_events {
+                        state.global_stats.add_event(&pending_event, now);
 
-                    if is_classified {
-                        let c_stats = state.class_stats.entry(pending_event.classification_type).or_default();
-                        c_stats.add_event(&pending_event, now);
+                        if is_classified {
+                            let c_stats = state.class_stats.entry(pending_event.classification_type).or_default();
+                            c_stats.add_event(&pending_event, now);
 
-                        let prefix_parts: Vec<&str> = pending_event.prefix.split('/').collect();
-                        if let Ok(ip) = prefix_parts[0].parse::<IpAddr>() {
-                            if let Some(geo_data) = geo.lookup(ip) {
-                                let key = AggregationKey {
-                                    lat_bits: geo_data.lat.to_bits(),
-                                    lon_bits: geo_data.lon.to_bits(),
-                                    city: geo_data.city,
-                                    country: geo_data.country,
-                                    classification: pending_event.classification_type,
-                                };
-                                *aggregate_buffer.entry(key).or_insert(0) += 1;
+                            let prefix_parts: Vec<&str> = pending_event.prefix.split('/').collect();
+                            if let Ok(ip) = prefix_parts[0].parse::<IpAddr>() {
+                                if let Some(geo_data) = geo.lookup(ip) {
+                                    let key = AggregationKey {
+                                        lat_bits: geo_data.lat.to_bits(),
+                                        lon_bits: geo_data.lon.to_bits(),
+                                        city: geo_data.city,
+                                        country: geo_data.country,
+                                        classification: pending_event.classification_type,
+                                    };
+                                    *aggregate_buffer.entry(key).or_insert(0) += 1;
+                                }
                             }
                         }
                     }
@@ -500,4 +609,76 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Server::builder().add_service(server).serve(addr).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_map_classification() {
+        assert_eq!(
+            map_classification(ClassificationType::Bogon),
+            ProtoClassification::Bogon
+        );
+        assert_eq!(
+            map_classification(ClassificationType::Hijack),
+            ProtoClassification::Hijack
+        );
+        assert_eq!(
+            map_classification(ClassificationType::None),
+            ProtoClassification::None
+        );
+    }
+
+    #[test]
+    fn test_cumulative_stats_add_event() {
+        let mut stats = CumulativeStats::default();
+        let event = PendingEvent {
+            prefix: "192.168.1.0/24".to_string(),
+            asn: 12345,
+            historical_asn: 0,
+            classification_type: ClassificationType::None,
+            leak_detail: None,
+            anomaly_details: None,
+        };
+        stats.add_event(&event, 1000);
+        assert_eq!(stats.msg_count, 1);
+        assert_eq!(stats.message_timestamps.len(), 1);
+        assert_eq!(stats.message_timestamps[0], 1000);
+        assert!(stats.asns.contains(&12345));
+        assert!(
+            stats
+                .prefixes_v4
+                .contains(&Ipv4Net::from_str("192.168.1.0/24").unwrap())
+        );
+    }
+
+    #[test]
+    fn test_cumulative_stats_cleanup_sliding_window() {
+        let mut stats = CumulativeStats::default();
+        stats.message_timestamps.push_back(100);
+        stats.message_timestamps.push_back(120);
+        stats.message_timestamps.push_back(150);
+        stats.message_timestamps.push_back(200);
+
+        // cleanup window with now = 160. Cutoff = 160 - 60 = 100
+        stats.cleanup_sliding_window(160);
+
+        // 100 is NOT < 100. It stays.
+        assert_eq!(stats.message_timestamps.len(), 4);
+
+        // cleanup window with now = 161. Cutoff = 161 - 60 = 101
+        stats.cleanup_sliding_window(161);
+
+        // 100 is < 101. It goes.
+        assert_eq!(stats.message_timestamps.len(), 3);
+        assert_eq!(stats.message_timestamps[0], 120);
+        assert_eq!(stats.message_timestamps[1], 150);
+        assert_eq!(stats.message_timestamps[2], 200);
+
+        // cleanup window with now = 300. Cutoff = 300 - 60 = 240
+        stats.cleanup_sliding_window(300);
+        assert_eq!(stats.message_timestamps.len(), 0);
+    }
 }
