@@ -26,5 +26,8 @@ jobs:
       with:
         install: true
 
+    - name: Install rust components
+      run: rustup component add clippy rustfmt
+
     - name: Run just check
       run: just check

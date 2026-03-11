@@ -491,10 +491,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load from DB
     println!("Loading historical data from DB...");
     let now = Utc::now().timestamp();
-    for item in state_db.iter() {
-        if let Ok((key, value)) = item
-            && let Ok(state) = serde_json::from_slice::<classifier::PrefixState>(&value)
-        {
+    for (key, value) in state_db.iter().flatten() {
+        if let Ok(state) = serde_json::from_slice::<classifier::PrefixState>(&value) {
             let prefix = String::from_utf8_lossy(&key).to_string();
             let event = PendingEvent {
                 prefix: prefix.clone(),
@@ -611,4 +609,76 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Server::builder().add_service(server).serve(addr).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_map_classification() {
+        assert_eq!(
+            map_classification(ClassificationType::Bogon),
+            ProtoClassification::Bogon
+        );
+        assert_eq!(
+            map_classification(ClassificationType::Hijack),
+            ProtoClassification::Hijack
+        );
+        assert_eq!(
+            map_classification(ClassificationType::None),
+            ProtoClassification::None
+        );
+    }
+
+    #[test]
+    fn test_cumulative_stats_add_event() {
+        let mut stats = CumulativeStats::default();
+        let event = PendingEvent {
+            prefix: "192.168.1.0/24".to_string(),
+            asn: 12345,
+            historical_asn: 0,
+            classification_type: ClassificationType::None,
+            leak_detail: None,
+            anomaly_details: None,
+        };
+        stats.add_event(&event, 1000);
+        assert_eq!(stats.msg_count, 1);
+        assert_eq!(stats.message_timestamps.len(), 1);
+        assert_eq!(stats.message_timestamps[0], 1000);
+        assert!(stats.asns.contains(&12345));
+        assert!(
+            stats
+                .prefixes_v4
+                .contains(&Ipv4Net::from_str("192.168.1.0/24").unwrap())
+        );
+    }
+
+    #[test]
+    fn test_cumulative_stats_cleanup_sliding_window() {
+        let mut stats = CumulativeStats::default();
+        stats.message_timestamps.push_back(100);
+        stats.message_timestamps.push_back(120);
+        stats.message_timestamps.push_back(150);
+        stats.message_timestamps.push_back(200);
+
+        // cleanup window with now = 160. Cutoff = 160 - 60 = 100
+        stats.cleanup_sliding_window(160);
+
+        // 100 is NOT < 100. It stays.
+        assert_eq!(stats.message_timestamps.len(), 4);
+
+        // cleanup window with now = 161. Cutoff = 161 - 60 = 101
+        stats.cleanup_sliding_window(161);
+
+        // 100 is < 101. It goes.
+        assert_eq!(stats.message_timestamps.len(), 3);
+        assert_eq!(stats.message_timestamps[0], 120);
+        assert_eq!(stats.message_timestamps[1], 150);
+        assert_eq!(stats.message_timestamps[2], 200);
+
+        // cleanup window with now = 300. Cutoff = 300 - 60 = 240
+        stats.cleanup_sliding_window(300);
+        assert_eq!(stats.message_timestamps.len(), 0);
+    }
 }
