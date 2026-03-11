@@ -1,5 +1,4 @@
 [tools]
 rust = "latest"
-"pkg-config" = "latest"
 buf = "latest"
 just = "latest"
