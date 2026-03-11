@@ -22,11 +22,11 @@ impl Geolocation {
         let reader = self.reader.as_ref()?;
         let result = reader.lookup(ip).ok()?;
         let city_data: maxminddb::geoip2::City = result.decode().ok()??;
-        
+
         let location = city_data.location;
         let lat = location.latitude? as f32;
         let lon = location.longitude? as f32;
-        
+
         let city = city_data.city.names.english.map(String::from);
         let country = city_data.country.iso_code.map(String::from);
 
