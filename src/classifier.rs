@@ -181,14 +181,23 @@ pub struct Classifier {
     pub prefix_states: Mutex<LruCache<String, PrefixState>>,
     pub seen_db: Option<DiskTrie>,
     pub state_db: Option<Db>,
+    pub bgpkit: Option<bgpkit_commons::BgpkitCommons>,
 }
 
 impl Classifier {
     pub fn new(capacity: usize, seen_db: Option<DiskTrie>, state_db: Option<Db>) -> Self {
+        let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
+        let bgpkit_opt = if bgpkit.load_asinfo(true, false, true, false).is_ok() {
+            Some(bgpkit)
+        } else {
+            None
+        };
+
         Self {
             prefix_states: Mutex::new(LruCache::new(NonZeroUsize::new(capacity).unwrap())),
             seen_db,
             state_db,
+            bgpkit: bgpkit_opt,
         }
     }
 
@@ -654,8 +663,17 @@ impl Classifier {
     }
 
     fn is_likely_sibling(&self, asn1: u32, asn2: u32) -> bool {
-        // Conceptual: in a real app, use an OrgID database.
-        // Here we just use some common examples.
+        if let Some(ref bgpkit) = self.bgpkit {
+            if let (Ok(Some(info1)), Ok(Some(info2))) = (bgpkit.asinfo_get(asn1), bgpkit.asinfo_get(asn2)) {
+                if let (Some(org1), Some(org2)) = (&info1.as2org, &info2.as2org) {
+                    if org1.org_id == org2.org_id {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Fallback to common examples if authoritative data is unavailable
         match (asn1, asn2) {
             (13335, 132892) => true, // Cloudflare
             (15169, 16591) => true,  // Google
@@ -672,6 +690,16 @@ impl Classifier {
     }
 
     fn is_tier1(&self, asn: u32) -> bool {
+        if let Some(ref bgpkit) = self.bgpkit {
+            if let Ok(Some(info)) = bgpkit.asinfo_get(asn) {
+                if let Some(h) = info.hegemony {
+                    if h.ipv4 >= 0.015 || h.ipv6 >= 0.015 {
+                        return true;
+                    }
+                }
+            }
+        }
+
         matches!(
             asn,
             209 | 701
@@ -700,6 +728,17 @@ impl Classifier {
         if self.is_tier1(asn1) {
             return true;
         }
+
+        if let Some(ref bgpkit) = self.bgpkit {
+            if let Ok(Some(info)) = bgpkit.asinfo_get(asn1) {
+                if let Some(h) = info.hegemony {
+                    if h.ipv4 >= 0.005 || h.ipv6 >= 0.005 {
+                        return true;
+                    }
+                }
+            }
+        }
+
         matches!(
             asn1,
             174 | 6939 | 9002 | 1273 | 4637 | 7922 | 4134 | 4809 | 4837 | 7473 | 9808
