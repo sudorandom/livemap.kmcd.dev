@@ -664,7 +664,9 @@ impl Classifier {
 
     fn is_likely_sibling(&self, asn1: u32, asn2: u32) -> bool {
         if let Some(ref bgpkit) = self.bgpkit {
-            if let (Ok(Some(info1)), Ok(Some(info2))) = (bgpkit.asinfo_get(asn1), bgpkit.asinfo_get(asn2)) {
+            if let (Ok(Some(info1)), Ok(Some(info2))) =
+                (bgpkit.asinfo_get(asn1), bgpkit.asinfo_get(asn2))
+            {
                 if let (Some(org1), Some(org2)) = (&info1.as2org, &info2.as2org) {
                     if org1.org_id == org2.org_id {
                         return true;
