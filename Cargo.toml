@@ -4,14 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bgpkit-commons = { version = "0.10.2", features = ["all"] }
 bgpkit-parser = { version = "0.15.0", features = ["rislive"] }
 bytes = "1.11.1"
 chrono = "0.4.44"
-ipnet = "2.12.0"
+ipnet = { version = "2.12.0", features = ["serde"] }
 lru = "0.16.3"
 maxminddb = "0.27.3"
+parking_lot = "0.12.3"
 prost = "0.14.3"
+r2d2 = "0.8.10"
+r2d2_sqlite = "0.32.0"
+rayon = "1.11.0"
 rdkafka = "0.39.0"
+rusqlite = { version = "0.38.0", features = ["bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sled = "0.34.7"
@@ -20,6 +26,7 @@ tokio-stream = { version = "0.1.18", features = ["sync"] }
 tonic = "0.14.5"
 tonic-prost = "0.14.5"
 tungstenite = "0.28.0"
+uuid = { version = "1.22.0", features = ["v4"] }
 
 [build-dependencies]
 prost-build = "0.14.3"
