@@ -1,4 +1,3 @@
-use bgpkit_parser::BgpElem;
 use ipnet::IpNet;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
@@ -208,8 +207,7 @@ impl Default for PrefixState {
     }
 }
 
-pub struct MessageContext<'a> {
-    pub elem: &'a BgpElem,
+pub struct MessageContext {
     pub now: i64,
     pub host: String,
     pub peer: String,
@@ -410,25 +408,29 @@ impl Classifier {
             });
         }
 
-        // If still no classification and it's an announcement, check if it's new
-        if result.is_none() && !ctx.is_withdrawal && historical_origin_asn == 0 {
-            result = Some(PendingEvent {
-                prefix: prefix.clone(),
-                asn: ctx.origin_asn,
-                peer_ip: ctx.peer.clone(),
-                historical_asn: 0,
-                timestamp: ctx.now,
-                classification_type: ClassificationType::Discovery,
-                old_classification: ClassificationType::None,
-                incident_id: None,
-                leak_detail: None,
-                anomaly_details: None,
-            });
-
+        // If it's a new prefix (historical_origin_asn == 0) and it's an announcement,
+        // we should record its ASN in the seen_db regardless of whether an anomaly was detected.
+        if !ctx.is_withdrawal && historical_origin_asn == 0 && ctx.origin_asn != 0 {
             if let Some(ref seen_db) = self.seen_db {
                 if let Ok(net) = IpNet::from_str(&prefix) {
                     let _ = seen_db.insert(net, &ctx.origin_asn.to_be_bytes());
                 }
+            }
+
+            // If no anomaly was detected, flag it as a Discovery event
+            if result.is_none() {
+                result = Some(PendingEvent {
+                    prefix: prefix.clone(),
+                    asn: ctx.origin_asn,
+                    peer_ip: ctx.peer.clone(),
+                    historical_asn: 0,
+                    timestamp: ctx.now,
+                    classification_type: ClassificationType::Discovery,
+                    old_classification: ClassificationType::None,
+                    incident_id: None,
+                    leak_detail: None,
+                    anomaly_details: None,
+                });
             }
         }
 
@@ -1026,5 +1028,84 @@ impl AggregatedStats {
             unique_hosts: HashSet::new(),
             withdrawn_peers: HashSet::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use r2d2_sqlite::SqliteConnectionManager;
+    use sled::Config;
+
+    fn setup_classifier() -> Classifier {
+        let sled_config = Config::new().temporary(true);
+        let sled_db = sled_config.open().unwrap();
+        let seen_db_inner = DiskTrie::new(sled_db.open_tree("seen").unwrap());
+
+        let manager = SqliteConnectionManager::memory();
+        let sqlite_pool = Pool::new(manager).unwrap();
+        if let Ok(conn) = sqlite_pool.get() {
+            conn.execute_batch(
+                "PRAGMA journal_mode = WAL;
+                 CREATE TABLE IF NOT EXISTS prefix_state (
+                     prefix TEXT PRIMARY KEY,
+                     state TEXT,
+                     last_update_ts INTEGER,
+                     classified_type INTEGER,
+                     origin_asn INTEGER DEFAULT 0
+                 );"
+            ).unwrap();
+        }
+
+        Classifier::new(1000, Some(seen_db_inner), Some(sqlite_pool))
+    }
+
+    #[test]
+    fn test_hijack_detection() {
+        let classifier = setup_classifier();
+        let prefix = "1.2.3.0/24".to_string();
+
+        let ctx1 = MessageContext {
+            now: 100,
+            host: "test".to_string(),
+            peer: "192.168.0.1".to_string(),
+            is_withdrawal: false,
+            path_str: "100 123".to_string(),
+            comm_str: "".to_string(),
+            origin_asn: 123,
+            path_len: 2,
+        };
+
+        let res1 = classifier.classify_event(prefix.clone(), &ctx1);
+        assert_eq!(res1.map(|r| r.classification_type), Some(ClassificationType::Discovery));
+
+        // Simulate Hijack with ASN 456
+        let ctx2 = MessageContext {
+            now: 200,
+            host: "test".to_string(),
+            peer: "192.168.0.1".to_string(),
+            is_withdrawal: false,
+            path_str: "100 456".to_string(),
+            comm_str: "".to_string(),
+            origin_asn: 456,
+            path_len: 2,
+        };
+
+        let res2 = classifier.classify_event(prefix.clone(), &ctx2);
+        assert_eq!(res2.map(|r| r.classification_type), Some(ClassificationType::Hijack));
+
+        let ctx3 = MessageContext {
+            now: 300,
+            host: "test".to_string(),
+            peer: "192.168.0.1".to_string(),
+            is_withdrawal: false,
+            path_str: "100 456".to_string(),
+            comm_str: "".to_string(),
+            origin_asn: 456,
+            path_len: 2,
+        };
+
+        let res3 = classifier.classify_event(prefix.clone(), &ctx3);
+        assert_eq!(res3.map(|r| r.classification_type), Some(ClassificationType::Hijack));
     }
 }

@@ -39,6 +39,19 @@ use livemap_proto::{
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
 
+#[derive(Debug, Clone)]
+pub struct RawEvent {
+    pub prefix: String,
+    pub host: String,
+    pub peer: String,
+    pub is_withdrawal: bool,
+    pub path_str: String,
+    pub comm_str: String,
+    pub origin_asn: u32,
+    pub path_len: usize,
+    pub timestamp: i64,
+}
+
 fn map_classification(c: ClassificationType) -> ProtoClassification {
     match c {
         ClassificationType::None => ProtoClassification::None,
@@ -138,7 +151,7 @@ struct AppState {
     transition_subscribers: Vec<(mpsc::Sender<Result<StreamStateTransitionsResponse, Status>>, HashSet<ClassificationType>)>,
     global_stats: CumulativeStats,
     class_stats: HashMap<ClassificationType, CumulativeStats>,
-    input_tx: mpsc::Sender<(PendingEvent, bool)>,
+    input_tx: mpsc::Sender<RawEvent>,
     max_lag: i64,
     ingestion_start_ts: i64,
     cached_global_ipv4_count: u64,
@@ -264,23 +277,39 @@ impl LiveMap for LiveMapService {
 
 async fn process_ris_live_message(
     text: &str,
-    classifier: &Classifier,
-    tx: &mpsc::Sender<(PendingEvent, bool)>,
+    tx: &mpsc::Sender<RawEvent>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let bgp_msg = parse_ris_live_message(text)?;
     let now = Utc::now().timestamp();
 
     for elem in bgp_msg {
         let host = elem.peer_ip.to_string();
-        let origin_asn = elem
+
+        let mut origin_asn = elem
             .origin_asns
             .as_ref()
             .and_then(|v| v.first())
             .map(|asn: &Asn| u32::from(*asn))
             .unwrap_or_default();
-        let ctx = MessageContext {
-            elem: &elem,
-            now,
+
+        if origin_asn == 0 {
+            if let Some(path) = &elem.as_path {
+                if let Some(last_seg) = path.segments.last() {
+                    if let bgpkit_parser::models::AsPathSegment::AsSequence(seq) = last_seg {
+                        if let Some(asn) = seq.last() {
+                            origin_asn = u32::from(*asn);
+                        }
+                    } else if let bgpkit_parser::models::AsPathSegment::AsSet(set) = last_seg {
+                        if let Some(asn) = set.first() {
+                            origin_asn = u32::from(*asn);
+                        }
+                    }
+                }
+            }
+        }
+
+        let raw_event = RawEvent {
+            prefix: elem.prefix.to_string(),
             host: host.clone(),
             peer: elem.peer_ip.to_string(),
             is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
@@ -301,29 +330,16 @@ async fn process_ris_live_message(
                 .unwrap_or_default(),
             origin_asn,
             path_len: elem.as_path.as_ref().map(|p| p.segments.len()).unwrap_or(0),
+            timestamp: now,
         };
 
-        let event = classifier.classify_event(elem.prefix.to_string(), &ctx);
-        let is_classified = event.is_some();
-        let pending = event.unwrap_or_else(|| PendingEvent {
-            prefix: elem.prefix.to_string(),
-            asn: origin_asn,
-            peer_ip: host.clone(),
-            historical_asn: 0,
-            timestamp: now,
-            classification_type: ClassificationType::None,
-            old_classification: ClassificationType::None,
-            incident_id: None,
-            leak_detail: None,
-            anomaly_details: None,
-        });
-        let _ = tx.send((pending, is_classified)).await;
+        let _ = tx.send(raw_event).await;
     }
 
     Ok(())
 }
 
-fn consume_ris_live(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent, bool)>) {
+fn consume_ris_live(tx: mpsc::Sender<RawEvent>) {
     let mut backoff = Duration::from_secs(1);
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -352,10 +368,9 @@ fn consume_ris_live(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent,
                     match socket.read() {
                         Ok(msg) => {
                             if let WsMessage::Text(text) = msg {
-                                let c = classifier.clone();
                                 let t = tx.clone();
                                 rt.block_on(async move {
-                                    if let Err(_e) = process_ris_live_message(&text, &c, &t).await {
+                                    if let Err(_e) = process_ris_live_message(&text, &t).await {
                                         // Ignore or log
                                     }
                                 });
@@ -382,8 +397,7 @@ fn consume_ris_live(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent,
 
 async fn process_routeviews_message(
     payload: &[u8],
-    classifier: &Classifier,
-    tx: &mpsc::Sender<(PendingEvent, bool)>,
+    tx: &mpsc::Sender<RawEvent>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut bytes = Bytes::copy_from_slice(payload);
     let header = parse_openbmp_header(&mut bytes)?;
@@ -399,15 +413,31 @@ async fn process_routeviews_message(
             &per_peer_header.peer_ip,
             &per_peer_header.peer_asn,
         ) {
-            let origin_asn = elem
+            let mut origin_asn = elem
                 .origin_asns
                 .as_ref()
                 .and_then(|v| v.first())
                 .map(|asn: &Asn| u32::from(*asn))
                 .unwrap_or_default();
-            let ctx = MessageContext {
-                elem: &elem,
-                now,
+
+            if origin_asn == 0 {
+                if let Some(path) = &elem.as_path {
+                    if let Some(last_seg) = path.segments.last() {
+                        if let bgpkit_parser::models::AsPathSegment::AsSequence(seq) = last_seg {
+                            if let Some(asn) = seq.last() {
+                                origin_asn = u32::from(*asn);
+                            }
+                        } else if let bgpkit_parser::models::AsPathSegment::AsSet(set) = last_seg {
+                            if let Some(asn) = set.first() {
+                                origin_asn = u32::from(*asn);
+                            }
+                        }
+                    }
+                }
+            }
+
+            let raw_event = RawEvent {
+                prefix: elem.prefix.to_string(),
                 host: "routeviews".to_string(),
                 peer: elem.peer_ip.to_string(),
                 is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
@@ -428,30 +458,17 @@ async fn process_routeviews_message(
                     .unwrap_or_default(),
                 origin_asn,
                 path_len: elem.as_path.as_ref().map(|p| p.segments.len()).unwrap_or(0),
+                timestamp: now,
             };
 
-            let event = classifier.classify_event(elem.prefix.to_string(), &ctx);
-            let is_classified = event.is_some();
-            let pending = event.unwrap_or_else(|| PendingEvent {
-                prefix: elem.prefix.to_string(),
-                asn: origin_asn,
-                peer_ip: "routeviews".to_string(),
-                historical_asn: 0,
-                timestamp: now,
-                classification_type: ClassificationType::None,
-                old_classification: ClassificationType::None,
-                incident_id: None,
-                leak_detail: None,
-                anomaly_details: None,
-            });
-            let _ = tx.send((pending, is_classified)).await;
+            let _ = tx.send(raw_event).await;
         }
     }
 
     Ok(())
 }
 
-async fn consume_routeviews(classifier: Arc<Classifier>, tx: mpsc::Sender<(PendingEvent, bool)>) {
+async fn consume_routeviews(tx: mpsc::Sender<RawEvent>) {
     let mut backoff = Duration::from_secs(5);
     loop {
         println!("Connecting to RouteViews Kafka...");
@@ -478,7 +495,7 @@ async fn consume_routeviews(classifier: Arc<Classifier>, tx: mpsc::Sender<(Pendi
                             use rdkafka::message::Message;
                             if let Some(payload) = msg.payload() {
                                 if let Err(_e) =
-                                    process_routeviews_message(payload, &classifier, &tx).await
+                                    process_routeviews_message(payload, &tx).await
                                 {
                                     // Log or ignore
                                 }
@@ -538,7 +555,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await
     .expect("Failed to initialize classifier");
 
+    let (raw_tx, mut raw_rx) = mpsc::channel::<RawEvent>(20000);
     let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(10000);
+
+    // Spawn classification worker pool using a single receiver loop and bounded concurrency via semaphore
+    let num_workers = 8;
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(num_workers));
+
+    let classifier_workers = classifier.clone();
+    tokio::spawn(async move {
+        while let Some(raw) = raw_rx.recv().await {
+            let permit = semaphore.clone().acquire_owned().await.unwrap();
+            let c_clone = classifier_workers.clone();
+            let t_clone = tx.clone();
+
+            tokio::task::spawn_blocking(move || {
+                let ctx = MessageContext {
+                    now: raw.timestamp,
+                    host: raw.host.clone(),
+                    peer: raw.peer.clone(),
+                    is_withdrawal: raw.is_withdrawal,
+                    path_str: raw.path_str.clone(),
+                    comm_str: raw.comm_str.clone(),
+                    origin_asn: raw.origin_asn,
+                    path_len: raw.path_len,
+                };
+                let event = c_clone.classify_event(raw.prefix.clone(), &ctx);
+                let is_classified = event.is_some();
+                let pending = event.unwrap_or_else(|| PendingEvent {
+                    prefix: raw.prefix.clone(),
+                    asn: raw.origin_asn,
+                    peer_ip: raw.host.clone(),
+                    historical_asn: 0,
+                    timestamp: raw.timestamp,
+                    classification_type: ClassificationType::None,
+                    old_classification: ClassificationType::None,
+                    incident_id: None,
+                    leak_detail: None,
+                    anomaly_details: None,
+                });
+                let _ = t_clone.blocking_send((pending, is_classified));
+                drop(permit);
+            });
+        }
+    });
 
     let geo = Arc::new(Geolocation::new("assets/dbip-city-lite-2026-03.mmdb"));
 
@@ -564,7 +624,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         transition_subscribers: Vec::new(),
         global_stats: initial_global_stats,
         class_stats: initial_class_stats,
-        input_tx: tx.clone(),
+        input_tx: raw_tx.clone(),
         max_lag: 0,
         ingestion_start_ts: Utc::now().timestamp(),
         cached_global_ipv4_count: 0,
@@ -573,16 +633,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }));
 
     // Start background consumers immediately
-    let c1 = classifier.clone();
-    let tx1 = tx.clone();
+    let tx1 = raw_tx.clone();
     tokio::task::spawn_blocking(move || {
-        consume_ris_live(c1, tx1);
+        consume_ris_live(tx1);
     });
 
-    let c2 = classifier.clone();
-    let tx2 = tx.clone();
+    let tx2 = raw_tx.clone();
     tokio::spawn(async move {
-        consume_routeviews(c2, tx2).await;
+        consume_routeviews(tx2).await;
     });
 
     let app_state_ipv4 = app_state.clone();
@@ -825,9 +883,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if pending_event.classification_type != pending_event.old_classification {
                             if let Some(incident_id) = &pending_event.incident_id {
                                 let mut as_name = String::new();
-                                if let Some(ref b) = classifier_ingest.bgpkit {
-                                    if let Ok(Some(info)) = b.asinfo_get(pending_event.asn) {
-                                        as_name = info.name;
+                                // Do not resolve AS names for Outages or Route Leaks
+                                if pending_event.classification_type != ClassificationType::Outage
+                                    && pending_event.classification_type != ClassificationType::RouteLeak {
+                                    if let Some(ref b) = classifier_ingest.bgpkit {
+                                        if let Ok(Some(info)) = b.asinfo_get(pending_event.asn) {
+                                            as_name = info.name;
+                                        }
                                     }
                                 }
 
