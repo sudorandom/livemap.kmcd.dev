@@ -209,6 +209,7 @@ type Engine struct {
 
 	// History for trendlines (last 60 snapshots, 2s each = 2 mins)
 	history   []MetricSnapshot
+	latestSnapshot MetricSnapshot
 	metricsMu sync.RWMutex
 
 	CurrentSong        string

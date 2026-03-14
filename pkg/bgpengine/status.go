@@ -659,9 +659,7 @@ func (e *Engine) drawIPTrendlines(screen *ebiten.Image, gx, gy, graphW, trendBox
 	e.ipTrendClipBuffer.Clear()
 
 	smoothOffset := time.Since(lastUpdate).Seconds()
-	if smoothOffset > 1.0 {
-		smoothOffset = 1.0
-	}
+	// Allow it to keep going smoothly instead of snapping to a grid
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-smoothOffset*step, 0)
 	op.ColorScale.Scale(1, 1, 1, 1.0)
@@ -740,9 +738,7 @@ func (e *Engine) drawEventTrendlines(screen *ebiten.Image, gx, gy, graphW, trend
 	e.trendClipBuffer.Clear()
 
 	smoothOffset := time.Since(lastUpdate).Seconds()
-	if smoothOffset > 1.0 {
-		smoothOffset = 1.0
-	}
+	// Allow it to keep going smoothly instead of snapping to a grid
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-smoothOffset*step, 0)
 	op.ColorScale.Scale(1, 1, 1, 1.0)
@@ -1197,8 +1193,30 @@ func (e *Engine) updateMetricSnapshots(interval float64) {
 	e.windowResearch = 0
 	e.windowSecurity = 0
 
+	// Merge windowed events with latest snapshot from gRPC
+	snap.Global += e.latestSnapshot.Global
+	snap.Hunting += e.latestSnapshot.Hunting
+	snap.Flap += e.latestSnapshot.Flap
+	snap.Outage += e.latestSnapshot.Outage
+	snap.Leak += e.latestSnapshot.Leak
+	snap.Hijack += e.latestSnapshot.Hijack
+
+	// Add in IPs from gRPC snapshot if it has them
+	if e.latestSnapshot.GoodIPs > 0 {
+		snap.GoodIPs = e.latestSnapshot.GoodIPs
+	}
+	if e.latestSnapshot.PolyIPs > 0 {
+		snap.PolyIPs = e.latestSnapshot.PolyIPs
+	}
+	if e.latestSnapshot.BadIPs > 0 {
+		snap.BadIPs = e.latestSnapshot.BadIPs
+	}
+	if e.latestSnapshot.CritIPs > 0 {
+		snap.CritIPs = e.latestSnapshot.CritIPs
+	}
+
 	// Shift history and add new snapshot (avoiding prepend allocations)
-	if len(e.history) > 0 {
+	if len(e.history) > 60 {
 		copy(e.history, e.history[1:])
 		e.history[len(e.history)-1] = snap
 	} else {

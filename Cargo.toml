@@ -3,6 +3,10 @@ name = "livemap"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "bgp-collector"
+path = "src/main.rs"
+
 [dependencies]
 bgpkit-commons = { version = "0.10.2", features = ["asinfo", "rpki"] }
 bgpkit-parser = { version = "0.15.0", features = ["rislive"] }
