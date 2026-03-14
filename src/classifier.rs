@@ -328,21 +328,43 @@ impl Classifier {
         country: Option<String>,
     ) -> (Option<PendingEvent>, bool) {
         let shard = self.get_shard(&prefix);
-        let mut states = shard.lock();
-        let mut state = states.get(&prefix).cloned();
-        if state.is_none()
+
+        let mut state_opt = {
+            let mut states = shard.lock();
+            states.get(&prefix).cloned()
+        };
+
+        if state_opt.is_none()
             && let Some(ref db) = self.state_db
             && let Some(data) = db.get_prefix_state(&prefix)
         {
-            state = serde_json::from_str(&data).ok();
+            state_opt = serde_json::from_str(&data).ok();
         }
-        let mut state = state.unwrap_or_default();
+
+        let mut historical_origin_asn = 0;
+        if let Some(s) = &state_opt {
+            historical_origin_asn = s.historical_origin_asn;
+        }
+
+        if historical_origin_asn == 0 {
+            historical_origin_asn = self.get_historical_asn(&prefix);
+        }
+
+        let mut states = shard.lock();
+        let mut state = if let Some(s) = states.get(&prefix) {
+            s.clone()
+        } else {
+            state_opt.unwrap_or_default()
+        };
+
+        if state.historical_origin_asn == 0 {
+            state.historical_origin_asn = historical_origin_asn;
+        } else {
+            historical_origin_asn = state.historical_origin_asn;
+        }
+
         let old_classified_type = state.classified_type;
         state.last_update_ts = ctx.now;
-        if state.historical_origin_asn == 0 {
-            state.historical_origin_asn = self.get_historical_asn(&prefix);
-        }
-        let historical_origin_asn = state.historical_origin_asn;
         let minute_ts = (ctx.now / 60) * 60;
         state.buckets.retain(|&ts, _| ts >= ctx.now - 600);
         state
@@ -1135,12 +1157,15 @@ impl Classifier {
 
     pub fn check_outage(&self, prefix: &str, now: i64) -> Option<PendingEvent> {
         let shard = self.get_shard(prefix);
-        let mut states = shard.lock();
-        let mut state = if let Some(s) = states.get(prefix) {
-            s.clone()
-        } else {
-            return None;
-        };
+        let mut state_opt = None;
+        {
+            let mut states = shard.lock();
+            if let Some(s) = states.get(prefix) {
+                state_opt = Some(s.clone());
+            }
+        }
+
+        let mut state = state_opt?;
 
         if let Some(fw_ts) = state.fully_withdrawn_ts
             && now - fw_ts >= 10
@@ -1197,6 +1222,7 @@ impl Classifier {
                 );
             }
 
+            let mut states = shard.lock();
             states.put(prefix.to_string(), state);
             return Some(event);
         }

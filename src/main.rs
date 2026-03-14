@@ -659,11 +659,16 @@ async fn consume_routeviews(
         if let Ok(consumer) = res
             && consumer.subscribe(&["^routeviews\\.(amsix|kixp|linx|n-ix|nwax|nyiix|ottix|saopaulo|sfmix|sydney|telstra|wide)\\..*\\.bmp_raw"]).is_ok() {
                 info!("Subscribed to RouteViews Kafka topics");
+                let sem = Arc::new(tokio::sync::Semaphore::new(200));
                 while let Ok(msg) = consumer.recv().await {
                     if let Some(p) = msg.payload() {
                         let p_owned = p.to_vec();
                         let c = classifier.clone(); let t = tx.clone(); let g = geo.clone();
-                        tokio::spawn(async move { let _ = process_routeviews_message(p_owned, c, g, t).await; });
+                        let s = sem.clone();
+                        tokio::spawn(async move {
+                            let _p = s.acquire().await.ok();
+                            let _ = process_routeviews_message(p_owned, c, g, t).await;
+                        });
                     }
                 }
             }
