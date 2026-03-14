@@ -7,7 +7,7 @@ use std::net::IpAddr;
 use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::{Mutex, RwLock};
+use parking_lot::{Mutex, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct DiskTrie {
@@ -246,9 +246,8 @@ pub struct PendingEvent {
 
 #[derive(Default)]
 pub struct BgpkitCache {
-    pub is_tier1: HashMap<u32, bool>,
-    pub is_large: HashMap<u32, bool>,
     pub as2org: HashMap<u32, Option<String>>,
+    pub as2name: HashMap<u32, Option<String>>,
 }
 
 pub struct Classifier {
@@ -329,10 +328,7 @@ impl Classifier {
         country: Option<String>,
     ) -> (Option<PendingEvent>, bool) {
         let shard = self.get_shard(&prefix);
-        let mut states = match shard.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        let mut states = shard.lock();
         let mut state = states.get(&prefix).cloned();
         if state.is_none() {
             if let Some(ref db) = self.state_db {
@@ -675,18 +671,19 @@ impl Classifier {
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
         {
-            let (mut new_peers, mut total_active) = (0, 0);
+
             let mut hosts = HashSet::new();
             for attr in &s.peer_attrs_values {
-                if !attr.withdrawn {
-                    total_active += 1;
-                    if attr.origin_asn == ctx.origin_asn {
-                        new_peers += 1;
-                        hosts.insert(attr.host.clone());
-                    }
+                if !attr.withdrawn && attr.origin_asn == ctx.origin_asn {
+
+                    hosts.insert(attr.host.clone());
                 }
             }
-            if hosts.len() >= 3 && new_peers > (total_active * 6 / 10) {
+            // Include the current event in the count if not already in the state
+            if !s.unique_hosts.contains(&ctx.host) {
+                hosts.insert(ctx.host.clone());
+            }
+            if hosts.len() >= 3 {
                 return (Some(PendingEvent {
                     prefix: prefix.to_string(),
                     asn: resolved_asn,
@@ -1027,53 +1024,35 @@ impl Classifier {
     }
 
     pub fn get_as_name(&self, asn: u32) -> Option<String> {
-        let cache = match self.bgpkit_cache.lock() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
-        if let Some(name) = cache.as2org.get(&asn).cloned() {
+        let cache = self.bgpkit_cache.lock();
+        if let Some(name) = cache.as2name.get(&asn).cloned() {
             return name;
         }
         drop(cache);
-        let bgpkit_guard = match self.bgpkit.read() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
+        let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
             let name = bgpkit.asinfo_get(asn).ok().flatten().map(|i| i.name);
-            let mut cache = match self.bgpkit_cache.lock() {
-                Ok(g) => g,
-                Err(p) => p.into_inner(),
-            };
-            cache.as2org.insert(asn, name.clone());
+            let mut cache = self.bgpkit_cache.lock();
+            cache.as2name.insert(asn, name.clone());
             return name;
         }
         None
     }
 
     fn get_as_org(&self, asn: u32) -> Option<String> {
-        let cache = match self.bgpkit_cache.lock() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
+        let cache = self.bgpkit_cache.lock();
         if let Some(org) = cache.as2org.get(&asn).cloned() {
             return org;
         }
         drop(cache);
-        let bgpkit_guard = match self.bgpkit.read() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
+        let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
             let org = bgpkit
                 .asinfo_get(asn)
                 .ok()
                 .flatten()
                 .and_then(|i| i.as2org.clone().map(|o| o.org_name));
-            let mut cache = match self.bgpkit_cache.lock() {
-                Ok(g) => g,
-                Err(p) => p.into_inner(),
-            };
+            let mut cache = self.bgpkit_cache.lock();
             cache.as2org.insert(asn, org.clone());
             return org;
         }
@@ -1089,14 +1068,7 @@ impl Classifier {
         path
     }
     fn is_tier1(&self, asn: u32) -> bool {
-        let mut cache = match self.bgpkit_cache.lock() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
-        if let Some(&res) = cache.is_tier1.get(&asn) {
-            return res;
-        }
-        let res = matches!(
+        matches!(
             asn,
             174 | 209
                 | 701
@@ -1115,16 +1087,11 @@ impl Classifier {
                 | 6762
                 | 7018
                 | 12956
-        );
-        cache.is_tier1.insert(asn, res);
-        res
+        )
     }
 
     fn rpki_validate(&self, asn: u32, prefix: &str) -> i32 {
-        let bgpkit_guard = match self.bgpkit.read() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
+        let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
             if let Ok(status) = bgpkit.rpki_validate(asn, prefix) {
                 return match status {
@@ -1138,27 +1105,15 @@ impl Classifier {
     }
 
     fn is_large_network(&self, asn: u32) -> bool {
-        let mut cache = match self.bgpkit_cache.lock() {
-            Ok(g) => g,
-            Err(p) => p.into_inner(),
-        };
-        if let Some(&res) = cache.is_large.get(&asn) {
-            return res;
-        }
-        let res = matches!(
+        matches!(
             asn,
             15169 | 16509 | 8075 | 13335 | 20940 | 14618 | 32934 | 16276
-        );
-        cache.is_large.insert(asn, res);
-        res
+        )
     }
 
     pub fn check_outage(&self, prefix: &str, now: i64) -> Option<PendingEvent> {
         let shard = self.get_shard(prefix);
-        let mut states = match shard.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        let mut states = shard.lock();
         let mut state = if let Some(s) = states.get(prefix) {
             s.clone()
         } else {

@@ -342,7 +342,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
         let _ = bgpkit.load_asinfo(true, true, true, true);
         let _ = bgpkit.load_rpki(None);
-        if let Ok(mut guard) = classifier_bg.bgpkit.write() { *guard = Some(bgpkit); }
+        { *classifier_bg.bgpkit.write() = Some(bgpkit); }
         info!("BGPKIT data loading complete.");
     });
     let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(200000);
