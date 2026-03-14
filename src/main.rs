@@ -170,7 +170,7 @@ impl CumulativeStats {
     }
     fn get_rate_for_window(&self, now: i64, window_secs: i64) -> f32 {
         self.cleanup_buckets(now);
-        let window = window_secs.min(60).max(1);
+        let window = window_secs.clamp(1, 60);
         let mut total = 0;
         for i in 0..window {
             let ts = now - i;
@@ -193,6 +193,7 @@ impl CumulativeStats {
     }
 }
 
+#[allow(clippy::type_complexity)]
 struct AppState {
     subscribers: RwLock<Vec<mpsc::Sender<Result<SubscribeEventsResponse, Status>>>>,
     transition_subscribers: RwLock<

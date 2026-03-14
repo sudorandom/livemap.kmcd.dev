@@ -383,16 +383,15 @@ impl Classifier {
                 ClassificationType::Flap => 60,
                 _ => 600,
             };
-            if ctx.now - state.classified_time_ts > expiry {
-                state.classified_type = ClassificationType::None;
-            } else if state.classified_type == ClassificationType::Outage
-                && !ctx.is_withdrawal
-                && state
-                    .buckets
-                    .get(&minute_ts)
-                    .map(|b| b.announcements)
-                    .unwrap_or(0)
-                    > 2
+            if ctx.now - state.classified_time_ts > expiry
+                || (state.classified_type == ClassificationType::Outage
+                    && !ctx.is_withdrawal
+                    && state
+                        .buckets
+                        .get(&minute_ts)
+                        .map(|b| b.announcements)
+                        .unwrap_or(0)
+                        > 2)
             {
                 state.classified_type = ClassificationType::None;
             }
@@ -527,6 +526,7 @@ impl Classifier {
         (result, needs_timer)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn evaluate_prefix_state(
         &self,
         prefix: &str,
@@ -629,6 +629,7 @@ impl Classifier {
         (None, needs_timer)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn find_critical_anomaly(
         &self,
         prefix: &str,
