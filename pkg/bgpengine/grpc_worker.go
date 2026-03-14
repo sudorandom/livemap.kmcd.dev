@@ -174,11 +174,8 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	snap.BadIPs = badIPs
 	snap.CritIPs = critIPs
 
-	// Update history for trendlines
-	e.history = append(e.history, snap)
-	if len(e.history) > 60 {
-		e.history = e.history[1:]
-	}
+	// Save latest snapshot to be polled by the metrics loop
+	e.latestSnapshot = snap
 
 	// Sort newPrefixCounts by priority (descending, since Red/Crit is likely higher priority)
 	sort.Slice(newPrefixCounts, func(i, j int) bool {
@@ -210,7 +207,6 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	}
 
 	e.prefixCounts = newPrefixCounts
-	e.lastMetricsUpdate = time.Now()
 	e.impactDirty = true
 	e.loadingHistorical = resp.GetLoadingHistorical()
 
