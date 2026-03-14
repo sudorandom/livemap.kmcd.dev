@@ -241,6 +241,7 @@ func (e *Engine) consumeEventStream(ctx context.Context, client livemap.LiveMapS
 		}
 
 		for _, ev := range resp.Events {
+			e.grpcMsgCount.Add(uint64(ev.Count))
 			if ev.Geo == nil {
 				continue
 			}

@@ -242,6 +242,7 @@ type Engine struct {
 	lastIPTrendUpdate time.Time
 	lastDrawTime      time.Time
 	droppedFrames     atomic.Uint64
+	grpcMsgCount      atomic.Uint64
 	hubUpdatedAt      time.Time
 	impactUpdatedAt   time.Time
 	streamUpdatedAt   time.Time
@@ -885,7 +886,8 @@ func (e *Engine) AddPulse(lat, lng float64, c color.RGBA, count int, shape ...Ev
 
 func (e *Engine) UpdatePerformanceMetrics() {
 	now := e.Now()
-	if now.Sub(e.lastPerfLog) < 5*time.Second {
+	elapsed := now.Sub(e.lastPerfLog)
+	if elapsed < 5*time.Second {
 		return
 	}
 	e.lastPerfLog = now
@@ -896,28 +898,28 @@ func (e *Engine) UpdatePerformanceMetrics() {
 	droppedQueue := e.droppedQueue.Swap(0)
 	droppedStale := e.droppedStale.Swap(0)
 	droppedFrames := e.droppedFrames.Swap(0)
+	grpcMsgCount := e.grpcMsgCount.Swap(0)
+	grpcRate := float64(grpcMsgCount) / elapsed.Seconds()
 
-	if tps < 28 || fps < 28 || droppedPulses > 0 || droppedQueue > 0 || droppedStale > 0 || droppedFrames > 0 {
-		var sb strings.Builder
-		sb.WriteString("[PERF]")
-		fmt.Fprintf(&sb, " TPS: %.2f, FPS: %.2f", tps, fps)
-		if droppedFrames > 0 {
-			fmt.Fprintf(&sb, ", DroppedFrames: %d", droppedFrames)
-		}
-		if droppedPulses > 0 {
-			fmt.Fprintf(&sb, ", DroppedPulses: %d", droppedPulses)
-		}
-		if droppedQueue > 0 {
-			fmt.Fprintf(&sb, ", DroppedQueue: %d", droppedQueue)
-		}
-		if droppedStale > 0 {
-			fmt.Fprintf(&sb, ", DroppedStale: %d", droppedStale)
-		}
-		if tps < 28 || fps < 28 {
-			sb.WriteString(" (Lag detected)")
-		}
-		log.Println(sb.String())
+	var sb strings.Builder
+	sb.WriteString("[PERF]")
+	fmt.Fprintf(&sb, " TPS: %.2f, FPS: %.2f, gRPC Events: %.2f/s", tps, fps, grpcRate)
+	if droppedFrames > 0 {
+		fmt.Fprintf(&sb, ", DroppedFrames: %d", droppedFrames)
 	}
+	if droppedPulses > 0 {
+		fmt.Fprintf(&sb, ", DroppedPulses: %d", droppedPulses)
+	}
+	if droppedQueue > 0 {
+		fmt.Fprintf(&sb, ", DroppedQueue: %d", droppedQueue)
+	}
+	if droppedStale > 0 {
+		fmt.Fprintf(&sb, ", DroppedStale: %d", droppedStale)
+	}
+	if tps < 28 || fps < 28 {
+		sb.WriteString(" (Lag detected)")
+	}
+	log.Println(sb.String())
 }
 
 func (e *Engine) Update() error {
@@ -1521,30 +1523,75 @@ func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
 	case bgp.NameHardOutage:
 		e.cacheOutageStrings(ce)
 	case bgp.NameHijack, bgp.NameDDoSMitigation:
-		// Networks line
-		networks := make([]string, 0, len(ce.ImpactedPrefixes))
-		for p := range ce.ImpactedPrefixes {
-			networks = append(networks, p)
-		}
-		sort.Strings(networks)
-
-		const maxShow = 2
-		displayNets := networks
-		moreCount := 0
-		if len(networks) > maxShow {
-			displayNets = networks[:maxShow]
-			moreCount = len(networks) - maxShow
-		}
-
-		ce.CachedNetLabel = "  Networks: "
-		netVal := strings.Join(displayNets, ", ")
-		if moreCount > 0 {
-			netVal += fmt.Sprintf(", (%d more)", moreCount)
-		}
-		ce.CachedNetVal = netVal
+		e.cacheHijackDDoSStrings(ce)
 	}
 
 	e.cacheImpactStrings(ce)
+}
+
+func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
+	// First line should be ASN and OrgID (network name)
+	if ce.OrgID != "" {
+		ce.CachedFirstLine = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
+	} else {
+		ce.CachedFirstLine = ce.ASNStr
+	}
+
+	// Attacker/Source line
+	if ce.Anom == bgp.NameHijack {
+		ce.CachedLeakerLabel = " Attacker"
+	} else {
+		ce.CachedLeakerLabel = "   Source"
+	}
+
+	if ce.LeakerASN > 0 {
+		if ce.LeakerName != "" {
+			ce.CachedLeakerVal = fmt.Sprintf("AS%d (%s)", ce.LeakerASN, ce.LeakerName)
+		} else {
+			ce.CachedLeakerVal = fmt.Sprintf("AS%d", ce.LeakerASN)
+		}
+	} else {
+		ce.CachedLeakerVal = "Unknown"
+	}
+
+	// Victim/Target line
+	if ce.Anom == bgp.NameHijack {
+		ce.CachedVictimLabel = "   Victim"
+	} else {
+		ce.CachedVictimLabel = "   Target"
+	}
+
+	if ce.VictimASN > 0 {
+		if ce.VictimName != "" {
+			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.VictimName)
+		} else {
+			ce.CachedVictimVal = fmt.Sprintf("AS%d", ce.VictimASN)
+		}
+	} else {
+		ce.CachedVictimVal = ce.ASNStr
+	}
+
+	// Networks line
+	networks := make([]string, 0, len(ce.ImpactedPrefixes))
+	for p := range ce.ImpactedPrefixes {
+		networks = append(networks, p)
+	}
+	sort.Strings(networks)
+
+	const maxShow = 2
+	displayNets := networks
+	moreCount := 0
+	if len(networks) > maxShow {
+		displayNets = networks[:maxShow]
+		moreCount = len(networks) - maxShow
+	}
+
+	ce.CachedNetLabel = "  Networks: "
+	netVal := strings.Join(displayNets, ", ")
+	if moreCount > 0 {
+		netVal += fmt.Sprintf(", (%d more)", moreCount)
+	}
+	ce.CachedNetVal = netVal
 }
 
 func formatRPKI(status int32) string {
@@ -1642,6 +1689,17 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 	if moreCount > 0 {
 		netVal += fmt.Sprintf(", (%d more)", moreCount)
 	}
+	ce.CachedNetVal = netVal
+
+	// Calculate impact string for the label
+	v6Count := 0
+	for p := range ce.ImpactedPrefixes {
+		if strings.Contains(p, ":") {
+			v6Count++
+		}
+	}
+
+	impactParts := []string{}
 	if ce.ImpactedIPs > 0 {
 		impactStr := ""
 		switch {
@@ -1652,9 +1710,19 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 		default:
 			impactStr = fmt.Sprintf("%d", ce.ImpactedIPs)
 		}
-		netVal += fmt.Sprintf(" [%s IPv4]", impactStr)
+		impactParts = append(impactParts, fmt.Sprintf("%s IPv4", impactStr))
 	}
-	ce.CachedNetVal = netVal
+	if v6Count > 0 {
+		impactParts = append(impactParts, fmt.Sprintf("%d IPv6 PFXs", v6Count))
+	}
+
+	if len(impactParts) > 0 {
+		// Update label to include impact count
+		ce.CachedTypeLabel = fmt.Sprintf("[%s - %s]", strings.ToUpper(ce.Anom), strings.Join(impactParts, ", "))
+		if e.subMonoFace != nil {
+			ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
+		}
+	}
 
 	// Locations line
 	ce.CachedLocLabel = "  Location: "
@@ -1666,12 +1734,8 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 		ce.CachedLocVal = fmt.Sprintf("%s | %s (%d more)", displayLocs[0], displayLocs[1], len(locs)-2)
 	}
 
-	// Set FirstLine to the impacted prefixes/IPs text
-	if netVal != "" {
-		ce.CachedFirstLine = netVal
-	} else {
-		ce.CachedFirstLine = "Unknown Prefix"
-	}
+	// Clear FirstLine so only the label (with count) is shown on the first line
+	ce.CachedFirstLine = ""
 }
 
 func (e *Engine) cacheImpactStrings(ce *CriticalEvent) {

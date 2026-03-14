@@ -655,20 +655,32 @@ async fn consume_routeviews(
             .set("bootstrap.servers", "stream.routeviews.org:9092")
             .set("group.id", &group_id)
             .set("auto.offset.reset", "latest")
+            .set("session.timeout.ms", "45000")
+            .set("heartbeat.interval.ms", "15000")
+            .set("max.poll.interval.ms", "300000")
+            .set("enable.auto.commit", "true")
             .create();
         if let Ok(consumer) = res
             && consumer.subscribe(&["^routeviews\\.(amsix|kixp|linx|n-ix|nwax|nyiix|ottix|saopaulo|sfmix|sydney|telstra|wide)\\..*\\.bmp_raw"]).is_ok() {
                 info!("Subscribed to RouteViews Kafka topics");
                 let sem = Arc::new(tokio::sync::Semaphore::new(200));
-                while let Ok(msg) = consumer.recv().await {
-                    if let Some(p) = msg.payload() {
-                        let p_owned = p.to_vec();
-                        let c = classifier.clone(); let t = tx.clone(); let g = geo.clone();
-                        let s = sem.clone();
-                        tokio::spawn(async move {
-                            let _p = s.acquire().await.ok();
-                            let _ = process_routeviews_message(p_owned, c, g, t).await;
-                        });
+                loop {
+                    match consumer.recv().await {
+                        Ok(msg) => {
+                            if let Some(p) = msg.payload() {
+                                let p_owned = p.to_vec();
+                                let c = classifier.clone(); let t = tx.clone(); let g = geo.clone();
+                                let s = sem.clone();
+                                tokio::spawn(async move {
+                                    let _p = s.acquire().await.ok();
+                                    let _ = process_routeviews_message(p_owned, c, g, t).await;
+                                });
+                            }
+                        }
+                        Err(e) => {
+                            warn!("RouteViews Kafka receive error: {}. Reconnecting...", e);
+                            break;
+                        }
                     }
                 }
             }
@@ -807,7 +819,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let s_heavy = app_state.clone();
     let db_heavy = db.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(3600));
+        let mut interval = tokio::time::interval(Duration::from_secs(600));
         loop {
             let pool = db_heavy.get_pool();
             if let Ok(summary) = tokio::task::spawn_blocking(move || {

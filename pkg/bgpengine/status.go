@@ -207,7 +207,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		if mapShape == ShapeFlare {
 			baseAlpha = 1.0
 		}
-		if pc.IPCount == 0 {
+		if pc.IPCount == 0 && pc.Rate == 0 {
 			baseAlpha *= 0.3
 		}
 
@@ -226,7 +226,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		textOp.GeoM.Reset()
 		textOp.GeoM.Translate(col1X, currentY)
 		textOp.ColorScale.Reset()
-		if pc.IPCount > 0 {
+		if pc.IPCount > 0 || pc.Rate > 0 {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
 		} else {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
@@ -238,7 +238,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		textOp.GeoM.Reset()
 		textOp.GeoM.Translate(col2X-pc.RateWidth/2, currentY)
 		textOp.ColorScale.Reset()
-		if pc.IPCount > 0 {
+		if pc.IPCount > 0 || pc.Rate > 0 {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
 		} else {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
@@ -250,7 +250,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		textOp.GeoM.Reset()
 		textOp.GeoM.Translate(col3X-pc.ASNWidth/2, currentY)
 		textOp.ColorScale.Reset()
-		if pc.IPCount > 0 {
+		if pc.IPCount > 0 || pc.Rate > 0 {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
 		} else {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
@@ -262,7 +262,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		textOp.GeoM.Reset()
 		textOp.GeoM.Translate(col4X-pc.IPv4PfxWidth/2, currentY)
 		textOp.ColorScale.Reset()
-		if pc.IPCount > 0 {
+		if pc.IPCount > 0 || pc.Rate > 0 {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
 		} else {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
@@ -274,7 +274,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		textOp.GeoM.Reset()
 		textOp.GeoM.Translate(col5X-pc.IPWidth/2, currentY)
 		textOp.ColorScale.Reset()
-		if pc.IPCount > 0 {
+		if pc.IPCount > 0 || pc.Rate > 0 {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
 		} else {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
@@ -286,7 +286,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 		textOp.GeoM.Reset()
 		textOp.GeoM.Translate(col6X-pc.IPv6PfxWidth/2, currentY)
 		textOp.ColorScale.Reset()
-		if pc.IPCount > 0 || pc.IPv6PfxCount > 0 {
+		if pc.IPCount > 0 || pc.IPv6PfxCount > 0 || pc.Rate > 0 {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
 		} else {
 			textOp.ColorScale.ScaleWithColor(pc.Color)
@@ -420,6 +420,9 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 	firstLineX := x + typeWidth + 10
 	availableW := boxW - firstLineX - 5
 	nextY := e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, firstLineX, y, availableW, fontSize, textOp)
+	if nextY == y {
+		nextY = y + fontSize*1.1
+	}
 
 	labelCol := color.RGBA{180, 180, 180, 255} // Light gray
 	valueCol := color.RGBA{255, 255, 0, 255}   // Bright yellow
@@ -449,6 +452,12 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 			nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
 		}
 	case bgp.NameDDoSMitigation, bgp.NameHijack:
+		// Attacker / Source
+		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+
+		// Victim / Target
+		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+
 		// Networks line
 		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
 	}
@@ -1504,6 +1513,9 @@ func (e *Engine) labeledLineHeight(label, value string, face *text.GoTextFace, m
 func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64) float64 {
 	availableW := boxW - ce.CachedTypeWidth - 20
 	h := e.wrapHeight(ce.CachedFirstLine, e.subMonoFace, availableW, fontSize)
+	if h == 0 {
+		h = fontSize * 1.1
+	}
 
 	indent := 20.0
 	detailsW := boxW - indent - 5
@@ -1528,8 +1540,14 @@ func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64)
 			h += e.labeledLineHeight(ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, detailsW, fontSize)
 		}
 	case bgp.NameDDoSMitigation, bgp.NameHijack:
-		h += e.labeledLineHeight(ce.CachedLeakerLabel, ce.CachedLeakerVal, e.subMonoFace, detailsW, fontSize)
-		h += e.labeledLineHeight(ce.CachedVictimLabel, ce.CachedVictimVal, e.subMonoFace, detailsW, fontSize)
+		// Attacker/Source line height
+		attackerLabelWithStatus := ce.CachedLeakerLabel + "[NO RPKI]: "
+		h += e.labeledLineHeight(attackerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsW, fontSize)
+
+		// Victim/Target line height
+		victimLabelWithStatus := ce.CachedVictimLabel + "[NO RPKI]: "
+		h += e.labeledLineHeight(victimLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsW, fontSize)
+
 		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsW, fontSize)
 	}
 	return h
