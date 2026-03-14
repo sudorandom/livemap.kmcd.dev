@@ -719,7 +719,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             *classifier_bg.bgpkit.write() = Some(bgpkit);
         }
-        info!("BGPKIT data loading complete (took {}s).", start.elapsed().as_secs());
+        info!(
+            "BGPKIT data loading complete (took {}s).",
+            start.elapsed().as_secs()
+        );
     });
     let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(200000);
     let geo = Arc::new(Geolocation::new("assets/dbip-city-lite-2026-03.mmdb"));
