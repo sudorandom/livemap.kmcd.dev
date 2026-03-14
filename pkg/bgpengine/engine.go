@@ -27,6 +27,7 @@ import (
 	geojson "github.com/paulmach/go.geojson"
 	"github.com/sudorandom/bgp-stream/pkg/bgp"
 	"github.com/sudorandom/bgp-stream/pkg/geoservice"
+	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/livemap/v1"
 	"github.com/sudorandom/bgp-stream/pkg/utils"
 )
 
@@ -101,12 +102,12 @@ var (
 )
 
 const (
-	MaxActivePulses      = 50000
-	MaxVisualQueueSize   = 300000
-	DefaultPulsesPerTick = 400
-	BurstPulsesPerTick   = 1500
-	VisualQueueThreshold = 20000
-	VisualQueueCull      = 100000
+	MaxActivePulses      = 250000
+	MaxVisualQueueSize   = 1500000
+	DefaultPulsesPerTick = 1000
+	BurstPulsesPerTick   = 10000
+	VisualQueueThreshold = 50000
+	VisualQueueCull      = 500000
 )
 
 type asnGroupKey struct {
@@ -121,14 +122,21 @@ type CriticalEvent struct {
 	ASNStr    string
 	OrgID     string
 	LeakType  bgp.LeakType
-	LeakerASN uint32
-	VictimASN uint32
-	Locations string
-	Color     color.RGBA
+	LeakerASN  uint32
+	LeakerName string
+	LeakerRPKI int32
+	VictimASN  uint32
+	VictimName string
+	VictimRPKI int32
+	Locations  string
+	Color      color.RGBA
 	UIColor   color.RGBA
 
-	ImpactedIPs      uint64
-	ImpactedPrefixes map[string]struct{}
+	ImpactedIPs       uint64
+	ImpactedPrefixes  map[string]struct{}
+	ActivePrefixes    map[string]struct{}
+	ActiveIncidentIDs map[string]struct{}
+	Resolved          bool
 
 	// Pre-rendered layout values
 	CachedTypeLabel string
@@ -182,7 +190,7 @@ type Engine struct {
 	windowNote, windowPeer, windowOpen             int64
 	windowBeacon                                   int64
 
-	windowFlap, windowTE                           int64
+	windowFlap                                     int64
 	windowHunting, windowOutage                    int64
 	windowLeak, windowHijack, windowBogon          int64
 	windowGlobal, windowDDoS                       int64
@@ -192,12 +200,16 @@ type Engine struct {
 	rateNote, ratePeer, rateOpen           float64
 	rateBeacon                             float64
 	displayBeaconPercent                   float64
+	displayResearchPercent                 float64
+	displayOrganicPercent                  float64
+	targetResearchPercent                  float64
+	targetOrganicPercent                   float64
 
 	countryActivity map[string]int
 
 	// History for trendlines (last 60 snapshots, 2s each = 2 mins)
 	history   []MetricSnapshot
-	metricsMu sync.Mutex
+	metricsMu sync.RWMutex
 
 	CurrentSong        string
 	CurrentArtist      string
@@ -222,6 +234,8 @@ type Engine struct {
 	hubChangedAt map[string]time.Time
 	lastHubs     map[string]int
 	hubPosition  map[string]int
+
+	IsConnected atomic.Bool
 
 	lastMetricsUpdate time.Time
 	lastTrendUpdate   time.Time
@@ -351,6 +365,10 @@ type PrefixCount struct {
 	ASNStr   string
 	PfxCount int
 	PfxStr   string
+	IPv4PfxCount int
+	IPv4PfxStr   string
+	IPv6PfxCount int
+	IPv6PfxStr   string
 	IPCount  uint64
 	IPStr    string
 	Rate     float64
@@ -362,6 +380,8 @@ type PrefixCount struct {
 	RateWidth  float64
 	ASNWidth   float64
 	PfxWidth   float64
+	IPv4PfxWidth float64
+	IPv6PfxWidth float64
 	IPWidth    float64
 }
 
@@ -406,12 +426,12 @@ type VisualImpact struct {
 }
 
 type MetricSnapshot struct {
-	New, Upd, With, Gossip, Note, Peer, Open int
-	Beacon, Honeypot, Research, Security     int
+	New, Upd, With, Gossip, Note, Peer, Open float64
+	Beacon, Honeypot, Research, Security     float64
 
-	Flap, TE, Oscill                                       int
-	Hunting, NextHop, Outage                               int
-	Leak, Hijack, Bogon, Attr, Global, DDoS, Dedupe, Uncat int
+	Flap, Oscill                                           float64
+	Hunting, NextHop, Outage                               float64
+	Leak, Hijack, Bogon, Attr, Global, DDoS, Dedupe, Uncat float64
 
 	GoodIPs, PolyIPs, BadIPs, CritIPs uint64
 }
@@ -528,19 +548,18 @@ func NewEngine(width, height int, scale float64) *Engine {
 
 	e.legendRows = []legendRow{
 		// Column 1: Normal (Blue/Purple)
-		{"DISCOVERY", 0, ColorDiscovery, ColorGossipUI, func(s MetricSnapshot) int { return s.Global }},
-		{"DDOS MITIGATION", 0, ColorDDoSMitigation, ColorDDoSMitigationUI, func(s MetricSnapshot) int { return s.DDoS }},
-		{"PATH HUNTING", 0, ColorPolicy, ColorUpdUI, func(s MetricSnapshot) int { return s.Hunting }},
-		{"TRAFFIC ENG", 0, ColorPolicy, ColorUpdUI, func(s MetricSnapshot) int { return s.TE }},
+		{"DISCOVERY", 0, ColorDiscovery, ColorGossipUI, func(s MetricSnapshot) float64 { return s.Global }},
+		{"DDOS MITIGATION", 0, ColorDDoSMitigation, ColorDDoSMitigationUI, func(s MetricSnapshot) float64 { return s.DDoS }},
+		{"PATH HUNTING", 0, ColorPolicy, ColorUpdUI, func(s MetricSnapshot) float64 { return s.Hunting }},
 
 		// Column 2: Bad (Orange)
-		{"FLAP", 0, ColorBad, ColorBad, func(s MetricSnapshot) int { return s.Flap }},
+		{"FLAP", 0, ColorBad, ColorBad, func(s MetricSnapshot) float64 { return s.Flap }},
 
 		// Column 3: Critical (Red)
-		{"ROUTE LEAK", 0, ColorLeak, ColorWithUI, func(s MetricSnapshot) int { return s.Leak }},
-		{"OUTAGE", 0, ColorOutage, ColorWithUI, func(s MetricSnapshot) int { return s.Outage }},
-		{"BGP HIJACK", 0, ColorCritical, ColorWithUI, func(s MetricSnapshot) int { return s.Hijack }},
-		{"BOGON / MARTIAN", 0, ColorCritical, ColorWithUI, func(s MetricSnapshot) int { return s.Bogon }},
+		{"ROUTE LEAK", 0, ColorLeak, ColorWithUI, func(s MetricSnapshot) float64 { return s.Leak }},
+		{"OUTAGE", 0, ColorOutage, ColorWithUI, func(s MetricSnapshot) float64 { return s.Outage }},
+		{"BGP HIJACK", 0, ColorCritical, ColorWithUI, func(s MetricSnapshot) float64 { return s.Hijack }},
+		{"BOGON / MARTIAN", 0, ColorCritical, ColorWithUI, func(s MetricSnapshot) float64 { return s.Bogon }},
 	}
 
 	e.InitPulseTexture()
@@ -1009,7 +1028,9 @@ func (e *Engine) updateMetrics() {
 		}
 	}
 
-	e.updateBeaconPercent()
+	// Interpolate research/organic percentages
+	e.displayResearchPercent += (e.targetResearchPercent - e.displayResearchPercent) * 0.05
+	e.displayOrganicPercent += (e.targetOrganicPercent - e.displayOrganicPercent) * 0.05
 
 	// Cleanup Critical Event Stream (remove entries older than 10 mins)
 	now := e.Now()
@@ -1028,29 +1049,6 @@ func (e *Engine) updateMetrics() {
 		e.streamDirty = true
 	}
 	e.streamMu.Unlock()
-}
-
-func (e *Engine) updateBeaconPercent() {
-	sumTotal, sumBeacon := 0, 0
-	hLen := len(e.history)
-	window := 10
-	if hLen < window {
-		window = hLen
-	}
-	for i := hLen - window; i < hLen; i++ {
-		s := e.history[i]
-		sumTotal += s.New + s.Upd + s.With + s.Gossip
-		sumBeacon += s.Beacon + s.Honeypot + s.Research + s.Security
-	}
-
-	targetPercent := 0.0
-	if sumTotal > 0 {
-		targetPercent = (float64(sumBeacon) / float64(sumTotal)) * 100
-	}
-	if targetPercent > 100 {
-		targetPercent = 100
-	}
-	e.displayBeaconPercent += (targetPercent - e.displayBeaconPercent) * 0.1
 }
 
 func (e *Engine) updateActivePulses() {
@@ -1218,26 +1216,194 @@ func (e *Engine) processEventLocked(ev *bgpEvent) {
 	e.updateWindowedMetrics(ev.eventType, ev.classificationType, ev.prefix, ev.asn)
 }
 
-func (e *Engine) recordToCriticalStream(ev *bgpEvent, c color.RGBA, name string) {
-	// Not fully implemented for gRPC yet
-}
+func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
+	e.streamMu.Lock()
+	defer e.streamMu.Unlock()
 
-func (e *Engine) removePrefixFromOldEvents(prefix, currentAnomName string) {
-	if prefix == "" {
-		return
+	ct := bgp.ClassificationType(trans.NewState)
+	oldCt := bgp.ClassificationType(trans.OldState)
+	anomName := ct.String()
+
+	// 1. Clean up old state if this prefix was in a different category before
+	// If it transitioned to None/Discovery, this will remove it completely since anomName won't match oldCt
+	if oldCt != bgp.ClassificationNone && oldCt != bgp.ClassificationDiscovery && oldCt != ct {
+		e.removePrefixFromOldEventsLocked(trans.Prefix, anomName)
+
+		if e.loadingHistorical {
+			// During catch-up, don't keep resolved events at all
+			e.cullResolvedEvents()
+		}
 	}
-	if e.removeFromCriticalSlice(&e.CriticalStream, prefix, currentAnomName) {
+
+	// 2. We only care about tracking and displaying these specific critical events
+	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationHijack {
 		e.streamDirty = true
 		return
 	}
+
+	// 3. Identify anomaly color
+	uiCol := e.getClassificationUIColor(anomName)
+	realCol, _, _ := e.getClassificationVisuals(ct)
+
+	// 4. Try to update existing event in the stream
+	updated := false
+	for _, ce := range e.CriticalStream {
+		if ce.Anom == anomName && ce.ASN == trans.Asn {
+			e.updateCriticalEventFromTransition(ce, trans)
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		for _, ce := range e.criticalQueue {
+			if ce.Anom == anomName && ce.ASN == trans.Asn {
+				e.updateCriticalEventFromTransition(ce, trans)
+				updated = true
+				break
+			}
+		}
+	}
+
+	// 5. Create new event if not found
+	// Only add if it's a new active (unresolved) event
+	if !updated && trans.EndTime == 0 {
+		newCE := e.createCriticalEventFromTransition(trans, realCol, uiCol, anomName)
+		e.criticalQueue = append(e.criticalQueue, newCE)
+		e.lastCriticalAddedAt = time.Now()
+	}
+
+	e.streamDirty = true
+}
+
+func (e *Engine) removePrefixFromOldEventsLocked(prefix, currentAnomName string) {
+	if prefix == "" {
+		return
+	}
+	e.removeFromCriticalSlice(&e.CriticalStream, prefix, currentAnomName)
 	e.removeFromCriticalSlice(&e.criticalQueue, prefix, currentAnomName)
+}
+
+func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *livemap.StateTransition) {
+	if ce.ImpactedPrefixes == nil {
+		ce.ImpactedPrefixes = make(map[string]struct{})
+	}
+	if ce.ActivePrefixes == nil {
+		ce.ActivePrefixes = make(map[string]struct{})
+	}
+	if ce.ActiveIncidentIDs == nil {
+		ce.ActiveIncidentIDs = make(map[string]struct{})
+	}
+	if trans.Prefix != "" {
+		if _, ok := ce.ImpactedPrefixes[trans.Prefix]; !ok {
+			ce.ImpactedPrefixes[trans.Prefix] = struct{}{}
+			ce.ImpactedIPs += utils.GetPrefixSize(trans.Prefix)
+		}
+		if trans.EndTime == 0 {
+			ce.ActivePrefixes[trans.Prefix] = struct{}{}
+		} else {
+			delete(ce.ActivePrefixes, trans.Prefix)
+		}
+	}
+	if trans.IncidentId != "" {
+		ce.ActiveIncidentIDs[trans.IncidentId] = struct{}{}
+	}
+	
+	ce.Resolved = len(ce.ActivePrefixes) == 0
+
+	if trans.City != "" {
+		if ce.Locations == "" {
+			ce.Locations = trans.City
+		} else if !strings.Contains(ce.Locations, trans.City) {
+			ce.Locations += " | " + trans.City
+		}
+	}
+	e.updateCriticalEventCacheStrs(ce)
+}
+
+func (e *Engine) cullResolvedEvents() {
+	filter := func(slice []*CriticalEvent) []*CriticalEvent {
+		result := make([]*CriticalEvent, 0, len(slice))
+		for _, ce := range slice {
+			if !ce.Resolved {
+				result = append(result, ce)
+			}
+		}
+		return result
+	}
+	e.CriticalStream = filter(e.CriticalStream)
+	e.criticalQueue = filter(e.criticalQueue)
+}
+
+func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransition, c, uiCol color.RGBA, name string) *CriticalEvent {
+	ce := &CriticalEvent{
+		Timestamp:        time.Unix(trans.StartTime, 0),
+		Anom:             name,
+		ASN:              trans.Asn,
+		ASNStr:           fmt.Sprintf("AS%d", trans.Asn),
+		OrgID:            trans.AsName,
+		Locations:        trans.City,
+		Color:            c,
+		UIColor:          uiCol,
+		ImpactedPrefixes: make(map[string]struct{}),
+		ActivePrefixes:   make(map[string]struct{}),
+		ActiveIncidentIDs: make(map[string]struct{}),
+	}
+	ce.ImpactedPrefixes[trans.Prefix] = struct{}{}
+	if trans.EndTime == 0 {
+		ce.ActivePrefixes[trans.Prefix] = struct{}{}
+	}
+	ce.ImpactedIPs = utils.GetPrefixSize(trans.Prefix)
+	if trans.IncidentId != "" {
+		ce.ActiveIncidentIDs[trans.IncidentId] = struct{}{}
+	}
+
+	if trans.LeakDetail != nil {
+		ce.LeakerASN = trans.LeakDetail.LeakerAsn
+		ce.LeakerName = trans.LeakDetail.LeakerAsName
+		ce.LeakerRPKI = trans.LeakDetail.LeakerRpkiStatus
+		ce.VictimASN = trans.LeakDetail.VictimAsn
+		ce.VictimName = trans.LeakDetail.VictimAsName
+		ce.VictimRPKI = trans.LeakDetail.VictimRpkiStatus
+
+		// Map from Rust's LeakType enum to Go's bgp.LeakType
+		switch trans.LeakDetail.LeakType {
+		case 1:
+			ce.LeakType = bgp.LeakReOrigination
+		case 2:
+			ce.LeakType = bgp.LeakHairpin
+		case 3:
+			ce.LeakType = bgp.LeakLateral
+		case 4:
+			ce.LeakType = bgp.DDoSFlowspec
+		case 5:
+			ce.LeakType = bgp.DDoSRTBH
+		case 6:
+			ce.LeakType = bgp.DDoSTrafficRedirection
+		default:
+			ce.LeakType = bgp.LeakUnknown
+		}
+	}
+
+	e.updateCriticalEventCacheStrs(ce)
+	return ce
+}
+
+func (e *Engine) recordToCriticalStream(ev *bgpEvent, c color.RGBA, name string) {
+	// Legacy for non-gRPC
+}
+
+func (e *Engine) removePrefixFromOldEvents(prefix, currentAnomName string) {
+	e.streamMu.Lock()
+	defer e.streamMu.Unlock()
+	e.removePrefixFromOldEventsLocked(prefix, currentAnomName)
 }
 
 func (e *Engine) removeFromCriticalSlice(slice *[]*CriticalEvent, prefix, currentAnomName string) bool {
 	for i := 0; i < len(*slice); i++ {
 		ce := (*slice)[i]
-		if ce.ImpactedPrefixes != nil {
-			if _, ok := ce.ImpactedPrefixes[prefix]; ok {
+		if ce.ActivePrefixes != nil {
+			if _, ok := ce.ActivePrefixes[prefix]; ok {
 				if currentAnomName != ce.Anom {
 					e.removePrefixFromEvent(ce, prefix)
 				}
@@ -1249,13 +1415,8 @@ func (e *Engine) removeFromCriticalSlice(slice *[]*CriticalEvent, prefix, curren
 }
 
 func (e *Engine) removePrefixFromEvent(ce *CriticalEvent, prefix string) {
-	delete(ce.ImpactedPrefixes, prefix)
-	size := utils.GetPrefixSize(prefix)
-	if ce.ImpactedIPs >= size {
-		ce.ImpactedIPs -= size
-	} else {
-		ce.ImpactedIPs = 0
-	}
+	delete(ce.ActivePrefixes, prefix)
+	ce.Resolved = len(ce.ActivePrefixes) == 0
 	e.updateCriticalEventCacheStrs(ce)
 }
 
@@ -1271,6 +1432,25 @@ func (e *Engine) createCriticalEvent(ev *bgpEvent, c color.RGBA, name, asnStr, o
 	return &CriticalEvent{}
 }
 
+func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
+	if ce.Anom != bgp.NameHardOutage {
+		return true
+	}
+	if ce.ImpactedIPs >= 5000 {
+		return true
+	}
+	v6Count := 0
+	for p := range ce.ImpactedPrefixes {
+		if strings.Contains(p, ":") {
+			v6Count++
+			if v6Count >= 10 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (e *Engine) updateCriticalStream() {
 	e.streamMu.Lock()
 	defer e.streamMu.Unlock()
@@ -1283,18 +1463,128 @@ func (e *Engine) updateCriticalStream() {
 		e.streamOffset = 0
 		e.streamDirty = true
 	}
+
+	// Clean up resolved events from queue first
+	activeQueue := e.criticalQueue[:0]
+	for _, ce := range e.criticalQueue {
+		if !ce.Resolved {
+			activeQueue = append(activeQueue, ce)
+		}
+	}
+	e.criticalQueue = activeQueue
+
+	// 2. Promote from queue if enough time has passed
+	if len(e.criticalQueue) > 0 && time.Since(e.lastCriticalAddedAt) > 100*time.Millisecond {
+		var ev *CriticalEvent
+		var evIdx int = -1
+
+		for i, ce := range e.criticalQueue {
+			if e.isEventSignificant(ce) {
+				ev = ce
+				evIdx = i
+				break
+			}
+		}
+
+		if ev != nil {
+			// Remove from queue
+			e.criticalQueue = append(e.criticalQueue[:evIdx], e.criticalQueue[evIdx+1:]...)
+
+			// Insert at the front
+			e.CriticalStream = append([]*CriticalEvent{ev}, e.CriticalStream...)
+			if len(e.CriticalStream) > 5 {
+				e.CriticalStream = e.CriticalStream[:5]
+			}
+
+			// Push the stream down visually
+			e.streamOffset += 1.0
+			e.streamDirty = true
+			e.lastCriticalAddedAt = time.Now()
+		}
+	}
 }
 
 func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
+	ce.CachedTypeLabel = fmt.Sprintf("[%s]", strings.ToUpper(ce.Anom))
+	if e.subMonoFace != nil {
+		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
+	}
+
+	ce.CachedFirstLine = ce.ASNStr
+	if ce.OrgID != "" {
+		ce.CachedFirstLine = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
+	}
+
+	switch ce.Anom {
+	case bgp.NameRouteLeak:
+		e.cacheLeakStrings(ce)
+	case bgp.NameHardOutage:
+		e.cacheOutageStrings(ce)
+	case bgp.NameHijack, bgp.NameDDoSMitigation:
+		// Networks line
+		networks := make([]string, 0, len(ce.ImpactedPrefixes))
+		for p := range ce.ImpactedPrefixes {
+			networks = append(networks, p)
+		}
+		sort.Strings(networks)
+
+		const maxShow = 2
+		displayNets := networks
+		moreCount := 0
+		if len(networks) > maxShow {
+			displayNets = networks[:maxShow]
+			moreCount = len(networks) - maxShow
+		}
+
+		ce.CachedNetLabel = "  Networks: "
+		netVal := strings.Join(displayNets, ", ")
+		if moreCount > 0 {
+			netVal += fmt.Sprintf(", (%d more)", moreCount)
+		}
+		ce.CachedNetVal = netVal
+	}
+
+	e.cacheImpactStrings(ce)
+}
+
+func formatRPKI(status int32) string {
+	switch status {
+	case 1:
+		return "VALID"
+	case 2:
+		return "INVALID"
+	default:
+		return "UNKNOWN"
+	}
 }
 
 func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
-}
+	// First line should be the type of leak
+	ce.CachedFirstLine = fmt.Sprintf("Type: %s", ce.LeakType.String())
 
-func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
+	// Leaker line
+	ce.CachedLeakerLabel = "   Leaker"
+	if ce.LeakerASN > 0 {
+		if ce.LeakerName != "" {
+			ce.CachedLeakerVal = fmt.Sprintf("AS%d (%s)", ce.LeakerASN, ce.LeakerName)
+		} else {
+			ce.CachedLeakerVal = fmt.Sprintf("AS%d", ce.LeakerASN)
+		}
+	} else {
+		ce.CachedLeakerVal = "Unknown"
+	}
+
 	// Impacted ASN line
-	ce.CachedASNLabel = "  Impacted: "
-	ce.CachedASNVal = ce.ASNStr
+	ce.CachedVictimLabel = " Impacted"
+	if ce.VictimASN > 0 {
+		if ce.VictimName != "" {
+			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.VictimName)
+		} else {
+			ce.CachedVictimVal = fmt.Sprintf("AS%d", ce.VictimASN)
+		}
+	} else {
+		ce.CachedVictimVal = ce.ASNStr
+	}
 
 	// Networks line
 	networks := make([]string, 0, len(ce.ImpactedPrefixes))
@@ -1315,6 +1605,50 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 	netVal := strings.Join(displayNets, ", ")
 	if moreCount > 0 {
 		netVal += fmt.Sprintf(", (%d more)", moreCount)
+	}
+	ce.CachedNetVal = netVal
+}
+
+func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
+	// ASN line
+	ce.CachedASNLabel = "   Network: "
+	if ce.OrgID != "" {
+		ce.CachedASNVal = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
+	} else {
+		ce.CachedASNVal = ce.ASNStr
+	}
+
+	// Networks line
+	networks := make([]string, 0, len(ce.ImpactedPrefixes))
+	for p := range ce.ImpactedPrefixes {
+		networks = append(networks, p)
+	}
+	sort.Strings(networks)
+
+	const maxShow = 2
+	displayNets := networks
+	moreCount := 0
+	if len(networks) > maxShow {
+		displayNets = networks[:maxShow]
+		moreCount = len(networks) - maxShow
+	}
+
+	ce.CachedNetLabel = "  Networks: "
+	netVal := strings.Join(displayNets, ", ")
+	if moreCount > 0 {
+		netVal += fmt.Sprintf(", (%d more)", moreCount)
+	}
+	if ce.ImpactedIPs > 0 {
+		impactStr := ""
+		switch {
+		case ce.ImpactedIPs >= 1000000:
+			impactStr = fmt.Sprintf("%.1fM", float64(ce.ImpactedIPs)/1000000.0)
+		case ce.ImpactedIPs >= 1000:
+			impactStr = fmt.Sprintf("%.1fK", float64(ce.ImpactedIPs)/1000.0)
+		default:
+			impactStr = fmt.Sprintf("%d", ce.ImpactedIPs)
+		}
+		netVal += fmt.Sprintf(" [%s IPv4]", impactStr)
 	}
 	ce.CachedNetVal = netVal
 
@@ -1410,6 +1744,11 @@ func (e *Engine) incrementCityBuffer(lat, lng float64, c color.RGBA, shape Event
 	if c == (color.RGBA{}) || (lat == 0 && lng == 0) {
 		return
 	}
+
+	// Round to 2 decimal places to aggregate pulses that are very close (~1.1km)
+	lat = math.Round(lat*100) / 100
+	lng = math.Round(lng*100) / 100
+
 	key := math.Float64bits(lat) ^ (math.Float64bits(lng) << 1)
 	e.bufferMu.Lock()
 	defer e.bufferMu.Unlock()
@@ -1432,8 +1771,6 @@ func (e *Engine) getClassificationVisuals(classificationType bgp.ClassificationT
 		return ColorDiscovery, bgp.NameDiscovery, ShapeCircle
 	case bgp.ClassificationDiscovery:
 		return ColorDiscovery, bgp.NameDiscovery, ShapeCircle
-	case bgp.ClassificationTrafficEngineering:
-		return ColorPolicy, bgp.NameTrafficEng, ShapeCircle
 	case bgp.ClassificationPathHunting:
 		return ColorPolicy, bgp.NamePathHunting, ShapeCircle
 	case bgp.ClassificationFlap:
@@ -1459,7 +1796,7 @@ func (e *Engine) GetPriority(name string) int {
 		return 3 // Critical (Red)
 	case bgp.NameFlap:
 		return 2 // Bad (Orange)
-	case bgp.NameTrafficEng, bgp.NamePathHunting, bgp.NameDDoSMitigation:
+	case bgp.NamePathHunting, bgp.NameDDoSMitigation:
 		return 1 // Normalish (Purple)
 	default:
 		return 0 // Discovery (Blue)
@@ -1472,7 +1809,7 @@ func (e *Engine) getClassificationUIColor(name string) color.RGBA {
 		return ColorWithUI
 	case bgp.NameFlap:
 		return ColorBad // Already pretty bright
-	case bgp.NameTrafficEng, bgp.NamePathHunting, bgp.NameDDoSMitigation:
+	case bgp.NamePathHunting, bgp.NameDDoSMitigation:
 		return ColorUpdUI
 	default:
 		return ColorGossipUI
@@ -1494,8 +1831,6 @@ func (e *Engine) updateWindowedMetrics(eventType bgp.EventType, classificationTy
 	switch classificationType {
 	case bgp.ClassificationFlap:
 		e.windowFlap++
-	case bgp.ClassificationTrafficEngineering:
-		e.windowTE++
 	case bgp.ClassificationPathHunting:
 		e.windowHunting++
 	case bgp.ClassificationOutage:
@@ -1686,7 +2021,7 @@ func (e *Engine) InitTrendlineTexture() {
 // It aggregates high-frequency events into batches, shuffles them to prevent visual
 // clustering, and paces their release into the visual queue to ensure smooth animations.
 func (e *Engine) StartBufferLoop() {
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	for range ticker.C {
 		nextBatch := e.drainCityBuffer()
 
@@ -1724,15 +2059,15 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 	rand.Shuffle(len(nextBatch), func(i, j int) { nextBatch[i], nextBatch[j] = nextBatch[j], nextBatch[i] })
 
 	// Spread the batch evenly across a longer window to smooth out bursts
-	// We overlap batches to ensure a continuous flow (every 500ms we add a 1500ms batch)
-	spreadWindow := 1500 * time.Millisecond
+	// We overlap batches to ensure a continuous flow (every 100ms we add a 300ms batch)
+	spreadWindow := 300 * time.Millisecond
 	spacing := spreadWindow / time.Duration(len(nextBatch))
 	now := e.Now()
 
-	// If we're too far behind (more than 1s), jump closer to 'now' but keep a small
+	// If we're too far behind (more than 500ms), jump closer to 'now' but keep a small
 	// buffer to avoid a hard gap in the visualization.
-	if e.nextPulseEmittedAt.Before(now.Add(-1000 * time.Millisecond)) {
-		e.nextPulseEmittedAt = now.Add(-500 * time.Millisecond)
+	if e.nextPulseEmittedAt.Before(now.Add(-500 * time.Millisecond)) {
+		e.nextPulseEmittedAt = now.Add(-100 * time.Millisecond)
 	}
 
 	e.queueMu.Lock()
@@ -1741,30 +2076,42 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 	maxQueueSize := MaxVisualQueueSize
 	currentSize := len(e.visualQueue)
 
-	if currentSize < maxQueueSize {
-		if currentSize+len(nextBatch) > maxQueueSize {
-			dropped := (currentSize + len(nextBatch)) - maxQueueSize
-			e.droppedQueue.Add(uint64(dropped))
-			log.Printf("Truncating batch of %d pulses to fit queue (Current: %d, Max: %d)", len(nextBatch), currentSize, maxQueueSize)
-			nextBatch = nextBatch[:maxQueueSize-currentSize]
-			if len(nextBatch) > 0 {
-				spacing = spreadWindow / time.Duration(len(nextBatch))
-			}
-		}
-
-		for i, p := range nextBatch {
-			// Schedule the pulse to be processed by the Update() loop at a specific time
-			p.ScheduledTime = e.nextPulseEmittedAt.Add(time.Duration(i) * spacing)
-			e.visualQueue = append(e.visualQueue, p)
-		}
-	} else {
+	if currentSize >= maxQueueSize {
+		// Queue is full. Instead of dropping the whole batch, we can try to "thin" the incoming data
+		// by merging it into existing entries if possible, or just dropping it silently to avoid log spam.
 		e.droppedQueue.Add(uint64(len(nextBatch)))
-		log.Printf("Dropping batch of %d pulses (Queue size: %d)", len(nextBatch), len(e.visualQueue))
+		return
 	}
 
-	// Advance the next emission baseline by 500ms (the ticker interval),
+	// If the queue is getting large, we sample the incoming batch to slow down the growth
+	if currentSize > VisualQueueCull {
+		// Progressively drop more as we approach the limit
+		// e.g. at 50% of Cull, keep all. at 100% of Max, keep none.
+		keepRatio := 1.0 - float64(currentSize-VisualQueueCull)/float64(maxQueueSize-VisualQueueCull)
+		if keepRatio < 0.1 {
+			keepRatio = 0.1 // Always keep at least 10%
+		}
+
+		if keepRatio < 1.0 {
+			newLen := int(float64(len(nextBatch)) * keepRatio)
+			if newLen < len(nextBatch) {
+				nextBatch = nextBatch[:newLen]
+				if len(nextBatch) > 0 {
+					spacing = spreadWindow / time.Duration(len(nextBatch))
+				}
+			}
+		}
+	}
+
+	for i, p := range nextBatch {
+		// Schedule the pulse to be processed by the Update() loop at a specific time
+		p.ScheduledTime = e.nextPulseEmittedAt.Add(time.Duration(i) * spacing)
+		e.visualQueue = append(e.visualQueue, p)
+	}
+
+	// Advance the next emission baseline by 100ms (the ticker interval),
 	// capping the visual backlog to 3 seconds to prevent falling too far behind.
-	e.nextPulseEmittedAt = e.nextPulseEmittedAt.Add(500 * time.Millisecond)
+	e.nextPulseEmittedAt = e.nextPulseEmittedAt.Add(100 * time.Millisecond)
 	if e.nextPulseEmittedAt.After(now.Add(3 * time.Second)) {
 		e.nextPulseEmittedAt = now.Add(3 * time.Second)
 	}

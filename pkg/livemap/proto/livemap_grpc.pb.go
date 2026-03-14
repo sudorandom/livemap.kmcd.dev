@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             (unknown)
-// source: livemap.proto
+// source: proto/livemap.proto
 
 package livemap
 
@@ -200,5 +200,5 @@ var LiveMap_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "livemap.proto",
+	Metadata: "proto/livemap.proto",
 }

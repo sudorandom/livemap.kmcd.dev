@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: livemap.proto
+// source: proto/livemap.proto
 
 package livemap
 
@@ -75,11 +75,11 @@ func (x Classification) String() string {
 }
 
 func (Classification) Descriptor() protoreflect.EnumDescriptor {
-	return file_livemap_proto_enumTypes[0].Descriptor()
+	return file_proto_livemap_proto_enumTypes[0].Descriptor()
 }
 
 func (Classification) Type() protoreflect.EnumType {
-	return &file_livemap_proto_enumTypes[0]
+	return &file_proto_livemap_proto_enumTypes[0]
 }
 
 func (x Classification) Number() protoreflect.EnumNumber {
@@ -88,7 +88,7 @@ func (x Classification) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Classification.Descriptor instead.
 func (Classification) EnumDescriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{0}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{0}
 }
 
 type GeoData struct {
@@ -101,7 +101,7 @@ type GeoData struct {
 
 func (x *GeoData) Reset() {
 	*x = GeoData{}
-	mi := &file_livemap_proto_msgTypes[0]
+	mi := &file_proto_livemap_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +113,7 @@ func (x *GeoData) String() string {
 func (*GeoData) ProtoMessage() {}
 
 func (x *GeoData) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[0]
+	mi := &file_proto_livemap_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,7 +126,7 @@ func (x *GeoData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GeoData.ProtoReflect.Descriptor instead.
 func (*GeoData) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{0}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GeoData) GetLat() float32 {
@@ -154,7 +154,7 @@ type AggregatedEvent struct {
 
 func (x *AggregatedEvent) Reset() {
 	*x = AggregatedEvent{}
-	mi := &file_livemap_proto_msgTypes[1]
+	mi := &file_proto_livemap_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -166,7 +166,7 @@ func (x *AggregatedEvent) String() string {
 func (*AggregatedEvent) ProtoMessage() {}
 
 func (x *AggregatedEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[1]
+	mi := &file_proto_livemap_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +179,7 @@ func (x *AggregatedEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AggregatedEvent.ProtoReflect.Descriptor instead.
 func (*AggregatedEvent) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{1}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *AggregatedEvent) GetGeo() *GeoData {
@@ -212,7 +212,7 @@ type StreamEventsResponse struct {
 
 func (x *StreamEventsResponse) Reset() {
 	*x = StreamEventsResponse{}
-	mi := &file_livemap_proto_msgTypes[2]
+	mi := &file_proto_livemap_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -224,7 +224,7 @@ func (x *StreamEventsResponse) String() string {
 func (*StreamEventsResponse) ProtoMessage() {}
 
 func (x *StreamEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[2]
+	mi := &file_proto_livemap_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -237,7 +237,7 @@ func (x *StreamEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamEventsResponse.ProtoReflect.Descriptor instead.
 func (*StreamEventsResponse) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{2}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *StreamEventsResponse) GetEvents() []*AggregatedEvent {
@@ -255,7 +255,7 @@ type StreamEventsRequest struct {
 
 func (x *StreamEventsRequest) Reset() {
 	*x = StreamEventsRequest{}
-	mi := &file_livemap_proto_msgTypes[3]
+	mi := &file_proto_livemap_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +267,7 @@ func (x *StreamEventsRequest) String() string {
 func (*StreamEventsRequest) ProtoMessage() {}
 
 func (x *StreamEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[3]
+	mi := &file_proto_livemap_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +280,7 @@ func (x *StreamEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamEventsRequest.ProtoReflect.Descriptor instead.
 func (*StreamEventsRequest) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{3}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{3}
 }
 
 type SummaryRequest struct {
@@ -291,7 +291,7 @@ type SummaryRequest struct {
 
 func (x *SummaryRequest) Reset() {
 	*x = SummaryRequest{}
-	mi := &file_livemap_proto_msgTypes[4]
+	mi := &file_proto_livemap_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +303,7 @@ func (x *SummaryRequest) String() string {
 func (*SummaryRequest) ProtoMessage() {}
 
 func (x *SummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[4]
+	mi := &file_proto_livemap_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +316,7 @@ func (x *SummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SummaryRequest.ProtoReflect.Descriptor instead.
 func (*SummaryRequest) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{4}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{4}
 }
 
 type ClassificationCount struct {
@@ -336,7 +336,7 @@ type ClassificationCount struct {
 
 func (x *ClassificationCount) Reset() {
 	*x = ClassificationCount{}
-	mi := &file_livemap_proto_msgTypes[5]
+	mi := &file_proto_livemap_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +348,7 @@ func (x *ClassificationCount) String() string {
 func (*ClassificationCount) ProtoMessage() {}
 
 func (x *ClassificationCount) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[5]
+	mi := &file_proto_livemap_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +361,7 @@ func (x *ClassificationCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClassificationCount.ProtoReflect.Descriptor instead.
 func (*ClassificationCount) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{5}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ClassificationCount) GetClassification() Classification {
@@ -446,7 +446,7 @@ type SummaryResponse struct {
 
 func (x *SummaryResponse) Reset() {
 	*x = SummaryResponse{}
-	mi := &file_livemap_proto_msgTypes[6]
+	mi := &file_proto_livemap_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -458,7 +458,7 @@ func (x *SummaryResponse) String() string {
 func (*SummaryResponse) ProtoMessage() {}
 
 func (x *SummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[6]
+	mi := &file_proto_livemap_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +471,7 @@ func (x *SummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SummaryResponse.ProtoReflect.Descriptor instead.
 func (*SummaryResponse) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{6}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SummaryResponse) GetMessagesPerSecond() float32 {
@@ -566,7 +566,7 @@ type LeakDetail struct {
 
 func (x *LeakDetail) Reset() {
 	*x = LeakDetail{}
-	mi := &file_livemap_proto_msgTypes[7]
+	mi := &file_proto_livemap_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -578,7 +578,7 @@ func (x *LeakDetail) String() string {
 func (*LeakDetail) ProtoMessage() {}
 
 func (x *LeakDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[7]
+	mi := &file_proto_livemap_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -591,7 +591,7 @@ func (x *LeakDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeakDetail.ProtoReflect.Descriptor instead.
 func (*LeakDetail) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{7}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *LeakDetail) GetLeakType() uint32 {
@@ -663,7 +663,7 @@ type StateTransition struct {
 
 func (x *StateTransition) Reset() {
 	*x = StateTransition{}
-	mi := &file_livemap_proto_msgTypes[8]
+	mi := &file_proto_livemap_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -675,7 +675,7 @@ func (x *StateTransition) String() string {
 func (*StateTransition) ProtoMessage() {}
 
 func (x *StateTransition) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[8]
+	mi := &file_proto_livemap_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -688,7 +688,7 @@ func (x *StateTransition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateTransition.ProtoReflect.Descriptor instead.
 func (*StateTransition) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{8}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StateTransition) GetIncidentId() string {
@@ -784,7 +784,7 @@ type StreamStateTransitionsRequest struct {
 
 func (x *StreamStateTransitionsRequest) Reset() {
 	*x = StreamStateTransitionsRequest{}
-	mi := &file_livemap_proto_msgTypes[9]
+	mi := &file_proto_livemap_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -796,7 +796,7 @@ func (x *StreamStateTransitionsRequest) String() string {
 func (*StreamStateTransitionsRequest) ProtoMessage() {}
 
 func (x *StreamStateTransitionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[9]
+	mi := &file_proto_livemap_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -809,7 +809,7 @@ func (x *StreamStateTransitionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamStateTransitionsRequest.ProtoReflect.Descriptor instead.
 func (*StreamStateTransitionsRequest) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{9}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *StreamStateTransitionsRequest) GetTargetStates() []Classification {
@@ -828,7 +828,7 @@ type StreamStateTransitionsResponse struct {
 
 func (x *StreamStateTransitionsResponse) Reset() {
 	*x = StreamStateTransitionsResponse{}
-	mi := &file_livemap_proto_msgTypes[10]
+	mi := &file_proto_livemap_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -840,7 +840,7 @@ func (x *StreamStateTransitionsResponse) String() string {
 func (*StreamStateTransitionsResponse) ProtoMessage() {}
 
 func (x *StreamStateTransitionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_proto_msgTypes[10]
+	mi := &file_proto_livemap_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -853,7 +853,7 @@ func (x *StreamStateTransitionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamStateTransitionsResponse.ProtoReflect.Descriptor instead.
 func (*StreamStateTransitionsResponse) Descriptor() ([]byte, []int) {
-	return file_livemap_proto_rawDescGZIP(), []int{10}
+	return file_proto_livemap_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StreamStateTransitionsResponse) GetTransition() *StateTransition {
@@ -863,11 +863,11 @@ func (x *StreamStateTransitionsResponse) GetTransition() *StateTransition {
 	return nil
 }
 
-var File_livemap_proto protoreflect.FileDescriptor
+var File_proto_livemap_proto protoreflect.FileDescriptor
 
-const file_livemap_proto_rawDesc = "" +
+const file_proto_livemap_proto_rawDesc = "" +
 	"\n" +
-	"\rlivemap.proto\x12\alivemap\"-\n" +
+	"\x13proto/livemap.proto\x12\alivemap\"-\n" +
 	"\aGeoData\x12\x10\n" +
 	"\x03lat\x18\x01 \x01(\x02R\x03lat\x12\x10\n" +
 	"\x03lon\x18\x02 \x01(\x02R\x03lon\"\x8c\x01\n" +
@@ -962,20 +962,20 @@ const file_livemap_proto_rawDesc = "" +
 	"\vcom.livemapB\fLivemapProtoP\x01Z,github.com/sudorandom/bgp-stream/pkg/livemap\xa2\x02\x03LXX\xaa\x02\aLivemap\xca\x02\aLivemap\xe2\x02\x13Livemap\\GPBMetadata\xea\x02\aLivemapb\x06proto3"
 
 var (
-	file_livemap_proto_rawDescOnce sync.Once
-	file_livemap_proto_rawDescData []byte
+	file_proto_livemap_proto_rawDescOnce sync.Once
+	file_proto_livemap_proto_rawDescData []byte
 )
 
-func file_livemap_proto_rawDescGZIP() []byte {
-	file_livemap_proto_rawDescOnce.Do(func() {
-		file_livemap_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_livemap_proto_rawDesc), len(file_livemap_proto_rawDesc)))
+func file_proto_livemap_proto_rawDescGZIP() []byte {
+	file_proto_livemap_proto_rawDescOnce.Do(func() {
+		file_proto_livemap_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_livemap_proto_rawDesc), len(file_proto_livemap_proto_rawDesc)))
 	})
-	return file_livemap_proto_rawDescData
+	return file_proto_livemap_proto_rawDescData
 }
 
-var file_livemap_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_livemap_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-var file_livemap_proto_goTypes = []any{
+var file_proto_livemap_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_proto_livemap_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_livemap_proto_goTypes = []any{
 	(Classification)(0),                    // 0: livemap.Classification
 	(*GeoData)(nil),                        // 1: livemap.GeoData
 	(*AggregatedEvent)(nil),                // 2: livemap.AggregatedEvent
@@ -989,7 +989,7 @@ var file_livemap_proto_goTypes = []any{
 	(*StreamStateTransitionsRequest)(nil),  // 10: livemap.StreamStateTransitionsRequest
 	(*StreamStateTransitionsResponse)(nil), // 11: livemap.StreamStateTransitionsResponse
 }
-var file_livemap_proto_depIdxs = []int32{
+var file_proto_livemap_proto_depIdxs = []int32{
 	1,  // 0: livemap.AggregatedEvent.geo:type_name -> livemap.GeoData
 	0,  // 1: livemap.AggregatedEvent.classification:type_name -> livemap.Classification
 	2,  // 2: livemap.StreamEventsResponse.events:type_name -> livemap.AggregatedEvent
@@ -1014,27 +1014,27 @@ var file_livemap_proto_depIdxs = []int32{
 	0,  // [0:11] is the sub-list for field type_name
 }
 
-func init() { file_livemap_proto_init() }
-func file_livemap_proto_init() {
-	if File_livemap_proto != nil {
+func init() { file_proto_livemap_proto_init() }
+func file_proto_livemap_proto_init() {
+	if File_proto_livemap_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_livemap_proto_rawDesc), len(file_livemap_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_livemap_proto_rawDesc), len(file_proto_livemap_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_livemap_proto_goTypes,
-		DependencyIndexes: file_livemap_proto_depIdxs,
-		EnumInfos:         file_livemap_proto_enumTypes,
-		MessageInfos:      file_livemap_proto_msgTypes,
+		GoTypes:           file_proto_livemap_proto_goTypes,
+		DependencyIndexes: file_proto_livemap_proto_depIdxs,
+		EnumInfos:         file_proto_livemap_proto_enumTypes,
+		MessageInfos:      file_proto_livemap_proto_msgTypes,
 	}.Build()
-	File_livemap_proto = out.File
-	file_livemap_proto_goTypes = nil
-	file_livemap_proto_depIdxs = nil
+	File_proto_livemap_proto = out.File
+	file_proto_livemap_proto_goTypes = nil
+	file_proto_livemap_proto_depIdxs = nil
 }

@@ -17,7 +17,6 @@ func TestGetPriority(t *testing.T) {
 		{bgp.NameHijack, 3},
 		{bgp.NameDDoSMitigation, 1},
 		{bgp.NameFlap, 2},
-		{bgp.NameTrafficEng, 1},
 		{bgp.NameDiscovery, 0},
 		{"", 0},
 		{"Unknown", 0},

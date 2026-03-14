@@ -90,7 +90,6 @@ type ClassificationType int
 const (
 	NameFlap           = "Flap"
 	NamePathHunting    = "Path Hunting"
-	NameTrafficEng     = "Traffic Eng."
 	NameHardOutage     = "Outage"
 	NameRouteLeak      = "Route Leak"
 	NameDiscovery      = "Discovery"
@@ -107,7 +106,6 @@ const (
 	ClassificationOutage
 	ClassificationDDoSMitigation
 	ClassificationFlap
-	ClassificationTrafficEngineering
 	ClassificationPathHunting
 	ClassificationDiscovery
 )
@@ -126,8 +124,6 @@ func (t ClassificationType) String() string {
 		return NameDDoSMitigation
 	case ClassificationFlap:
 		return NameFlap
-	case ClassificationTrafficEngineering:
-		return NameTrafficEng
 	case ClassificationPathHunting:
 		return NamePathHunting
 	case ClassificationDiscovery, ClassificationNone:

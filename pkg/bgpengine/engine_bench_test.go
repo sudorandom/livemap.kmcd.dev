@@ -21,10 +21,10 @@ func BenchmarkDrawBGPStatus(b *testing.B) {
 	// Pre-fill history to ensure we are benchmarking the actual drawing logic
 	for i := 0; i < 60; i++ {
 		e.history[i] = MetricSnapshot{
-			New:    rand.Intn(100),
-			Upd:    rand.Intn(100),
-			With:   rand.Intn(100),
-			Gossip: rand.Intn(100),
+			New:    float64(rand.Intn(100)),
+			Upd:    float64(rand.Intn(100)),
+			With:   float64(rand.Intn(100)),
+			Gossip: float64(rand.Intn(100)),
 		}
 	}
 
@@ -50,10 +50,10 @@ func TestDrawBGPStatusAllocations(t *testing.T) {
 	// Fill history
 	for i := 0; i < 60; i++ {
 		e.history[i] = MetricSnapshot{
-			New:    rand.Intn(100),
-			Upd:    rand.Intn(100),
-			With:   rand.Intn(100),
-			Gossip: rand.Intn(100),
+			New:    float64(rand.Intn(100)),
+			Upd:    float64(rand.Intn(100)),
+			With:   float64(rand.Intn(100)),
+			Gossip: float64(rand.Intn(100)),
 		}
 	}
 
