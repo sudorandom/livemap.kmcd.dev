@@ -96,35 +96,35 @@ impl Db {
         buffer: &mut Vec<DbWriteOp>,
     ) {
         if let Ok(mut conn) = pool.get()
-            && let Ok(tx) = conn.transaction() {
-                for op in buffer.drain(..) {
-                    match op {
-                        DbWriteOp::Upsert {
-                            prefix,
-                            state_json,
-                            ts,
-                            c_type,
-                            asn,
-                        } => {
-                            let _ = tx.execute(
+            && let Ok(tx) = conn.transaction()
+        {
+            for op in buffer.drain(..) {
+                match op {
+                    DbWriteOp::Upsert {
+                        prefix,
+                        state_json,
+                        ts,
+                        c_type,
+                        asn,
+                    } => {
+                        let _ = tx.execute(
                                 "INSERT INTO prefix_state (prefix, state, last_update_ts, classified_type, origin_asn) VALUES (?1, ?2, ?3, ?4, ?5)
                                  ON CONFLICT(prefix) DO UPDATE SET state=excluded.state, last_update_ts=excluded.last_update_ts, classified_type=excluded.classified_type, origin_asn=excluded.origin_asn",
                                 params![prefix, state_json, ts, c_type, asn],
                             );
-                        }
-                        DbWriteOp::Delete(prefix) => {
-                            let _ =
-                                tx.execute("DELETE FROM prefix_state WHERE prefix = ?1", [prefix]);
-                        }
-                        DbWriteOp::Seen { prefix, asn } => {
-                            if let Some(s) = seen_db {
-                                let _ = s.insert(prefix, &asn.to_be_bytes());
-                            }
+                    }
+                    DbWriteOp::Delete(prefix) => {
+                        let _ = tx.execute("DELETE FROM prefix_state WHERE prefix = ?1", [prefix]);
+                    }
+                    DbWriteOp::Seen { prefix, asn } => {
+                        if let Some(s) = seen_db {
+                            let _ = s.insert(prefix, &asn.to_be_bytes());
                         }
                     }
                 }
-                let _ = tx.commit();
             }
+            let _ = tx.commit();
+        }
     }
 
     pub fn get_pool(&self) -> Pool<SqliteConnectionManager> {
@@ -158,23 +158,24 @@ impl Db {
         if let Ok(conn) = self.pool.get() {
             let query = "SELECT classified_type, count(*) as total, count(CASE WHEN prefix NOT LIKE '%:%' THEN 1 END) as ipv4_total, count(DISTINCT CASE WHEN origin_asn != 0 THEN origin_asn END) as asns FROM prefix_state GROUP BY classified_type";
             if let Ok(mut stmt) = conn.prepare_cached(query)
-                && let Ok(mut rows) = stmt.query([]) {
-                    while let Ok(Some(row)) = rows.next() {
-                        let c_i32: i32 = row.get(0).unwrap_or(0);
-                        let total: u32 = row.get(1).unwrap_or(0);
-                        let ipv4: u32 = row.get(2).unwrap_or(0);
-                        let asns: u32 = row.get(3).unwrap_or(0);
-                        stats.insert(
-                            ClassificationType::from_i32(c_i32),
-                            ClassificationStats {
-                                total_prefixes: total,
-                                ipv4_prefixes: ipv4,
-                                ipv6_prefixes: total - ipv4,
-                                asn_count: asns,
-                            },
-                        );
-                    }
+                && let Ok(mut rows) = stmt.query([])
+            {
+                while let Ok(Some(row)) = rows.next() {
+                    let c_i32: i32 = row.get(0).unwrap_or(0);
+                    let total: u32 = row.get(1).unwrap_or(0);
+                    let ipv4: u32 = row.get(2).unwrap_or(0);
+                    let asns: u32 = row.get(3).unwrap_or(0);
+                    stats.insert(
+                        ClassificationType::from_i32(c_i32),
+                        ClassificationStats {
+                            total_prefixes: total,
+                            ipv4_prefixes: ipv4,
+                            ipv6_prefixes: total - ipv4,
+                            asn_count: asns,
+                        },
+                    );
                 }
+            }
         }
         stats
     }
@@ -183,9 +184,9 @@ impl Db {
         if let Ok(conn) = self.pool.get()
             && let Ok(mut stmt) =
                 conn.prepare_cached("SELECT state FROM prefix_state WHERE prefix = ?1")
-            {
-                return stmt.query_row([prefix], |row| row.get(0)).ok();
-            }
+        {
+            return stmt.query_row([prefix], |row| row.get(0)).ok();
+        }
         None
     }
 
@@ -221,11 +222,12 @@ impl Db {
         if let Ok(conn) = self.pool.get()
             && let Ok(mut stmt) =
                 conn.prepare("SELECT prefix, state FROM prefix_state WHERE last_update_ts < ?1")
-                && let Ok(mut rows) = stmt.query([stale_threshold]) {
-                    while let Ok(Some(row)) = rows.next() {
-                        results.push((row.get(0).unwrap(), row.get(1).unwrap()));
-                    }
-                }
+            && let Ok(mut rows) = stmt.query([stale_threshold])
+        {
+            while let Ok(Some(row)) = rows.next() {
+                results.push((row.get(0).unwrap(), row.get(1).unwrap()));
+            }
+        }
         results
     }
 }

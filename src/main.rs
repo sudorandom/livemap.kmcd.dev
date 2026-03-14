@@ -396,15 +396,17 @@ async fn process_ris_live_message(
                 .unwrap_or_default();
             if origin_asn == 0
                 && let Some(last_asn) = path_str.split_whitespace().last()
-                    && let Ok(asn) = last_asn.parse::<u32>() {
-                        origin_asn = asn;
-                    }
+                && let Ok(asn) = last_asn.parse::<u32>()
+            {
+                origin_asn = asn;
+            }
             let net = IpNet::from_str(&elem.prefix.to_string()).ok();
             let mut geo_data = geo.lookup(elem.peer_ip);
             if geo_data.is_none()
-                && let Some(n) = net {
-                    geo_data = geo.lookup(n.addr());
-                }
+                && let Some(n) = net
+            {
+                geo_data = geo.lookup(n.addr());
+            }
             let (lat, lon, city, country) = match geo_data {
                 Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
                 None => (0.0, 0.0, None, None),
@@ -554,15 +556,17 @@ async fn process_routeviews_message(
                     .unwrap_or_default();
                 if origin_asn == 0
                     && let Some(last_asn) = path_str.split_whitespace().last()
-                        && let Ok(asn) = last_asn.parse::<u32>() {
-                            origin_asn = asn;
-                        }
+                    && let Ok(asn) = last_asn.parse::<u32>()
+                {
+                    origin_asn = asn;
+                }
                 let net = IpNet::from_str(&elem.prefix.to_string()).ok();
                 let mut geo_data = geo.lookup(elem.peer_ip);
                 if geo_data.is_none()
-                    && let Some(n) = net {
-                        geo_data = geo.lookup(n.addr());
-                    }
+                    && let Some(n) = net
+                {
+                    geo_data = geo.lookup(n.addr());
+                }
                 let (lat, lon, city, country) = match geo_data {
                     Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
                     None => (0.0, 0.0, None, None),
@@ -706,15 +710,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut global_stats = CumulativeStats::default();
     if let Ok(Some(data)) = checkpoint_db.get("latest")
-        && let Ok(cp) = serde_json::from_slice::<Checkpoint>(&data) {
-            info!("Loaded checkpoint from DB (timestamp: {}).", cp.timestamp);
-            global_stats = CumulativeStats::from_snapshot(cp.global_stats);
-            for (k, v) in cp.class_stats {
-                if let Some(s) = class_stats.get_mut(&ClassificationType::from_i32(k)) {
-                    *s = CumulativeStats::from_snapshot(v);
-                }
+        && let Ok(cp) = serde_json::from_slice::<Checkpoint>(&data)
+    {
+        info!("Loaded checkpoint from DB (timestamp: {}).", cp.timestamp);
+        global_stats = CumulativeStats::from_snapshot(cp.global_stats);
+        for (k, v) in cp.class_stats {
+            if let Some(s) = class_stats.get_mut(&ClassificationType::from_i32(k)) {
+                *s = CumulativeStats::from_snapshot(v);
             }
         }
+    }
     let app_state = Arc::new(AppState {
         subscribers: RwLock::new(Vec::new()),
         transition_subscribers: RwLock::new(Vec::new()),
@@ -806,21 +811,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Ok(conn) = pool.get()
                     && let Ok(mut stmt) =
                         conn.prepare("SELECT prefix, classified_type FROM prefix_state")
-                    {
-                        let mut rows = stmt.query([]).unwrap();
-                        while let Ok(Some(row)) = rows.next() {
-                            let p_str: String = row.get(0).unwrap();
-                            let c_i32: i32 = row.get(1).unwrap();
-                            if let Ok(IpNet::V4(v4)) = IpNet::from_str(&p_str) {
-                                global_v4.push(v4);
-                                class_v4
-                                    .entry(ClassificationType::from_i32(c_i32))
-                                    .or_default()
-                                    .push(v4);
-                                count += 1;
-                            }
+                {
+                    let mut rows = stmt.query([]).unwrap();
+                    while let Ok(Some(row)) = rows.next() {
+                        let p_str: String = row.get(0).unwrap();
+                        let c_i32: i32 = row.get(1).unwrap();
+                        if let Ok(IpNet::V4(v4)) = IpNet::from_str(&p_str) {
+                            global_v4.push(v4);
+                            class_v4
+                                .entry(ClassificationType::from_i32(c_i32))
+                                .or_default()
+                                .push(v4);
+                            count += 1;
                         }
                     }
+                }
                 info!("[STATS] Aggregating {} IPv4 prefixes.", count);
                 let g_ipv4 = if global_v4.is_empty() {
                     0
