@@ -823,7 +823,10 @@ impl Classifier {
                 false,
             );
         }
-        if s.unique_hosts.len() >= 1 && (s.path_len_inc >= 1 || s.path_len_dec >= 1) && s.path_changes >= 2 {
+        if !s.unique_hosts.is_empty()
+            && (s.path_len_inc >= 1 || s.path_len_dec >= 1)
+            && s.path_changes >= 2
+        {
             return (
                 Some(PendingEvent {
                     prefix: prefix.to_string(),
@@ -1038,10 +1041,10 @@ impl Classifier {
 
     fn is_provider(&self, provider: u32, customer: u32) -> bool {
         let db = self.provider_db.lock();
-        if let Some(customers) = db.get(&provider) {
-            if customers.contains(&customer) {
-                return true;
-            }
+        if let Some(customers) = db.get(&provider)
+            && customers.contains(&customer)
+        {
+            return true;
         }
         false
     }
@@ -1166,7 +1169,7 @@ impl Classifier {
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
             let name = bgpkit.asinfo_get(asn).ok().flatten().map(|i| i.name);
-            
+
             if name.is_none() {
                 debug!("AS name not found for AS{}", asn);
             }

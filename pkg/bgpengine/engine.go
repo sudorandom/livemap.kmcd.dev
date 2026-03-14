@@ -116,12 +116,12 @@ type asnGroupKey struct {
 }
 
 type CriticalEvent struct {
-	Timestamp time.Time
-	Anom      string
-	ASN       uint32
-	ASNStr    string
-	OrgID     string
-	LeakType  bgp.LeakType
+	Timestamp  time.Time
+	Anom       string
+	ASN        uint32
+	ASNStr     string
+	OrgID      string
+	LeakType   bgp.LeakType
 	LeakerASN  uint32
 	LeakerName string
 	LeakerRPKI int32
@@ -130,7 +130,7 @@ type CriticalEvent struct {
 	VictimRPKI int32
 	Locations  string
 	Color      color.RGBA
-	UIColor   color.RGBA
+	UIColor    color.RGBA
 
 	ImpactedIPs       uint64
 	ImpactedPrefixes  map[string]struct{}
@@ -208,9 +208,9 @@ type Engine struct {
 	countryActivity map[string]int
 
 	// History for trendlines (last 60 snapshots, 2s each = 2 mins)
-	history   []MetricSnapshot
+	history        []MetricSnapshot
 	latestSnapshot MetricSnapshot
-	metricsMu sync.RWMutex
+	metricsMu      sync.RWMutex
 
 	CurrentSong        string
 	CurrentArtist      string
@@ -359,32 +359,32 @@ type VisualHub struct {
 }
 
 type PrefixCount struct {
-	Name     string
-	Type     bgp.ClassificationType
-	MsgCount int
-	MsgStr   string
-	ASNCount int
-	ASNStr   string
-	PfxCount int
-	PfxStr   string
+	Name         string
+	Type         bgp.ClassificationType
+	MsgCount     int
+	MsgStr       string
+	ASNCount     int
+	ASNStr       string
+	PfxCount     int
+	PfxStr       string
 	IPv4PfxCount int
 	IPv4PfxStr   string
 	IPv6PfxCount int
 	IPv6PfxStr   string
-	IPCount  uint64
-	IPStr    string
-	Rate     float64
-	RateStr  string
-	Color    color.RGBA
-	Priority int
+	IPCount      uint64
+	IPStr        string
+	Rate         float64
+	RateStr      string
+	Color        color.RGBA
+	Priority     int
 
 	// Pre-calculated widths
-	RateWidth  float64
-	ASNWidth   float64
-	PfxWidth   float64
+	RateWidth    float64
+	ASNWidth     float64
+	PfxWidth     float64
 	IPv4PfxWidth float64
 	IPv6PfxWidth float64
-	IPWidth    float64
+	IPWidth      float64
 }
 
 type ASNImpact struct {
@@ -1311,7 +1311,46 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 	if trans.IncidentId != "" {
 		ce.ActiveIncidentIDs[trans.IncidentId] = struct{}{}
 	}
-	
+
+	if trans.AsName != "" {
+		ce.OrgID = trans.AsName
+	}
+
+	if trans.LeakDetail != nil {
+		if trans.LeakDetail.LeakerAsn > 0 {
+			ce.LeakerASN = trans.LeakDetail.LeakerAsn
+		}
+		if trans.LeakDetail.LeakerAsName != "" {
+			ce.LeakerName = trans.LeakDetail.LeakerAsName
+		}
+		ce.LeakerRPKI = trans.LeakDetail.LeakerRpkiStatus
+
+		if trans.LeakDetail.VictimAsn > 0 {
+			ce.VictimASN = trans.LeakDetail.VictimAsn
+		}
+		if trans.LeakDetail.VictimAsName != "" {
+			ce.VictimName = trans.LeakDetail.VictimAsName
+		}
+		ce.VictimRPKI = trans.LeakDetail.VictimRpkiStatus
+
+		switch trans.LeakDetail.LeakType {
+		case 1:
+			ce.LeakType = bgp.LeakReOrigination
+		case 2:
+			ce.LeakType = bgp.LeakHairpin
+		case 3:
+			ce.LeakType = bgp.LeakLateral
+		case 4:
+			ce.LeakType = bgp.DDoSFlowspec
+		case 5:
+			ce.LeakType = bgp.DDoSRTBH
+		case 6:
+			ce.LeakType = bgp.DDoSTrafficRedirection
+		default:
+			ce.LeakType = bgp.LeakUnknown
+		}
+	}
+
 	ce.Resolved = len(ce.ActivePrefixes) == 0
 
 	if trans.City != "" {
@@ -1340,16 +1379,16 @@ func (e *Engine) cullResolvedEvents() {
 
 func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransition, c, uiCol color.RGBA, name string) *CriticalEvent {
 	ce := &CriticalEvent{
-		Timestamp:        time.Unix(trans.StartTime, 0),
-		Anom:             name,
-		ASN:              trans.Asn,
-		ASNStr:           fmt.Sprintf("AS%d", trans.Asn),
-		OrgID:            trans.AsName,
-		Locations:        trans.City,
-		Color:            c,
-		UIColor:          uiCol,
-		ImpactedPrefixes: make(map[string]struct{}),
-		ActivePrefixes:   make(map[string]struct{}),
+		Timestamp:         time.Unix(trans.StartTime, 0),
+		Anom:              name,
+		ASN:               trans.Asn,
+		ASNStr:            fmt.Sprintf("AS%d", trans.Asn),
+		OrgID:             trans.AsName,
+		Locations:         trans.City,
+		Color:             c,
+		UIColor:           uiCol,
+		ImpactedPrefixes:  make(map[string]struct{}),
+		ActivePrefixes:    make(map[string]struct{}),
 		ActiveIncidentIDs: make(map[string]struct{}),
 	}
 	ce.ImpactedPrefixes[trans.Prefix] = struct{}{}
