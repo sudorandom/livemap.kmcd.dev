@@ -185,20 +185,6 @@ type Engine struct {
 	fontSource     *text.GoTextFaceSource
 	monoSource     *text.GoTextFaceSource
 
-	// Metrics (Windowed for Rate calculation)
-	windowNew, windowUpd, windowWith, windowGossip int64
-	windowNote, windowPeer, windowOpen             int64
-	windowBeacon                                   int64
-
-	windowFlap                                     int64
-	windowHunting, windowOutage                    int64
-	windowLeak, windowHijack, windowBogon          int64
-	windowGlobal, windowDDoS                       int64
-	windowHoneypot, windowResearch, windowSecurity int64
-
-	rateNew, rateUpd, rateWith, rateGossip float64
-	rateNote, ratePeer, rateOpen           float64
-	rateBeacon                             float64
 	displayBeaconPercent                   float64
 	displayResearchPercent                 float64
 	displayOrganicPercent                  float64
@@ -1214,9 +1200,6 @@ func (e *Engine) processEventLocked(ev *bgpEvent) {
 
 	// 2. Buffer city activity
 	e.incrementCityBuffer(ev.lat, ev.lng, c, shape)
-
-	// 3. Update windowed metrics (this drives the dashboard numbers)
-	e.updateWindowedMetrics(ev.eventType, ev.classificationType, ev.prefix, ev.asn)
 }
 
 func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
@@ -1928,49 +1911,6 @@ func (e *Engine) getClassificationUIColor(name string) color.RGBA {
 		return ColorUpdUI
 	default:
 		return ColorGossipUI
-	}
-}
-
-func (e *Engine) updateWindowedMetrics(eventType bgp.EventType, classificationType bgp.ClassificationType, prefix string, asn uint32) {
-	if cat, ok := utils.GetExcludedASNCategory(asn); ok {
-		switch cat {
-		case "DoD Honeypot":
-			e.windowHoneypot++
-		case "BGP Research":
-			e.windowResearch++
-		case "Security Scanner":
-			e.windowSecurity++
-		}
-	}
-
-	switch classificationType {
-	case bgp.ClassificationFlap:
-		e.windowFlap++
-	case bgp.ClassificationPathHunting:
-		e.windowHunting++
-	case bgp.ClassificationOutage:
-		e.windowOutage++
-	case bgp.ClassificationRouteLeak:
-	case bgp.ClassificationHijack:
-		e.windowHijack++
-	case bgp.ClassificationBogon:
-		e.windowBogon++
-		e.windowLeak++
-	case bgp.ClassificationDDoSMitigation:
-		e.windowDDoS++
-	case bgp.ClassificationNone, bgp.ClassificationDiscovery:
-		e.windowGlobal++
-	}
-
-	switch eventType {
-	case bgp.EventNew:
-		e.windowNew++
-	case bgp.EventUpdate:
-		e.windowUpd++
-	case bgp.EventWithdrawal:
-		e.windowWith++
-	case bgp.EventGossip:
-		e.windowGossip++
 	}
 }
 

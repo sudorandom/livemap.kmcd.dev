@@ -166,6 +166,12 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 		case bgp.ClassificationHijack:
 			critIPs += pc.Ipv4Count
 			snap.Hijack += float64(pc.MessagesPerSecond)
+		case bgp.ClassificationBogon:
+			critIPs += pc.Ipv4Count
+			snap.Bogon += float64(pc.MessagesPerSecond)
+		case bgp.ClassificationDDoSMitigation:
+			polyIPs += pc.Ipv4Count
+			snap.DDoS += float64(pc.MessagesPerSecond)
 		}
 	}
 

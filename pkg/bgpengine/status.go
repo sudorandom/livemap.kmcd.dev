@@ -1122,98 +1122,7 @@ func (e *Engine) StartMetricsLoop() {
 }
 
 func (e *Engine) updateMetricSnapshots(interval float64) {
-	var goodIPs, polyIPs, badIPs, critIPs uint64
-	for i := range e.prefixCounts {
-		pc := &e.prefixCounts[i]
-		if pc.MsgCount == 0 {
-			continue
-		}
-		switch pc.Type {
-		case bgp.ClassificationDiscovery, bgp.ClassificationNone:
-			goodIPs += pc.IPCount
-		case bgp.ClassificationPathHunting, bgp.ClassificationDDoSMitigation:
-			polyIPs += pc.IPCount
-		case bgp.ClassificationFlap:
-			badIPs += pc.IPCount
-		case bgp.ClassificationOutage, bgp.ClassificationRouteLeak, bgp.ClassificationHijack:
-			critIPs += pc.IPCount
-		}
-	}
-
-	snap := MetricSnapshot{
-		New:    float64(e.windowNew),
-		Upd:    float64(e.windowUpd),
-		With:   float64(e.windowWith),
-		Gossip: float64(e.windowGossip),
-		Note:   float64(e.windowNote),
-		Peer:   float64(e.windowPeer),
-		Open:   float64(e.windowOpen),
-		Beacon: float64(e.windowBeacon),
-
-		Honeypot: float64(e.windowHoneypot),
-		Research: float64(e.windowResearch),
-		Security: float64(e.windowSecurity),
-
-		Flap:    float64(e.windowFlap),
-		Hunting: float64(e.windowHunting),
-		Outage:  float64(e.windowOutage),
-		Leak:    float64(e.windowLeak),
-		Global:  float64(e.windowGlobal),
-		DDoS:    float64(e.windowDDoS),
-		Hijack:  float64(e.windowHijack),
-		Bogon:   float64(e.windowBogon),
-
-		GoodIPs: goodIPs,
-		PolyIPs: polyIPs,
-		BadIPs:  badIPs,
-		CritIPs: critIPs,
-	}
-	e.rateNew, e.rateUpd, e.rateWith, e.rateGossip = float64(snap.New)/interval, float64(snap.Upd)/interval, float64(snap.With)/interval, float64(snap.Gossip)/interval
-	e.rateNote, e.ratePeer, e.rateOpen = float64(snap.Note)/interval, float64(snap.Peer)/interval, float64(snap.Open)/interval
-	e.rateBeacon = float64(snap.Beacon) / interval
-
-	// Reset windowed counters for next interval
-	e.windowNew = 0
-	e.windowUpd = 0
-	e.windowWith = 0
-	e.windowGossip = 0
-	e.windowNote = 0
-	e.windowPeer = 0
-	e.windowOpen = 0
-	e.windowBeacon = 0
-	e.windowFlap = 0
-	e.windowHunting = 0
-	e.windowOutage = 0
-	e.windowLeak = 0
-	e.windowHijack = 0
-	e.windowBogon = 0
-	e.windowGlobal = 0
-	e.windowDDoS = 0
-	e.windowHoneypot = 0
-	e.windowResearch = 0
-	e.windowSecurity = 0
-
-	// Merge windowed events with latest snapshot from gRPC
-	snap.Global += e.latestSnapshot.Global
-	snap.Hunting += e.latestSnapshot.Hunting
-	snap.Flap += e.latestSnapshot.Flap
-	snap.Outage += e.latestSnapshot.Outage
-	snap.Leak += e.latestSnapshot.Leak
-	snap.Hijack += e.latestSnapshot.Hijack
-
-	// Add in IPs from gRPC snapshot if it has them
-	if e.latestSnapshot.GoodIPs > 0 {
-		snap.GoodIPs = e.latestSnapshot.GoodIPs
-	}
-	if e.latestSnapshot.PolyIPs > 0 {
-		snap.PolyIPs = e.latestSnapshot.PolyIPs
-	}
-	if e.latestSnapshot.BadIPs > 0 {
-		snap.BadIPs = e.latestSnapshot.BadIPs
-	}
-	if e.latestSnapshot.CritIPs > 0 {
-		snap.CritIPs = e.latestSnapshot.CritIPs
-	}
+	snap := e.latestSnapshot
 
 	// Shift history and add new snapshot (avoiding prepend allocations)
 	if len(e.history) > 60 {
@@ -1222,22 +1131,6 @@ func (e *Engine) updateMetricSnapshots(interval float64) {
 	} else {
 		e.history = append(e.history, snap)
 	}
-
-	e.windowNew, e.windowUpd, e.windowWith, e.windowGossip = 0, 0, 0, 0
-	e.windowNote, e.windowPeer, e.windowOpen = 0, 0, 0
-	e.windowBeacon = 0
-	e.windowHoneypot = 0
-	e.windowResearch = 0
-	e.windowSecurity = 0
-
-	e.windowFlap = 0
-	e.windowHunting = 0
-	e.windowOutage = 0
-	e.windowLeak = 0
-	e.windowGlobal = 0
-	e.windowDDoS = 0
-	e.windowHijack = 0
-	e.windowBogon = 0
 }
 
 func (e *Engine) drawBeaconMetrics(screen *ebiten.Image, x, y, w, h, fontSize, boxH float64) {
@@ -1378,7 +1271,7 @@ func (e *Engine) drawRPKILine(dst *ebiten.Image, label string, rpkiStatus int32,
 
 	// Draw RPKI Status
 	statusText := "[NO RPKI]"
-	statusColor := color.RGBA{150, 150, 150, 255} // Grey
+	statusColor := color.RGBA{255, 50, 50, 255} // Red
 	if rpkiStatus == 1 {
 		statusText = "[RPKI]"
 		statusColor = color.RGBA{0, 255, 0, 255} // Green

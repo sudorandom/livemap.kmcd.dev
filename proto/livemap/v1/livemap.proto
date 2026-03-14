@@ -74,6 +74,15 @@ message GetSummaryResponse {
     uint32 max_lag_seconds = 11;
     bool loading_historical = 12;
     repeated CompositionEntry event_composition = 13;
+    RPKIStatus last_rpki_status = 14;
+}
+
+// RPKIStatus defines the validation status of a prefix.
+enum RPKIStatus {
+    RPKI_STATUS_UNSPECIFIED = 0;
+    RPKI_STATUS_VALID = 1;
+    RPKI_STATUS_INVALID = 2;
+    RPKI_STATUS_NOT_FOUND = 3;
 }
 
 // LeakDetail contains information specific to route leaks.
@@ -83,8 +92,8 @@ message LeakDetail {
     uint32 victim_asn = 3;
     string leaker_as_name = 4;
     string victim_as_name = 5;
-    int32 leaker_rpki_status = 6;
-    int32 victim_rpki_status = 7;
+    RPKIStatus leaker_rpki_status = 6;
+    RPKIStatus victim_rpki_status = 7;
 }
 
 // StateTransition represents a change in classification for a prefix.

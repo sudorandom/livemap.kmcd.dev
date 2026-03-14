@@ -1219,7 +1219,7 @@ impl Classifier {
             return match status {
                 bgpkit_commons::rpki::RpkiValidation::Valid => 1,
                 bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
-                bgpkit_commons::rpki::RpkiValidation::Unknown => 0,
+                bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
             };
         }
         0

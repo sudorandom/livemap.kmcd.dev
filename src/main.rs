@@ -351,6 +351,7 @@ impl LiveMap for LiveMapService {
             max_lag_seconds: self.state.max_lag.load(Ordering::Relaxed) as u32,
             loading_historical: self.state.loading_historical.load(Ordering::Relaxed),
             event_composition,
+            last_rpki_status: 0,
         }))
     }
 }
@@ -980,8 +981,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         victim_asn: ld.victim_asn,
                                         leaker_as_name: c_ingest.get_as_name(ld.leaker_asn).unwrap_or_default(),
                                         victim_as_name: c_ingest.get_as_name(ld.victim_asn).unwrap_or_default(),
-                                        leaker_rpki_status: ld.leaker_rpki_status,
-                                        victim_rpki_status: ld.victim_rpki_status
+                                        leaker_rpki_status: ld.leaker_rpki_status.into(),
+                                        victim_rpki_status: ld.victim_rpki_status.into()
                                     })
                                 });
                             }
