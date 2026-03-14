@@ -1559,8 +1559,12 @@ func formatRPKI(status int32) string {
 }
 
 func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
-	// First line should be the type of leak
-	ce.CachedFirstLine = fmt.Sprintf("Type: %s", ce.LeakType.String())
+	// First line should be ASN and OrgID (network name)
+	if ce.OrgID != "" {
+		ce.CachedFirstLine = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
+	} else {
+		ce.CachedFirstLine = ce.ASNStr
+	}
 
 	// Leaker line
 	ce.CachedLeakerLabel = "   Leaker"
@@ -1660,6 +1664,13 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 	} else {
 		displayLocs := locs[:2]
 		ce.CachedLocVal = fmt.Sprintf("%s | %s (%d more)", displayLocs[0], displayLocs[1], len(locs)-2)
+	}
+
+	// Set FirstLine to the impacted prefixes/IPs text
+	if netVal != "" {
+		ce.CachedFirstLine = netVal
+	} else {
+		ce.CachedFirstLine = "Unknown Prefix"
 	}
 }
 

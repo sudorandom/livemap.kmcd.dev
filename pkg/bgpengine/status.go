@@ -847,7 +847,7 @@ func (e *Engine) calculateGlobalIPBounds() (minLog, maxLog float64) {
 
 func (e *Engine) drawIPTrendLayers(chartW, chartH, globalMinLog, globalMaxLog float64) {
 	hLen := len(e.history)
-	numSteps := float64(hLen - 3) // Adjusted for skipping 2 values
+	numSteps := float64(hLen - 1)
 	if numSteps <= 0 {
 		numSteps = 1
 	}
@@ -878,10 +878,10 @@ func (e *Engine) drawIPTrendLayers(chartW, chartH, globalMinLog, globalMaxLog fl
 		e.ipTrendLinesBuffer.DrawImage(e.trendLineImg, e.drawOp)
 	}
 
-	for j := 2; j < hLen-1; j++ {
+	for j := 1; j < hLen; j++ {
 		// Smoothing: average current snapshot with previous two
 		avgMetrics := func(idx int) (uint64, uint64, uint64, uint64) {
-			if idx < 4 {
+			if idx < 2 {
 				s := e.history[idx]
 				return s.GoodIPs, s.PolyIPs, s.BadIPs, s.CritIPs
 			}
@@ -894,12 +894,12 @@ func (e *Engine) drawIPTrendLayers(chartW, chartH, globalMinLog, globalMaxLog fl
 				(s1.CritIPs + s2.CritIPs + s3.CritIPs) / 3
 		}
 
-		g1, p1, b1, c1 := avgMetrics(j)
-		g2, p2, b2, c2 := avgMetrics(j + 1)
+		g1, p1, b1, c1 := avgMetrics(j - 1)
+		g2, p2, b2, c2 := avgMetrics(j)
 
 		// Draw lines in order from bottom to top (Good -> Policy -> Bad -> Crit)
-		x1 := float64(j-2) * step
-		x2 := float64(j-1) * step
+		x1 := float64(j-1) * step
+		x2 := float64(j) * step
 		rangeLog := globalMaxLog - globalMinLog
 		if rangeLog < 0.001 {
 			rangeLog = 1.0
@@ -990,7 +990,7 @@ func (e *Engine) drawTrendGrid(screen *ebiten.Image, gx, gy, chartW, chartH, tit
 
 func (e *Engine) drawTrendLayers(chartW, chartH, globalMinLog, globalMaxLog float64) {
 	hLen := len(e.history)
-	numSteps := float64(hLen - 2)
+	numSteps := float64(hLen - 1)
 	if numSteps <= 0 {
 		numSteps = 1
 	}
@@ -1021,19 +1021,19 @@ func (e *Engine) drawTrendLayers(chartW, chartH, globalMinLog, globalMaxLog floa
 		e.trendLinesBuffer.DrawImage(e.trendLineImg, e.drawOp)
 	}
 
-	for j := 1; j < hLen-1; j++ {
+	for j := 1; j < hLen; j++ {
 		// Smoothing: average current snapshot with the previous one
 		avgMetrics := func(idx int) (float64, float64, float64, float64) {
-			if idx <= 1 {
-				return e.aggregateMetrics(&e.history[idx])
+			if idx <= 0 {
+				return e.aggregateMetrics(&e.history[0])
 			}
 			g1, p1, b1, c1 := e.aggregateMetrics(&e.history[idx-1])
 			g2, p2, b2, c2 := e.aggregateMetrics(&e.history[idx])
 			return (g1 + g2) / 2, (p1 + p2) / 2, (b1 + b2) / 2, (c1 + c2) / 2
 		}
 
-		g1, p1, b1, c1 := avgMetrics(j)
-		g2, p2, b2, c2 := avgMetrics(j + 1)
+		g1, p1, b1, c1 := avgMetrics(j - 1)
+		g2, p2, b2, c2 := avgMetrics(j)
 
 		// Draw lines in order from bottom to top (Good -> Policy -> Bad -> Crit)
 		x1 := float64(j-1) * step
