@@ -114,7 +114,7 @@ func (e *Engine) drawAnomalySummary(screen *ebiten.Image, xBase, yBase, boxW, bo
 }
 
 func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize float64, textOp *text.DrawOptions) {
-	currentY := localY + 5.0
+	currentY := localY + 2.0
 	// Layout:
 	//              [RATE] [ASNS] |   IPv4    | IPv6
 	// [ICON] [TYPE]              | PFXs | IPs | PFXs
@@ -149,7 +149,7 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 	textOp.GeoM.Translate(col6X-hwIPv6/2, currentY)
 	text.Draw(e.impactBuffer, hIPv6, e.subMonoFace, textOp)
 
-	currentY += fontSize * 0.8
+	currentY += (fontSize * 0.8) + 3.0
 
 	// Sub-Headers (Second row)
 	textOp.GeoM.Reset()

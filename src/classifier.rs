@@ -1,5 +1,6 @@
 use crate::db::Db;
 use ipnet::IpNet;
+use log::debug;
 use lru::LruCache;
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
@@ -182,6 +183,10 @@ pub struct PrefixState {
     pub fully_withdrawn_ts: Option<i64>,
     pub uncategorized_counted: bool,
     pub active_incident_id: Option<String>,
+    pub lat: f32,
+    pub lon: f32,
+    pub city: Option<String>,
+    pub country: Option<String>,
 }
 
 impl Default for PrefixState {
@@ -206,6 +211,10 @@ impl Default for PrefixState {
             fully_withdrawn_ts: None,
             uncategorized_counted: false,
             active_incident_id: None,
+            lat: 0.0,
+            lon: 0.0,
+            city: None,
+            country: None,
         }
     }
 }
@@ -256,6 +265,7 @@ pub struct Classifier {
     pub state_db: Option<Arc<Db>>,
     pub bgpkit: RwLock<Option<bgpkit_commons::BgpkitCommons>>,
     pub bgpkit_cache: Mutex<BgpkitCache>,
+    pub provider_db: Mutex<HashMap<u32, HashSet<u32>>>,
 }
 
 pub struct AggregatedStats {
@@ -306,6 +316,7 @@ impl Classifier {
             state_db,
             bgpkit: RwLock::new(None),
             bgpkit_cache: Mutex::new(BgpkitCache::default()),
+            provider_db: Mutex::new(HashMap::new()),
         }
     }
 
@@ -396,6 +407,11 @@ impl Classifier {
             self.update_announcement_stats(&mut state, minute_ts, ctx);
             if ctx.origin_asn != 0 {
                 state.last_origin_asn = ctx.origin_asn;
+                if let Some(ref db) = self.state_db
+                    && let Ok(net) = IpNet::from_str(&prefix)
+                {
+                    db.record_seen(net, ctx.origin_asn);
+                }
             }
         }
 
@@ -419,6 +435,11 @@ impl Classifier {
             }
         }
 
+        if !ctx.is_withdrawal {
+            let path = self.parse_path(&ctx.path_str);
+            self.update_provider_info(&path);
+        }
+
         let resolved_asn = if ctx.origin_asn != 0 {
             ctx.origin_asn
         } else if state.last_origin_asn != 0 {
@@ -426,6 +447,11 @@ impl Classifier {
         } else {
             historical_origin_asn
         };
+        state.lat = lat;
+        state.lon = lon;
+        state.city = city.clone();
+        state.country = country.clone();
+
         let (mut result, needs_timer) = self.evaluate_prefix_state(
             &prefix,
             &mut state,
@@ -695,6 +721,8 @@ impl Classifier {
             && ctx.origin_asn != 0
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
+            && self.rpki_validate(historical_origin_asn, prefix) == 1
+            && self.rpki_validate(ctx.origin_asn, prefix) == 2
         {
             let mut hosts = HashSet::new();
             for attr in &s.peer_attrs_values {
@@ -702,11 +730,10 @@ impl Classifier {
                     hosts.insert(attr.host.clone());
                 }
             }
-            // Include the current event in the count if not already in the state
             if !s.unique_hosts.contains(&ctx.host) {
                 hosts.insert(ctx.host.clone());
             }
-            if hosts.len() >= 3 {
+            if hosts.len() >= 2 {
                 return (
                     Some(PendingEvent {
                         prefix: prefix.to_string(),
@@ -796,7 +823,7 @@ impl Classifier {
                 false,
             );
         }
-        if s.unique_hosts.len() >= 2 && s.path_len_inc >= 1 && s.path_changes >= 2 {
+        if s.unique_hosts.len() >= 1 && (s.path_len_inc >= 1 || s.path_len_dec >= 1) && s.path_changes >= 2 {
             return (
                 Some(PendingEvent {
                     prefix: prefix.to_string(),
@@ -1009,6 +1036,30 @@ impl Classifier {
         false
     }
 
+    fn is_provider(&self, provider: u32, customer: u32) -> bool {
+        let db = self.provider_db.lock();
+        if let Some(customers) = db.get(&provider) {
+            if customers.contains(&customer) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn update_provider_info(&self, path: &[u32]) {
+        if path.len() < 2 {
+            return;
+        }
+        let mut db = self.provider_db.lock();
+        for i in 0..path.len() - 1 {
+            let p = path[i];
+            let c = path[i + 1];
+            if self.is_tier1(p) || self.is_large_network(p) {
+                db.entry(p).or_default().insert(c);
+            }
+        }
+    }
+
     fn detect_route_leak(&self, prefix: &str, ctx: &MessageContext) -> Option<LeakDetail> {
         let path = self.parse_path(&ctx.path_str);
         if path.len() < 3 {
@@ -1016,7 +1067,12 @@ impl Classifier {
         }
         for i in 0..path.len() - 2 {
             let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
-            if self.is_tier1(p1) && !self.is_large_network(p2) && self.is_tier1(p3) && p2 != p3 {
+            if (self.is_tier1(p1) || self.is_large_network(p1))
+                && !self.is_large_network(p2)
+                && (self.is_tier1(p3) || self.is_large_network(p3))
+                && p1 != p3
+                && self.is_provider(p1, p2)
+            {
                 return Some(LeakDetail {
                     leak_type: LeakType::Hairpin,
                     leaker_asn: p2,
@@ -1067,50 +1123,6 @@ impl Classifier {
         false
     }
 
-    pub fn get_as_name(&self, asn: u32) -> Option<String> {
-        let cache = self.bgpkit_cache.lock();
-        if let Some(name) = cache.as2name.get(&asn).cloned() {
-            return name;
-        }
-        drop(cache);
-        let bgpkit_guard = self.bgpkit.read();
-        if let Some(ref bgpkit) = *bgpkit_guard {
-            let name = bgpkit.asinfo_get(asn).ok().flatten().map(|i| i.name);
-            let mut cache = self.bgpkit_cache.lock();
-            cache.as2name.insert(asn, name.clone());
-            return name;
-        }
-        None
-    }
-
-    fn get_as_org(&self, asn: u32) -> Option<String> {
-        let cache = self.bgpkit_cache.lock();
-        if let Some(org) = cache.as2org.get(&asn).cloned() {
-            return org;
-        }
-        drop(cache);
-        let bgpkit_guard = self.bgpkit.read();
-        if let Some(ref bgpkit) = *bgpkit_guard {
-            let org = bgpkit
-                .asinfo_get(asn)
-                .ok()
-                .flatten()
-                .and_then(|i| i.as2org.clone().map(|o| o.org_name));
-            let mut cache = self.bgpkit_cache.lock();
-            cache.as2org.insert(asn, org.clone());
-            return org;
-        }
-        None
-    }
-
-    fn parse_path(&self, path_str: &str) -> Vec<u32> {
-        let mut path: Vec<u32> = path_str
-            .split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
-        path.dedup();
-        path
-    }
     fn is_tier1(&self, asn: u32) -> bool {
         matches!(
             asn,
@@ -1134,6 +1146,68 @@ impl Classifier {
         )
     }
 
+    fn is_large_network(&self, asn: u32) -> bool {
+        matches!(
+            asn,
+            15169 | 16509 | 8075 | 13335 | 20940 | 14618 | 32934 | 16276
+        )
+    }
+
+    pub fn get_as_name(&self, asn: u32) -> Option<String> {
+        if asn == 0 {
+            return None;
+        }
+        {
+            let cache = self.bgpkit_cache.lock();
+            if let Some(res) = cache.as2name.get(&asn) {
+                return res.clone();
+            }
+        }
+        let bgpkit_guard = self.bgpkit.read();
+        if let Some(ref bgpkit) = *bgpkit_guard {
+            let name = bgpkit.asinfo_get(asn).ok().flatten().map(|i| i.name);
+            
+            if name.is_none() {
+                debug!("AS name not found for AS{}", asn);
+            }
+
+            let mut cache = self.bgpkit_cache.lock();
+            cache.as2name.insert(asn, name.clone());
+            return name;
+        }
+        None
+    }
+
+    fn get_as_org(&self, asn: u32) -> Option<String> {
+        {
+            let cache = self.bgpkit_cache.lock();
+            if let Some(res) = cache.as2org.get(&asn) {
+                return res.clone();
+            }
+        }
+        let bgpkit_guard = self.bgpkit.read();
+        if let Some(ref bgpkit) = *bgpkit_guard {
+            let org = bgpkit
+                .asinfo_get(asn)
+                .ok()
+                .flatten()
+                .and_then(|i| i.as2org.clone().map(|o| o.org_name));
+            let mut cache = self.bgpkit_cache.lock();
+            cache.as2org.insert(asn, org.clone());
+            return org;
+        }
+        None
+    }
+
+    fn parse_path(&self, path_str: &str) -> Vec<u32> {
+        let mut path: Vec<u32> = path_str
+            .split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        path.dedup();
+        path
+    }
+
     fn rpki_validate(&self, asn: u32, prefix: &str) -> i32 {
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard
@@ -1146,13 +1220,6 @@ impl Classifier {
             };
         }
         0
-    }
-
-    fn is_large_network(&self, asn: u32) -> bool {
-        matches!(
-            asn,
-            15169 | 16509 | 8075 | 13335 | 20940 | 14618 | 32934 | 16276
-        )
     }
 
     pub fn check_outage(&self, prefix: &str, now: i64) -> Option<PendingEvent> {
@@ -1204,10 +1271,10 @@ impl Classifier {
                     ..Default::default()
                 }),
                 source: "timer".to_string(),
-                lat: 0.0,
-                lon: 0.0,
-                city: None,
-                country: None,
+                lat: state.lat,
+                lon: state.lon,
+                city: state.city.clone(),
+                country: state.country.clone(),
             };
 
             if let Some(ref db) = self.state_db

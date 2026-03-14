@@ -75,8 +75,8 @@ const BEACON_PREFIXES: &[&str] = &[
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 struct AggregationKey {
-    lat_bits: u32,
-    lon_bits: u32,
+    lat_q: i32,
+    lon_q: i32,
     classification: ClassificationType,
 }
 
@@ -273,7 +273,8 @@ impl LiveMap for LiveMapService {
         let db_stats = self.state.cached_class_db_stats.read().await;
         let ipv4_counts = self.state.cached_class_ipv4_counts.read().await;
         let mut classification_counts = Vec::new();
-        for i in 0..10 {
+        let indices = [1, 2, 3, 4, 5, 6, 8, 9];
+        for i in indices {
             let k = ClassificationType::from_i32(i);
             let mut rate = 0.0;
             let mut window_count = 0;
@@ -299,18 +300,7 @@ impl LiveMap for LiveMapService {
                     st.ipv4_prefixes,
                     st.ipv6_prefixes,
                 ),
-                None => {
-                    // Fix: If we mapped Discovery to None but None doesn't exist, try Discovery itself
-                    match db_stats.get(&k) {
-                        Some(st) => (
-                            st.total_prefixes,
-                            st.asn_count,
-                            st.ipv4_prefixes,
-                            st.ipv6_prefixes,
-                        ),
-                        None => (0, 0, 0, 0),
-                    }
-                }
+                None => (0, 0, 0, 0),
             };
             classification_counts.push(ClassificationCount {
                 classification: map_classification(k).into(),
@@ -320,11 +310,7 @@ impl LiveMap for LiveMapService {
                 prefix_count: p_count,
                 ipv4_prefix_count: v4_p_count,
                 ipv6_prefix_count: v6_p_count,
-                ipv4_count: ipv4_counts
-                    .get(&lookup_key)
-                    .or_else(|| ipv4_counts.get(&k))
-                    .cloned()
-                    .unwrap_or(v4_p_count as u64),
+                ipv4_count: ipv4_counts.get(&lookup_key).cloned().unwrap_or(0),
                 total_count,
             });
         }
@@ -485,17 +471,21 @@ async fn consume_ris_live(
     classifier: Arc<Classifier>,
     geo: Arc<Geolocation>,
     tx: mpsc::Sender<(PendingEvent, bool)>,
+    subscription: String,
 ) {
     let mut backoff = Duration::from_secs(1);
     loop {
         debug!("Connecting to RIS Live...");
         if let Ok((mut socket, _)) = connect_async("ws://ris-live.ripe.net/v1/ws/").await {
             backoff = Duration::from_secs(1);
-            let sub = json!({"type": "ris_subscribe", "data": {"moreSpecific": true}}).to_string();
-            if socket.send(WsMessage::Text(sub.into())).await.is_err() {
+            if socket
+                .send(WsMessage::Text(subscription.clone().into()))
+                .await
+                .is_err()
+            {
                 continue;
             }
-            info!("Subscribed to RIS Live");
+            info!("Subscribed to RIS Live with: {}", subscription);
             let sem = Arc::new(tokio::sync::Semaphore::new(50));
             let (mut ws_tx, mut ws_rx) = socket.split();
             let mut hb = tokio::time::interval(Duration::from_secs(30));
@@ -648,21 +638,22 @@ async fn consume_routeviews(
     tx: mpsc::Sender<(PendingEvent, bool)>,
 ) {
     let mut backoff = Duration::from_secs(5);
-    let group_id = format!("livemap-{}", uuid::Uuid::new_v4());
+    let group_id = "livemap-kmcd-dev-routeviews";
     loop {
         debug!("Connecting to RouteViews Kafka with group {}...", group_id);
         let res: Result<StreamConsumer, _> = ClientConfig::new()
             .set("bootstrap.servers", "stream.routeviews.org:9092")
-            .set("group.id", &group_id)
+            .set("group.id", group_id)
             .set("auto.offset.reset", "latest")
-            .set("session.timeout.ms", "45000")
-            .set("heartbeat.interval.ms", "15000")
-            .set("max.poll.interval.ms", "300000")
+            .set("session.timeout.ms", "60000")
+            .set("heartbeat.interval.ms", "20000")
+            .set("max.poll.interval.ms", "900000") // 15 minutes
             .set("enable.auto.commit", "true")
             .create();
         if let Ok(consumer) = res
             && consumer.subscribe(&["^routeviews\\.(amsix|kixp|linx|n-ix|nwax|nyiix|ottix|saopaulo|sfmix|sydney|telstra|wide)\\..*\\.bmp_raw"]).is_ok() {
                 info!("Subscribed to RouteViews Kafka topics");
+                backoff = Duration::from_secs(5);
                 let sem = Arc::new(tokio::sync::Semaphore::new(200));
                 loop {
                     match consumer.recv().await {
@@ -697,33 +688,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
     info!("Starting server...");
     let sled_db = sled::open("db/sled").expect("Failed to open sled database");
+    let seen_tree = sled_db.open_tree("seen").expect("Failed to open seen tree");
     let checkpoint_db = sled_db
         .open_tree("checkpoints")
         .expect("Failed to open checkpoints tree");
     let db = Arc::new(Db::new(
         "db/state.db",
-        Some(DiskTrie::new(
-            sled_db.open_tree("seen").expect("Failed to open seen tree"),
-        )),
+        Some(DiskTrie::new(seen_tree.clone())),
     ));
     let db_for_classifier = db.clone();
     info!("Initializing classifier...");
-    let classifier = Arc::new(Classifier::new(1000000, None, Some(db_for_classifier)));
+    let classifier = Arc::new(Classifier::new(
+        1000000,
+        Some(DiskTrie::new(seen_tree)),
+        Some(db_for_classifier),
+    ));
     let classifier_bg = classifier.clone();
     tokio::task::spawn_blocking(move || {
         info!("Loading BGPKIT data in background...");
+        let start = Instant::now();
         let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
-        let _ = bgpkit.load_asinfo(true, true, true, true);
-        let _ = bgpkit.load_rpki(None);
+        if let Err(e) = bgpkit.load_asinfo(true, true, true, true) {
+            warn!("Failed to load BGPKIT AS info: {}", e);
+        } else {
+            info!("BGPKIT AS info loaded.");
+        }
+        if let Err(e) = bgpkit.load_rpki(None) {
+            warn!("Failed to load BGPKIT RPKI data: {}", e);
+        }
         {
             *classifier_bg.bgpkit.write() = Some(bgpkit);
         }
-        info!("BGPKIT data loading complete.");
+        info!("BGPKIT data loading complete (took {}s).", start.elapsed().as_secs());
     });
     let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(200000);
     let geo = Arc::new(Geolocation::new("assets/dbip-city-lite-2026-03.mmdb"));
     let mut class_stats = HashMap::new();
-    for i in 0..10 {
+    for i in [1, 2, 3, 4, 5, 6, 8, 9] {
         class_stats.insert(ClassificationType::from_i32(i), CumulativeStats::default());
     }
     let mut global_stats = CumulativeStats::default();
@@ -763,7 +764,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let g1 = geo.clone();
     let t1 = tx.clone();
     tokio::spawn(async move {
-        consume_ris_live(c1, g1, t1).await;
+        consume_ris_live(
+            c1,
+            g1,
+            t1,
+            json!({"type": "ris_subscribe", "data": {"prefix": "0.0.0.0/0", "moreSpecific": true, "lessSpecific": true}})
+                .to_string(),
+        )
+        .await;
+    });
+    let c1b = classifier.clone();
+    let g1b = geo.clone();
+    let t1b = tx.clone();
+    tokio::spawn(async move {
+        consume_ris_live(
+            c1b,
+            g1b,
+            t1b,
+            json!({"type": "ris_subscribe", "data": {"prefix": "::/0", "moreSpecific": true, "lessSpecific": true}})
+                .to_string(),
+        )
+        .await;
     });
     let c2 = classifier.clone();
     let g2 = geo.clone();
@@ -914,7 +935,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let beacon_set: HashSet<String> = BEACON_PREFIXES.iter().map(|s| s.to_string()).collect();
     let research_set: HashSet<u32> = EXCLUDED_ASNS.iter().cloned().collect();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_millis(50));
+        let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
         loop {
             tokio::select! {
@@ -929,7 +950,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if let Some(cs) = s_ingest.class_stats.get(&pending.classification_type) { cs.add_event(now); }
                         if beacon_set.contains(&pending.prefix) { s_ingest.beacon_stats.add_event(now); }
                         else if research_set.contains(&pending.asn) { s_ingest.research_stats.add_event(now); }
-                        let key = AggregationKey { lat_bits: pending.lat.to_bits(), lon_bits: pending.lon.to_bits(), classification: pending.classification_type };
+                        let key = AggregationKey {
+                            lat_q: (pending.lat * 2.0) as i32,
+                            lon_q: (pending.lon * 2.0) as i32,
+                            classification: pending.classification_type
+                        };
                         *aggregate_buffer.entry(key).or_insert(0) += 1;
                         if pending.classification_type != pending.old_classification
                             && let Some(id) = &pending.incident_id {
@@ -972,7 +997,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 _ = interval.tick() => {
                     if !aggregate_buffer.is_empty() {
-                        let events = aggregate_buffer.drain().map(|(k, count)| AggregatedEvent { geo: Some(ProtoGeoData { lat: f32::from_bits(k.lat_bits), lon: f32::from_bits(k.lon_bits) }), classification: map_classification(k.classification).into(), count }).collect();
+                        let events = aggregate_buffer.drain().map(|(k, count)| AggregatedEvent {
+                            geo: Some(ProtoGeoData {
+                                lat: k.lat_q as f32 / 2.0,
+                                lon: k.lon_q as f32 / 2.0
+                            }),
+                            classification: map_classification(k.classification).into(),
+                            count
+                        }).collect();
                         let resp = SubscribeEventsResponse { events }; let mut subs = s_ingest.subscribers.write().await;
                         subs.retain(|sub| sub.try_send(Ok(resp.clone())).is_ok());
                     }
