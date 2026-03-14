@@ -330,13 +330,11 @@ impl Classifier {
         let shard = self.get_shard(&prefix);
         let mut states = shard.lock();
         let mut state = states.get(&prefix).cloned();
-        if state.is_none() {
-            if let Some(ref db) = self.state_db {
-                if let Some(data) = db.get_prefix_state(&prefix) {
+        if state.is_none()
+            && let Some(ref db) = self.state_db
+                && let Some(data) = db.get_prefix_state(&prefix) {
                     state = serde_json::from_str(&data).ok();
                 }
-            }
-        }
         let mut state = state.unwrap_or_default();
         let old_classified_type = state.classified_type;
         state.last_update_ts = ctx.now;
@@ -386,8 +384,8 @@ impl Classifier {
             };
             if ctx.now - state.classified_time_ts > expiry {
                 state.classified_type = ClassificationType::None;
-            } else if state.classified_type == ClassificationType::Outage && !ctx.is_withdrawal {
-                if state
+            } else if state.classified_type == ClassificationType::Outage && !ctx.is_withdrawal
+                && state
                     .buckets
                     .get(&minute_ts)
                     .map(|b| b.announcements)
@@ -396,7 +394,6 @@ impl Classifier {
                 {
                     state.classified_type = ClassificationType::None;
                 }
-            }
         }
 
         let resolved_asn = if ctx.origin_asn != 0 {
@@ -496,19 +493,18 @@ impl Classifier {
                 city: city.clone(),
                 country: country.clone(),
             });
-            if let Some(ref db) = self.state_db {
-                if let Ok(net) = IpNet::from_str(&prefix) {
+            if let Some(ref db) = self.state_db
+                && let Ok(net) = IpNet::from_str(&prefix) {
                     db.record_seen(net, ctx.origin_asn);
                 }
-            }
         }
 
         if let Some(ref db) = self.state_db {
             let has_active = state.peer_last_attrs.values().any(|attr| !attr.withdrawn);
             if !has_active && ctx.now - state.last_update_ts > 86400 {
                 db.delete_prefix(&prefix);
-            } else if ctx.is_withdrawal || state.classified_type != old_classified_type {
-                if let Ok(data) = serde_json::to_string(&state) {
+            } else if (ctx.is_withdrawal || state.classified_type != old_classified_type)
+                && let Ok(data) = serde_json::to_string(&state) {
                     let p_asn = if ctx.origin_asn != 0 {
                         ctx.origin_asn
                     } else {
@@ -522,7 +518,6 @@ impl Classifier {
                         p_asn,
                     );
                 }
-            }
         }
         states.put(prefix, state);
         (result, needs_timer)
@@ -710,8 +705,8 @@ impl Classifier {
             }
         }
         let total_known = s.unique_peers.len() + s.withdrawn_peers.len();
-        if total_known >= 3 && s.unique_peers.is_empty() && elapsed > 30.0 && resolved_asn != 0 {
-            if let Some(fw_ts) = fully_withdrawn_ts {
+        if total_known >= 3 && s.unique_peers.is_empty() && elapsed > 30.0 && resolved_asn != 0
+            && let Some(fw_ts) = fully_withdrawn_ts {
                 if ctx.now - fw_ts >= 10 {
                     return (
                         Some(PendingEvent {
@@ -744,9 +739,8 @@ impl Classifier {
                     return (None, true);
                 }
             }
-        }
-        if s.unique_hosts.len() >= 3 {
-            if let Some(ld) = self.detect_route_leak(prefix, ctx) {
+        if s.unique_hosts.len() >= 3
+            && let Some(ld) = self.detect_route_leak(prefix, ctx) {
                 return (
                     Some(PendingEvent {
                         prefix: prefix.to_string(),
@@ -770,7 +764,6 @@ impl Classifier {
                     false,
                 );
             }
-        }
         if s.unique_hosts.len() >= 2 && s.path_len_inc >= 1 && s.path_changes >= 2 {
             return (
                 Some(PendingEvent {
@@ -934,26 +927,23 @@ impl Classifier {
     }
 
     fn get_historical_asn(&self, prefix: &str) -> u32 {
-        if let Some(ref seen_db) = self.seen_db {
-            if let Ok(net) = IpNet::from_str(prefix) {
+        if let Some(ref seen_db) = self.seen_db
+            && let Ok(net) = IpNet::from_str(prefix) {
                 match net.addr() {
                     IpAddr::V4(v4) => {
-                        if let Ok(Some((_, val))) = seen_db.lookup_lpm_v4(v4) {
-                            if val.len() == 4 {
+                        if let Ok(Some((_, val))) = seen_db.lookup_lpm_v4(v4)
+                            && val.len() == 4 {
                                 return u32::from_be_bytes(val.try_into().unwrap());
                             }
-                        }
                     }
                     IpAddr::V6(v6) => {
-                        if let Ok(Some((_, val))) = seen_db.lookup_lpm_v6(v6) {
-                            if val.len() == 4 {
+                        if let Ok(Some((_, val))) = seen_db.lookup_lpm_v6(v6)
+                            && val.len() == 4 {
                                 return u32::from_be_bytes(val.try_into().unwrap());
                             }
-                        }
                     }
                 }
             }
-        }
         0
     }
 
@@ -975,11 +965,10 @@ impl Classifier {
                 {
                     return true;
                 }
-            } else if let IpAddr::V6(v6) = addr {
-                if v6.is_unicast_link_local() {
+            } else if let IpAddr::V6(v6) = addr
+                && v6.is_unicast_link_local() {
                     return true;
                 }
-            }
         }
         false
     }
@@ -1018,11 +1007,10 @@ impl Classifier {
         if asn1 == asn2 {
             return true;
         }
-        if let (Some(o1), Some(o2)) = (self.get_as_org(asn1), self.get_as_org(asn2)) {
-            if o1 == o2 {
+        if let (Some(o1), Some(o2)) = (self.get_as_org(asn1), self.get_as_org(asn2))
+            && o1 == o2 {
                 return true;
             }
-        }
         if let (Some(n1), Some(n2)) = (self.get_as_name(asn1), self.get_as_name(asn2)) {
             let (n1l, n2l) = (n1.to_lowercase(), n2.to_lowercase());
             let common = [
@@ -1111,15 +1099,14 @@ impl Classifier {
 
     fn rpki_validate(&self, asn: u32, prefix: &str) -> i32 {
         let bgpkit_guard = self.bgpkit.read();
-        if let Some(ref bgpkit) = *bgpkit_guard {
-            if let Ok(status) = bgpkit.rpki_validate(asn, prefix) {
+        if let Some(ref bgpkit) = *bgpkit_guard
+            && let Ok(status) = bgpkit.rpki_validate(asn, prefix) {
                 return match status {
                     bgpkit_commons::rpki::RpkiValidation::Valid => 1,
                     bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
                     bgpkit_commons::rpki::RpkiValidation::Unknown => 0,
                 };
             }
-        }
         0
     }
 
@@ -1139,8 +1126,8 @@ impl Classifier {
             return None;
         };
 
-        if let Some(fw_ts) = state.fully_withdrawn_ts {
-            if now - fw_ts >= 10 && state.classified_type != ClassificationType::Outage {
+        if let Some(fw_ts) = state.fully_withdrawn_ts
+            && now - fw_ts >= 10 && state.classified_type != ClassificationType::Outage {
                 state.classified_type = ClassificationType::Outage;
                 state.classified_time_ts = now;
                 if state.active_incident_id.is_none() {
@@ -1180,8 +1167,8 @@ impl Classifier {
                     country: None,
                 };
 
-                if let Some(ref db) = self.state_db {
-                    if let Ok(data) = serde_json::to_string(&state) {
+                if let Some(ref db) = self.state_db
+                    && let Ok(data) = serde_json::to_string(&state) {
                         db.upsert_prefix_state(
                             prefix,
                             &data,
@@ -1190,12 +1177,10 @@ impl Classifier {
                             resolved_asn,
                         );
                     }
-                }
 
                 states.put(prefix.to_string(), state);
                 return Some(event);
             }
-        }
         None
     }
 }

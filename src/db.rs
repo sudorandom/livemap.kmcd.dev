@@ -95,8 +95,8 @@ impl Db {
         seen_db: Option<&crate::classifier::DiskTrie>,
         buffer: &mut Vec<DbWriteOp>,
     ) {
-        if let Ok(mut conn) = pool.get() {
-            if let Ok(tx) = conn.transaction() {
+        if let Ok(mut conn) = pool.get()
+            && let Ok(tx) = conn.transaction() {
                 for op in buffer.drain(..) {
                     match op {
                         DbWriteOp::Upsert {
@@ -125,7 +125,6 @@ impl Db {
                 }
                 let _ = tx.commit();
             }
-        }
     }
 
     pub fn get_pool(&self) -> Pool<SqliteConnectionManager> {
@@ -158,8 +157,8 @@ impl Db {
         let mut stats = HashMap::new();
         if let Ok(conn) = self.pool.get() {
             let query = "SELECT classified_type, count(*) as total, count(CASE WHEN prefix NOT LIKE '%:%' THEN 1 END) as ipv4_total, count(DISTINCT CASE WHEN origin_asn != 0 THEN origin_asn END) as asns FROM prefix_state GROUP BY classified_type";
-            if let Ok(mut stmt) = conn.prepare_cached(query) {
-                if let Ok(mut rows) = stmt.query([]) {
+            if let Ok(mut stmt) = conn.prepare_cached(query)
+                && let Ok(mut rows) = stmt.query([]) {
                     while let Ok(Some(row)) = rows.next() {
                         let c_i32: i32 = row.get(0).unwrap_or(0);
                         let total: u32 = row.get(1).unwrap_or(0);
@@ -176,19 +175,17 @@ impl Db {
                         );
                     }
                 }
-            }
         }
         stats
     }
 
     pub fn get_prefix_state(&self, prefix: &str) -> Option<String> {
-        if let Ok(conn) = self.pool.get() {
-            if let Ok(mut stmt) =
+        if let Ok(conn) = self.pool.get()
+            && let Ok(mut stmt) =
                 conn.prepare_cached("SELECT state FROM prefix_state WHERE prefix = ?1")
             {
                 return stmt.query_row([prefix], |row| row.get(0)).ok();
             }
-        }
         None
     }
 
@@ -221,17 +218,14 @@ impl Db {
 
     pub fn get_stale_prefixes(&self, stale_threshold: i64) -> Vec<(String, String)> {
         let mut results = Vec::new();
-        if let Ok(conn) = self.pool.get() {
-            if let Ok(mut stmt) =
+        if let Ok(conn) = self.pool.get()
+            && let Ok(mut stmt) =
                 conn.prepare("SELECT prefix, state FROM prefix_state WHERE last_update_ts < ?1")
-            {
-                if let Ok(mut rows) = stmt.query([stale_threshold]) {
+                && let Ok(mut rows) = stmt.query([stale_threshold]) {
                     while let Ok(Some(row)) = rows.next() {
                         results.push((row.get(0).unwrap(), row.get(1).unwrap()));
                     }
                 }
-            }
-        }
         results
     }
 }

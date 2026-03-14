@@ -394,22 +394,19 @@ async fn process_ris_live_message(
                 .and_then(|v| v.first())
                 .map(|asn: &Asn| u32::from(*asn))
                 .unwrap_or_default();
-            if origin_asn == 0 {
-                if let Some(last_asn) = path_str.split_whitespace().last() {
-                    if let Ok(asn) = last_asn.parse::<u32>() {
+            if origin_asn == 0
+                && let Some(last_asn) = path_str.split_whitespace().last()
+                    && let Ok(asn) = last_asn.parse::<u32>() {
                         origin_asn = asn;
                     }
-                }
-            }
             let net = IpNet::from_str(&elem.prefix.to_string()).ok();
             let mut geo_data = geo.lookup(elem.peer_ip);
-            if geo_data.is_none() {
-                if let Some(n) = net {
+            if geo_data.is_none()
+                && let Some(n) = net {
                     geo_data = geo.lookup(n.addr());
                 }
-            }
             let (lat, lon, city, country) = match geo_data {
-                Some(gd) => (gd.lat as f32, gd.lon as f32, gd.city, gd.country),
+                Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
                 None => (0.0, 0.0, None, None),
             };
             let ctx = MessageContext {
@@ -555,22 +552,19 @@ async fn process_routeviews_message(
                     .and_then(|v| v.first())
                     .map(|asn: &Asn| u32::from(*asn))
                     .unwrap_or_default();
-                if origin_asn == 0 {
-                    if let Some(last_asn) = path_str.split_whitespace().last() {
-                        if let Ok(asn) = last_asn.parse::<u32>() {
+                if origin_asn == 0
+                    && let Some(last_asn) = path_str.split_whitespace().last()
+                        && let Ok(asn) = last_asn.parse::<u32>() {
                             origin_asn = asn;
                         }
-                    }
-                }
                 let net = IpNet::from_str(&elem.prefix.to_string()).ok();
                 let mut geo_data = geo.lookup(elem.peer_ip);
-                if geo_data.is_none() {
-                    if let Some(n) = net {
+                if geo_data.is_none()
+                    && let Some(n) = net {
                         geo_data = geo.lookup(n.addr());
                     }
-                }
                 let (lat, lon, city, country) = match geo_data {
-                    Some(gd) => (gd.lat as f32, gd.lon as f32, gd.city, gd.country),
+                    Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
                     None => (0.0, 0.0, None, None),
                 };
                 let ctx = MessageContext {
@@ -657,8 +651,8 @@ async fn consume_routeviews(
             .set("group.id", &group_id)
             .set("auto.offset.reset", "latest")
             .create();
-        if let Ok(consumer) = res {
-            if consumer.subscribe(&["^routeviews\\.(amsix|kixp|linx|n-ix|nwax|nyiix|ottix|saopaulo|sfmix|sydney|telstra|wide)\\..*\\.bmp_raw"]).is_ok() {
+        if let Ok(consumer) = res
+            && consumer.subscribe(&["^routeviews\\.(amsix|kixp|linx|n-ix|nwax|nyiix|ottix|saopaulo|sfmix|sydney|telstra|wide)\\..*\\.bmp_raw"]).is_ok() {
                 info!("Subscribed to RouteViews Kafka topics");
                 while let Ok(msg) = consumer.recv().await {
                     if let Some(p) = msg.payload() {
@@ -668,7 +662,6 @@ async fn consume_routeviews(
                     }
                 }
             }
-        }
         tokio::time::sleep(backoff).await;
         backoff = (backoff * 2).min(Duration::from_secs(300));
     }
@@ -712,8 +705,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         class_stats.insert(ClassificationType::from_i32(i), CumulativeStats::default());
     }
     let mut global_stats = CumulativeStats::default();
-    if let Ok(Some(data)) = checkpoint_db.get("latest") {
-        if let Ok(cp) = serde_json::from_slice::<Checkpoint>(&data) {
+    if let Ok(Some(data)) = checkpoint_db.get("latest")
+        && let Ok(cp) = serde_json::from_slice::<Checkpoint>(&data) {
             info!("Loaded checkpoint from DB (timestamp: {}).", cp.timestamp);
             global_stats = CumulativeStats::from_snapshot(cp.global_stats);
             for (k, v) in cp.class_stats {
@@ -722,7 +715,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-    }
     let app_state = Arc::new(AppState {
         subscribers: RwLock::new(Vec::new()),
         transition_subscribers: RwLock::new(Vec::new()),
@@ -811,8 +803,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut class_v4: HashMap<ClassificationType, Vec<ipnet::Ipv4Net>> = HashMap::new();
                 let mut global_v4 = Vec::new();
                 let mut count = 0;
-                if let Ok(conn) = pool.get() {
-                    if let Ok(mut stmt) =
+                if let Ok(conn) = pool.get()
+                    && let Ok(mut stmt) =
                         conn.prepare("SELECT prefix, classified_type FROM prefix_state")
                     {
                         let mut rows = stmt.query([]).unwrap();
@@ -829,7 +821,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
                     }
-                }
                 info!("[STATS] Aggregating {} IPv4 prefixes.", count);
                 let g_ipv4 = if global_v4.is_empty() {
                     0
@@ -917,8 +908,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         else if research_set.contains(&pending.asn) { s_ingest.research_stats.add_event(now); }
                         let key = AggregationKey { lat_bits: pending.lat.to_bits(), lon_bits: pending.lon.to_bits(), classification: pending.classification_type };
                         *aggregate_buffer.entry(key).or_insert(0) += 1;
-                        if pending.classification_type != pending.old_classification {
-                            if let Some(id) = &pending.incident_id {
+                        if pending.classification_type != pending.old_classification
+                            && let Some(id) = &pending.incident_id {
                                 let cur_as_name = c_ingest.get_as_name(pending.asn).unwrap_or_default();
                                 transitions.push(StateTransition {
                                     incident_id: id.clone(),
@@ -943,7 +934,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     })
                                 });
                             }
-                        }
                     }
                     s_ingest.max_lag.store(max_lag as u64, Ordering::Relaxed);
                     if !transitions.is_empty() {
@@ -951,7 +941,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         subs.retain(|(sub, target)| {
                             for t in &transitions {
                                 let (c, old) = (ClassificationType::from_i32(t.new_state), ClassificationType::from_i32(t.old_state));
-                                if target.is_empty() || target.contains(&c) || target.contains(&old) { if sub.try_send(Ok(livemap_proto::StreamStateTransitionsResponse { transition: Some(t.clone()) })).is_err() { return false; } }
+                                if (target.is_empty() || target.contains(&c) || target.contains(&old)) && sub.try_send(Ok(livemap_proto::StreamStateTransitionsResponse { transition: Some(t.clone()) })).is_err() { return false; }
                             }
                             true
                         });
