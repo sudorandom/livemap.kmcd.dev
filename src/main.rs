@@ -423,7 +423,25 @@ async fn process_ris_live_message(
                     })
                     .unwrap_or_default(),
                 origin_asn,
-                path_len: elem.as_path.as_ref().map(|p| p.segments.len()).unwrap_or(0),
+                path_len: elem
+                    .as_path
+                    .as_ref()
+                    .map(|p| {
+                        p.segments
+                            .iter()
+                            .map(|s| match s {
+                                bgpkit_parser::models::AsPathSegment::AsSet(asns) => asns.len(),
+                                bgpkit_parser::models::AsPathSegment::AsSequence(asns) => {
+                                    asns.len()
+                                }
+                                bgpkit_parser::models::AsPathSegment::ConfedSequence(asns) => {
+                                    asns.len()
+                                }
+                                bgpkit_parser::models::AsPathSegment::ConfedSet(asns) => asns.len(),
+                            })
+                            .sum()
+                    })
+                    .unwrap_or(0),
                 source: "ris".to_string(),
             };
             let (event_opt, needs_timer) = classifier.classify_event(
@@ -588,7 +606,27 @@ async fn process_routeviews_message(
                         })
                         .unwrap_or_default(),
                     origin_asn,
-                    path_len: elem.as_path.as_ref().map(|p| p.segments.len()).unwrap_or(0),
+                    path_len: elem
+                        .as_path
+                        .as_ref()
+                        .map(|p| {
+                            p.segments
+                                .iter()
+                                .map(|s| match s {
+                                    bgpkit_parser::models::AsPathSegment::AsSet(asns) => asns.len(),
+                                    bgpkit_parser::models::AsPathSegment::AsSequence(asns) => {
+                                        asns.len()
+                                    }
+                                    bgpkit_parser::models::AsPathSegment::ConfedSequence(asns) => {
+                                        asns.len()
+                                    }
+                                    bgpkit_parser::models::AsPathSegment::ConfedSet(asns) => {
+                                        asns.len()
+                                    }
+                                })
+                                .sum()
+                        })
+                        .unwrap_or(0),
                     source: "routeviews".to_string(),
                 };
                 let (event_opt, needs_timer) = classifier.classify_event(
@@ -661,7 +699,7 @@ async fn consume_routeviews(
             .set("enable.auto.commit", "true")
             .create();
         if let Ok(consumer) = res
-            && consumer.subscribe(&[&pattern]).is_ok()
+            && consumer.subscribe(&[pattern]).is_ok()
         {
             info!(
                 "Subscribed to RouteViews Kafka topics using pattern: {}",

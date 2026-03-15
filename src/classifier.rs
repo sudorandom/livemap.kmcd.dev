@@ -724,7 +724,7 @@ impl Classifier {
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
             // && self.rpki_validate(historical_origin_asn, prefix) != 2
-            && self.rpki_validate(ctx.origin_asn, prefix) == 2
+            && (self.rpki_validate(ctx.origin_asn, prefix) == 2 || self.rpki_validate(historical_origin_asn, prefix) == 1)
         {
             let mut hosts = HashSet::new();
             for attr in &s.peer_attrs_values {
@@ -825,9 +825,9 @@ impl Classifier {
                 false,
             );
         }
-        if !s.unique_hosts.is_empty()
+        if s.unique_hosts.len() >= 3
             && (s.path_len_inc >= 1 || s.path_len_dec >= 1)
-            && s.path_changes >= 2
+            && s.path_changes >= 4
         {
             return (
                 Some(PendingEvent {
@@ -1050,6 +1050,7 @@ impl Classifier {
         false
     }
 
+    #[allow(dead_code)]
     fn is_provider(&self, provider: u32, customer: u32) -> bool {
         let db = self.provider_db.lock();
         if let Some(customers) = db.get(&provider)
@@ -1082,26 +1083,21 @@ impl Classifier {
         for i in 0..path.len() - 2 {
             let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
             if (self.is_tier1(p1) || self.is_large_network(p1))
-                && !self.is_large_network(p2)
+                && !self.is_tier1(p2)
                 && (self.is_tier1(p3) || self.is_large_network(p3))
                 && p1 != p3
-                && self.is_provider(p1, p2)
+                && p1 != p2
+                && p2 != p3
             {
-                let leaker_rpki_status = self.rpki_validate(p2, prefix);
-                let victim_rpki_status = self.rpki_validate(p3, prefix);
-                if (victim_rpki_status == 1 || victim_rpki_status == 2)
-                    && (leaker_rpki_status != 1 && leaker_rpki_status != 2)
-                {
-                    return Some(LeakDetail {
-                        leak_type: LeakType::Hairpin,
-                        leaker_asn: p2,
-                        victim_asn: p3,
-                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
-                        victim_as_name: self.get_as_name(p3).unwrap_or_default(),
-                        leaker_rpki_status,
-                        victim_rpki_status,
-                    });
-                }
+                return Some(LeakDetail {
+                    leak_type: LeakType::Hairpin,
+                    leaker_asn: p2,
+                    victim_asn: p3,
+                    leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                    victim_as_name: self.get_as_name(p3).unwrap_or_default(),
+                    leaker_rpki_status: self.rpki_validate(p2, prefix),
+                    victim_rpki_status: self.rpki_validate(p3, prefix),
+                });
             }
         }
         None
