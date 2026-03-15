@@ -302,6 +302,11 @@ impl LiveMap for LiveMapService {
                 ),
                 None => (0, 0, 0, 0),
             };
+            let mut final_ipv4_count = ipv4_counts.get(&lookup_key).cloned().unwrap_or(0);
+            if final_ipv4_count == 0 {
+                // Approximate fallback for the first 10 minutes until the heavy IP aggregation runs
+                final_ipv4_count = v4_p_count as u64 * 256;
+            }
             classification_counts.push(ClassificationCount {
                 classification: map_classification(k).into(),
                 count: window_count,
@@ -310,7 +315,7 @@ impl LiveMap for LiveMapService {
                 prefix_count: p_count,
                 ipv4_prefix_count: v4_p_count,
                 ipv6_prefix_count: v6_p_count,
-                ipv4_count: ipv4_counts.get(&lookup_key).cloned().unwrap_or(0),
+                ipv4_count: final_ipv4_count,
                 total_count,
             });
         }
@@ -640,6 +645,43 @@ async fn consume_routeviews(
 ) {
     let mut backoff = Duration::from_secs(5);
     let group_id = "livemap-kmcd-dev-routeviews";
+
+    // dynamically get routeviews collectors that have BMP
+    let mut collectors = vec![
+        "amsix".to_string(),
+        "kixp".to_string(),
+        "linx".to_string(),
+        "n-ix".to_string(),
+        "nwax".to_string(),
+        "nyiix".to_string(),
+        "ottix".to_string(),
+        "saopaulo".to_string(),
+        "sfmix".to_string(),
+        "sydney".to_string(),
+        "telstra".to_string(),
+        "wide".to_string(),
+    ];
+    {
+        let bgpkit_guard = classifier.bgpkit.read();
+        if bgpkit_guard.is_some()
+            && let Ok(mrt_collectors) = bgpkit_commons::mrt_collectors::get_all_collectors()
+        {
+            for c in mrt_collectors {
+                if c.project == bgpkit_commons::mrt_collectors::MrtCollectorProject::RouteViews {
+                    let short_name = c.name.replace("route-views.", "");
+                    if !short_name.is_empty() && short_name != "route-views2" {
+                        collectors.push(short_name);
+                    }
+                }
+            }
+        }
+    }
+
+    collectors.sort();
+    collectors.dedup();
+    let joined_collectors = collectors.join("|");
+    let pattern = format!("^routeviews\\.({joined_collectors})\\..*\\.bmp_raw");
+
     loop {
         debug!("Connecting to RouteViews Kafka with group {}...", group_id);
         let res: Result<StreamConsumer, _> = ClientConfig::new()
@@ -652,30 +694,36 @@ async fn consume_routeviews(
             .set("enable.auto.commit", "true")
             .create();
         if let Ok(consumer) = res
-            && consumer.subscribe(&["^routeviews\\.(amsix|kixp|linx|n-ix|nwax|nyiix|ottix|saopaulo|sfmix|sydney|telstra|wide)\\..*\\.bmp_raw"]).is_ok() {
-                info!("Subscribed to RouteViews Kafka topics");
-                backoff = Duration::from_secs(5);
-                let sem = Arc::new(tokio::sync::Semaphore::new(200));
-                loop {
-                    match consumer.recv().await {
-                        Ok(msg) => {
-                            if let Some(p) = msg.payload() {
-                                let p_owned = p.to_vec();
-                                let c = classifier.clone(); let t = tx.clone(); let g = geo.clone();
-                                let s = sem.clone();
-                                tokio::spawn(async move {
-                                    let _p = s.acquire().await.ok();
-                                    let _ = process_routeviews_message(p_owned, c, g, t).await;
-                                });
-                            }
+            && consumer.subscribe(&[&pattern]).is_ok()
+        {
+            info!(
+                "Subscribed to RouteViews Kafka topics using pattern: {}",
+                pattern
+            );
+            backoff = Duration::from_secs(5);
+            let sem = Arc::new(tokio::sync::Semaphore::new(200));
+            loop {
+                match consumer.recv().await {
+                    Ok(msg) => {
+                        if let Some(p) = msg.payload() {
+                            let p_owned = p.to_vec();
+                            let c = classifier.clone();
+                            let t = tx.clone();
+                            let g = geo.clone();
+                            let s = sem.clone();
+                            tokio::spawn(async move {
+                                let _p = s.acquire().await.ok();
+                                let _ = process_routeviews_message(p_owned, c, g, t).await;
+                            });
                         }
-                        Err(e) => {
-                            warn!("RouteViews Kafka receive error: {}. Reconnecting...", e);
-                            break;
-                        }
+                    }
+                    Err(e) => {
+                        warn!("RouteViews Kafka receive error: {}. Reconnecting...", e);
+                        break;
                     }
                 }
             }
+        }
         tokio::time::sleep(backoff).await;
         backoff = (backoff * 2).min(Duration::from_secs(300));
     }
@@ -708,14 +756,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bgpkit = tokio::task::spawn_blocking(|| {
         let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
         let start_asinfo = Instant::now();
-        if let Err(e) = bgpkit.load_asinfo(true, true, true, true) {
-            warn!("Failed to load BGPKIT AS info: {}", e);
+
+        info!("Loading BGPKIT AS info using new_from_cached...");
+        if let Err(e) = bgpkit.load_asinfo_cached() {
+            warn!(
+                "Failed to load BGPKIT AS info from cache: {}. Falling back to live download.",
+                e
+            );
+            if let Err(live_e) = bgpkit.load_asinfo(true, true, true, true) {
+                warn!("Failed to load fresh BGPKIT AS info: {}", live_e);
+            } else {
+                info!(
+                    "Fresh BGPKIT AS info loaded (took {}s).",
+                    start_asinfo.elapsed().as_secs()
+                );
+            }
         } else {
             info!(
-                "BGPKIT AS info loaded (took {}s).",
+                "BGPKIT AS info loaded from cache (took {}s).",
                 start_asinfo.elapsed().as_secs()
             );
         }
+
+        if let Err(e) = bgpkit.load_bogons() {
+            warn!("Failed to load bogons: {}", e);
+        }
+        if let Err(e) = bgpkit.load_as2rel() {
+            warn!("Failed to load as2rel: {}", e);
+        }
+        if let Err(e) = bgpkit.load_mrt_collectors() {
+            warn!("Failed to load mrt collectors: {}", e);
+        }
+
         bgpkit
     })
     .await?;
@@ -741,6 +813,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "BGPKIT RPKI data loading complete (took {}s).",
             start.elapsed().as_secs()
         );
+
+        // Background worker to keep asinfo fresh
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(86400)); // Every 24 hours
+            interval.tick().await; // skip first
+            loop {
+                interval.tick().await;
+                info!("Refreshing BGPKIT AS info in background...");
+                let mut fresh_bgpkit = bgpkit_commons::BgpkitCommons::new();
+
+                // Attempt fresh download for reload
+                if let Err(e) = fresh_bgpkit.load_asinfo(true, true, true, true) {
+                    warn!("Background refresh of BGPKIT AS info failed: {}", e);
+                } else {
+                    let _ = fresh_bgpkit.load_bogons();
+                    let _ = fresh_bgpkit.load_as2rel();
+                    let _ = fresh_bgpkit.load_mrt_collectors();
+                    let _ = fresh_bgpkit.load_rpki(None);
+
+                    if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
+                        info!("Applying fresh BGPKIT AS info.");
+                        *c_bg = Some(fresh_bgpkit);
+                    }
+                }
+            }
+        });
     });
     let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(200000);
     let geo = Arc::new(Geolocation::new("assets/dbip-city-lite-2026-03.mmdb"));
