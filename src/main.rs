@@ -785,9 +785,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Err(e) = bgpkit.load_bogons() {
             warn!("Failed to load bogons: {}", e);
         }
-        if let Err(e) = bgpkit.load_as2rel() {
-            warn!("Failed to load as2rel: {}", e);
-        }
         if let Err(e) = bgpkit.load_mrt_collectors() {
             warn!("Failed to load mrt collectors: {}", e);
         }
@@ -803,18 +800,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let classifier_bg = classifier.clone();
     tokio::task::spawn_blocking(move || {
-        info!("Loading BGPKIT RPKI data in background...");
+        info!("Loading BGPKIT RPKI data and AS2REL in background...");
         let start = Instant::now();
         let mut bgpkit = classifier_bg.bgpkit.write().take().unwrap_or_default();
 
         if let Err(e) = bgpkit.load_rpki(None) {
             warn!("Failed to load BGPKIT RPKI data: {}", e);
         }
+        if let Err(e) = bgpkit.load_as2rel() {
+            warn!("Failed to load as2rel: {}", e);
+        }
         {
             *classifier_bg.bgpkit.write() = Some(bgpkit);
         }
         info!(
-            "BGPKIT RPKI data loading complete (took {}s).",
+            "BGPKIT RPKI data and AS2REL loading complete (took {}s).",
             start.elapsed().as_secs()
         );
 
