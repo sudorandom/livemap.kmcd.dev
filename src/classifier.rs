@@ -723,7 +723,7 @@ impl Classifier {
             && ctx.origin_asn != 0
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
-            && self.rpki_validate(historical_origin_asn, prefix) == 1
+            // && self.rpki_validate(historical_origin_asn, prefix) != 2
             && self.rpki_validate(ctx.origin_asn, prefix) == 2
         {
             let mut hosts = HashSet::new();

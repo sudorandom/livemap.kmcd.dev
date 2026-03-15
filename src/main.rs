@@ -394,11 +394,12 @@ async fn process_ris_live_message(
                 origin_asn = asn;
             }
             let net = IpNet::from_str(&elem.prefix.to_string()).ok();
-            let mut geo_data = geo.lookup(elem.peer_ip);
-            if geo_data.is_none()
-                && let Some(n) = net
-            {
+            let mut geo_data = None;
+            if let Some(n) = net {
                 geo_data = geo.lookup(n.addr());
+            }
+            if geo_data.is_none() {
+                geo_data = geo.lookup(elem.peer_ip);
             }
             let (lat, lon, city, country) = match geo_data {
                 Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
@@ -558,11 +559,12 @@ async fn process_routeviews_message(
                     origin_asn = asn;
                 }
                 let net = IpNet::from_str(&elem.prefix.to_string()).ok();
-                let mut geo_data = geo.lookup(elem.peer_ip);
-                if geo_data.is_none()
-                    && let Some(n) = net
-                {
+                let mut geo_data = None;
+                if let Some(n) = net {
                     geo_data = geo.lookup(n.addr());
+                }
+                if geo_data.is_none() {
+                    geo_data = geo.lookup(elem.peer_ip);
                 }
                 let (lat, lon, city, country) = match geo_data {
                     Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
@@ -645,42 +647,7 @@ async fn consume_routeviews(
 ) {
     let mut backoff = Duration::from_secs(5);
     let group_id = "livemap-kmcd-dev-routeviews";
-
-    // dynamically get routeviews collectors that have BMP
-    let mut collectors = vec![
-        "amsix".to_string(),
-        "kixp".to_string(),
-        "linx".to_string(),
-        "n-ix".to_string(),
-        "nwax".to_string(),
-        "nyiix".to_string(),
-        "ottix".to_string(),
-        "saopaulo".to_string(),
-        "sfmix".to_string(),
-        "sydney".to_string(),
-        "telstra".to_string(),
-        "wide".to_string(),
-    ];
-    {
-        let bgpkit_guard = classifier.bgpkit.read();
-        if bgpkit_guard.is_some()
-            && let Ok(mrt_collectors) = bgpkit_commons::mrt_collectors::get_all_collectors()
-        {
-            for c in mrt_collectors {
-                if c.project == bgpkit_commons::mrt_collectors::MrtCollectorProject::RouteViews {
-                    let short_name = c.name.replace("route-views.", "");
-                    if !short_name.is_empty() && short_name != "route-views2" {
-                        collectors.push(short_name);
-                    }
-                }
-            }
-        }
-    }
-
-    collectors.sort();
-    collectors.dedup();
-    let joined_collectors = collectors.join("|");
-    let pattern = format!("^routeviews\\.({joined_collectors})\\..*\\.bmp_raw");
+    let pattern = "^routeviews\\..*\\..*\\.bmp_raw";
 
     loop {
         debug!("Connecting to RouteViews Kafka with group {}...", group_id);
@@ -1070,8 +1037,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if beacon_set.contains(&pending.prefix) { s_ingest.beacon_stats.add_event(now); }
                         else if research_set.contains(&pending.asn) { s_ingest.research_stats.add_event(now); }
                         let key = AggregationKey {
-                            lat_q: (pending.lat * 2.0) as i32,
-                            lon_q: (pending.lon * 2.0) as i32,
+                            lat_q: (pending.lat * 10.0) as i32,
+                            lon_q: (pending.lon * 10.0) as i32,
                             classification: pending.classification_type
                         };
                         *aggregate_buffer.entry(key).or_insert(0) += 1;
@@ -1118,8 +1085,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if !aggregate_buffer.is_empty() {
                         let events = aggregate_buffer.drain().map(|(k, count)| AggregatedEvent {
                             geo: Some(ProtoGeoData {
-                                lat: k.lat_q as f32 / 2.0,
-                                lon: k.lon_q as f32 / 2.0
+                                lat: k.lat_q as f32 / 10.0,
+                                lon: k.lon_q as f32 / 10.0
                             }),
                             classification: map_classification(k.classification).into(),
                             count
