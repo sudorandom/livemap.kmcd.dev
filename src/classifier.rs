@@ -223,8 +223,7 @@ impl Default for PrefixState {
     }
 }
 
-pub struct MessageContext<'a> {
-    pub elem: &'a bgpkit_parser::BgpElem,
+pub struct MessageContext {
     pub now: i64,
     pub host: String,
     pub peer: String,
@@ -283,6 +282,7 @@ pub struct AggregatedStats {
     pub total_flaps: u32,
     pub unique_peers: HashSet<String>,
     pub unique_hosts: HashSet<String>,
+    pub all_unique_hosts: HashSet<String>,
     pub withdrawn_peers: HashSet<String>,
     pub peer_attrs_values: Vec<LastAttrs>,
 }
@@ -300,6 +300,7 @@ impl AggregatedStats {
             total_flaps: 0,
             unique_peers: HashSet::new(),
             unique_hosts: HashSet::new(),
+            all_unique_hosts: HashSet::new(),
             withdrawn_peers: HashSet::new(),
             peer_attrs_values: Vec::new(),
         }
@@ -425,6 +426,7 @@ impl Classifier {
                 state.last_origin_asn = ctx.origin_asn;
                 if let Some(ref db) = self.state_db
                     && let Ok(net) = IpNet::from_str(&prefix)
+                    && historical_origin_asn == 0
                 {
                     db.record_seen(net, ctx.origin_asn);
                 }
@@ -565,6 +567,7 @@ impl Classifier {
             });
             if let Some(ref db) = self.state_db
                 && let Ok(net) = IpNet::from_str(&prefix)
+                && historical_origin_asn == 0
             {
                 db.record_seen(net, ctx.origin_asn);
             }
@@ -757,7 +760,7 @@ impl Classifier {
             if !s.unique_hosts.contains(&ctx.host) {
                 hosts.insert(ctx.host.clone());
             }
-            if hosts.len() >= 2 {
+            if hosts.len() >= 5 {
                 return (
                     Some(PendingEvent {
                         prefix: prefix.to_string(),
@@ -876,7 +879,7 @@ impl Classifier {
                 false,
             );
         }
-        if s.unique_hosts.len() >= 2 && s.total_flaps >= 3 {
+        if s.all_unique_hosts.len() >= 2 && s.total_flaps >= 3 {
             return (
                 Some(PendingEvent {
                     prefix: prefix.to_string(),
@@ -891,7 +894,7 @@ impl Classifier {
                     incident_start_time: 0,
                     leak_detail: None,
                     anomaly_details: Some(AnomalyDetails {
-                        num_collectors: s.unique_hosts.len(),
+                        num_collectors: s.all_unique_hosts.len(),
                         num_peers: s.unique_peers.len() + s.withdrawn_peers.len(),
                         num_withdrawals: s.total_with,
                         num_announcements: s.total_ann,
@@ -958,6 +961,7 @@ impl Classifier {
         }
         for (peer, attr) in &state.peer_last_attrs {
             s.peer_attrs_values.push(attr.clone());
+            s.all_unique_hosts.insert(attr.host.clone());
             if attr.withdrawn {
                 s.withdrawn_peers.insert(peer.clone());
             } else if attr.origin_asn == current_origin_asn {
@@ -1395,5 +1399,152 @@ impl Classifier {
             return Some(event);
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn setup_classifier() -> Classifier {
+        Classifier::new(100, None, None)
+    }
+
+    fn mock_ctx(
+        now: i64,
+        host: &str,
+        peer: &str,
+        is_withdrawal: bool,
+        origin_asn: u32,
+    ) -> MessageContext {
+        MessageContext {
+            now,
+            host: host.to_string(),
+            peer: peer.to_string(),
+            is_withdrawal,
+            path_str: if is_withdrawal {
+                String::new()
+            } else {
+                format!("1 2 {}", origin_asn)
+            },
+            comm_str: String::new(),
+            origin_asn: if is_withdrawal { 0 } else { origin_asn },
+            path_len: if is_withdrawal { 0 } else { 3 },
+            source: "test".to_string(),
+        }
+    }
+
+    fn setup_classifier_with_db() -> (Classifier, tempfile::TempDir) {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let db_path = temp_dir.path().join("test_sled");
+        let sled_db = sled::open(db_path).unwrap();
+        let tree = sled_db.open_tree("seen").unwrap();
+        (Classifier::new(100, Some(DiskTrie::new(tree)), None), temp_dir)
+    }
+
+    #[test]
+    fn test_hijack_threshold() {
+        let (classifier, _tmp) = setup_classifier_with_db();
+        let prefix_str = "1.1.1.0/24";
+        let prefix = prefix_str.to_string();
+        let net = IpNet::from_str(prefix_str).unwrap();
+
+        // 1. Establish historical ASN in seen_db
+        classifier.seen_db.as_ref().unwrap().insert(net, &100u32.to_be_bytes()).unwrap();
+
+        // 2. New origin seen by 1 host (should NOT be Hijack yet)
+        let ctx2 = mock_ctx(1001, "host2", "2.2.2.2", false, 200);
+        let (res2, _) = classifier.classify_event(prefix.clone(), &ctx2, 0.0, 0.0, None, None);
+        // It might be None or Discovery depending on historical_asn lookup
+        if let Some(event) = res2 {
+            assert_ne!(event.classification_type, ClassificationType::Hijack);
+        }
+
+        // 3. New origin seen by 2nd host (still NOT Hijack because threshold is 3)
+        let ctx3 = mock_ctx(1002, "host3", "3.3.3.3", false, 200);
+        let (res3, _) = classifier.classify_event(prefix.clone(), &ctx3, 0.0, 0.0, None, None);
+        if let Some(event) = res3 {
+            assert_ne!(event.classification_type, ClassificationType::Hijack);
+        }
+
+        // 4. New origin seen by 3rd host (SHOULD be Hijack)
+        let ctx4 = mock_ctx(1003, "host4", "4.4.4.4", false, 200);
+        let (res4, _) = classifier.classify_event(prefix.clone(), &ctx4, 0.0, 0.0, None, None);
+        assert!(res4.is_some());
+        assert_eq!(res4.unwrap().classification_type, ClassificationType::Hijack);
+    }
+
+    #[test]
+    fn test_flap_detection_on_withdrawal() {
+        let classifier = setup_classifier();
+        let prefix = "2.2.2.0/24".to_string();
+
+        // Use 2 hosts to meet the host threshold
+        // Flap 1: Announce
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1000, "h1", "p1", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1000, "h2", "p2", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
+        // Flap 2: Withdraw
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1001, "h1", "p1", true, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1001, "h2", "p2", true, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
+        // Flap 3: Announce
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1002, "h1", "p1", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1002, "h2", "p2", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
+        // Flap 4: Withdraw (SHOULD trigger Flap classification even though it's a withdrawal and currently inactive)
+        let (res, _) = classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1003, "h1", "p1", true, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
+        assert!(res.is_some());
+        assert_eq!(res.unwrap().classification_type, ClassificationType::Flap);
     }
 }

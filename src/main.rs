@@ -407,7 +407,6 @@ async fn process_ris_live_message(
                 None => (0.0, 0.0, None, None),
             };
             let ctx = MessageContext {
-                elem: &elem,
                 now,
                 host: elem.peer_ip.to_string(),
                 peer: elem.peer_ip.to_string(),
@@ -590,7 +589,6 @@ async fn process_routeviews_message(
                     None => (0.0, 0.0, None, None),
                 };
                 let ctx = MessageContext {
-                    elem: &elem,
                     now,
                     host: "routeviews".to_string(),
                     peer: elem.peer_ip.to_string(),
