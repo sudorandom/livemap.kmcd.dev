@@ -1149,6 +1149,14 @@ impl Classifier {
     }
 
     fn is_tier1(&self, asn: u32) -> bool {
+        let bgpkit_guard = self.bgpkit.read();
+        if let Some(ref bgpkit) = *bgpkit_guard
+            && let Ok(Some(info)) = bgpkit.asinfo_get(asn)
+            && let Some(hegemony) = info.hegemony
+            && (hegemony.ipv4 > 0.05 || hegemony.ipv6 > 0.05)
+        {
+            return true;
+        }
         matches!(
             asn,
             174 | 209
@@ -1172,6 +1180,21 @@ impl Classifier {
     }
 
     fn is_large_network(&self, asn: u32) -> bool {
+        let bgpkit_guard = self.bgpkit.read();
+        if let Some(ref bgpkit) = *bgpkit_guard
+            && let Ok(Some(info)) = bgpkit.asinfo_get(asn)
+        {
+            if let Some(pop) = info.population
+                && (pop.percent_global > 0.01 || pop.user_count > 10_000_000)
+            {
+                return true;
+            }
+            if let Some(hegemony) = info.hegemony
+                && (hegemony.ipv4 > 0.01 || hegemony.ipv6 > 0.01)
+            {
+                return true;
+            }
+        }
         matches!(
             asn,
             15169 | 16509 | 8075 | 13335 | 20940 | 14618 | 32934 | 16276
