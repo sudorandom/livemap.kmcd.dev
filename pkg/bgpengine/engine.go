@@ -1232,7 +1232,7 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	}
 
 	// 2. We only care about tracking and displaying these specific critical events
-	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack {
+	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack && ct != bgp.ClassificationFlap {
 		e.streamDirty = true
 		return
 	}
@@ -1614,6 +1614,8 @@ func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
 	if ce.VictimASN > 0 {
 		if ce.VictimName != "" {
 			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.VictimName)
+		} else if ce.OrgID != "" {
+			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.OrgID)
 		} else {
 			ce.CachedVictimVal = fmt.Sprintf("AS%d", ce.VictimASN)
 		}
@@ -1680,6 +1682,8 @@ func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
 	if ce.VictimASN > 0 {
 		if ce.VictimName != "" {
 			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.VictimName)
+		} else if ce.OrgID != "" {
+			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.OrgID)
 		} else {
 			ce.CachedVictimVal = fmt.Sprintf("AS%d", ce.VictimASN)
 		}

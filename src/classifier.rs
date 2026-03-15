@@ -647,7 +647,6 @@ impl Classifier {
                 ClassificationType::DDoSMitigation
                     | ClassificationType::Discovery
                     | ClassificationType::PathHunting
-                    | ClassificationType::Flap
             );
             let is_old_specific = matches!(
                 old_classified_type,
@@ -655,6 +654,7 @@ impl Classifier {
                     | ClassificationType::Outage
                     | ClassificationType::RouteLeak
                     | ClassificationType::MinorRouteLeak
+                    | ClassificationType::Flap
             );
             if is_new_broad && is_old_specific && (ctx.now - state.classified_time_ts < 300) {
                 return (None, needs_timer);
@@ -666,6 +666,7 @@ impl Classifier {
                     | ClassificationType::RouteLeak
                     | ClassificationType::MinorRouteLeak
                     | ClassificationType::Outage
+                    | ClassificationType::Flap
             );
             let is_old_bad = matches!(
                 old_classified_type,
@@ -673,6 +674,7 @@ impl Classifier {
                     | ClassificationType::RouteLeak
                     | ClassificationType::MinorRouteLeak
                     | ClassificationType::Outage
+                    | ClassificationType::Flap
             );
             if is_new_bad && !is_old_bad {
                 state.active_incident_id = Some(uuid::Uuid::new_v4().to_string());
@@ -751,6 +753,9 @@ impl Classifier {
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
         {
+            if self.rpki_validate(ctx.origin_asn, prefix) == 1 {
+                return (None, false);
+            }
             let mut hosts = HashSet::new();
             for attr in &s.peer_attrs_values {
                 if !attr.withdrawn && attr.origin_asn == ctx.origin_asn {
@@ -773,7 +778,17 @@ impl Classifier {
                         old_classification: ClassificationType::None,
                         incident_id: None,
                         incident_start_time: 0,
-                        leak_detail: None,
+                        leak_detail: Some(LeakDetail {
+                            leak_type: LeakType::None,
+                            leaker_asn: ctx.origin_asn,
+                            victim_asn: historical_origin_asn,
+                            leaker_as_name: self.get_as_name(ctx.origin_asn).unwrap_or_default(),
+                            victim_as_name: self
+                                .get_as_name(historical_origin_asn)
+                                .unwrap_or_default(),
+                            leaker_rpki_status: self.rpki_validate(ctx.origin_asn, prefix),
+                            victim_rpki_status: self.rpki_validate(historical_origin_asn, prefix),
+                        }),
                         anomaly_details: None,
                         source: ctx.source.clone(),
                         lat,
@@ -1266,7 +1281,15 @@ impl Classifier {
         }
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
-            let name = bgpkit.asinfo_get(asn).ok().flatten().map(|i| i.name);
+            let name = bgpkit.asinfo_get(asn).ok().flatten().and_then(|i| {
+                if !i.name.is_empty() {
+                    Some(i.name)
+                } else if let Some(org) = i.as2org {
+                    Some(org.org_name)
+                } else {
+                    None
+                }
+            });
 
             if name.is_none() {
                 debug!("AS name not found for AS{}", asn);
@@ -1439,7 +1462,10 @@ mod tests {
         let db_path = temp_dir.path().join("test_sled");
         let sled_db = sled::open(db_path).unwrap();
         let tree = sled_db.open_tree("seen").unwrap();
-        (Classifier::new(100, Some(DiskTrie::new(tree)), None), temp_dir)
+        (
+            Classifier::new(100, Some(DiskTrie::new(tree)), None),
+            temp_dir,
+        )
     }
 
     #[test]
@@ -1450,7 +1476,12 @@ mod tests {
         let net = IpNet::from_str(prefix_str).unwrap();
 
         // 1. Establish historical ASN in seen_db
-        classifier.seen_db.as_ref().unwrap().insert(net, &100u32.to_be_bytes()).unwrap();
+        classifier
+            .seen_db
+            .as_ref()
+            .unwrap()
+            .insert(net, &100u32.to_be_bytes())
+            .unwrap();
 
         // 2. New origin seen by 1 host (should NOT be Hijack yet)
         let ctx2 = mock_ctx(1001, "host2", "2.2.2.2", false, 200);
@@ -1460,18 +1491,35 @@ mod tests {
             assert_ne!(event.classification_type, ClassificationType::Hijack);
         }
 
-        // 3. New origin seen by 2nd host (still NOT Hijack because threshold is 3)
+        // 3. New origin seen by 2nd host (still NOT Hijack because threshold is 5)
         let ctx3 = mock_ctx(1002, "host3", "3.3.3.3", false, 200);
         let (res3, _) = classifier.classify_event(prefix.clone(), &ctx3, 0.0, 0.0, None, None);
         if let Some(event) = res3 {
             assert_ne!(event.classification_type, ClassificationType::Hijack);
         }
 
-        // 4. New origin seen by 3rd host (SHOULD be Hijack)
+        // 4. New origin seen by 3rd host (still NOT Hijack)
         let ctx4 = mock_ctx(1003, "host4", "4.4.4.4", false, 200);
         let (res4, _) = classifier.classify_event(prefix.clone(), &ctx4, 0.0, 0.0, None, None);
-        assert!(res4.is_some());
-        assert_eq!(res4.unwrap().classification_type, ClassificationType::Hijack);
+        if let Some(event) = res4 {
+            assert_ne!(event.classification_type, ClassificationType::Hijack);
+        }
+
+        // 5. New origin seen by 4th host (still NOT Hijack)
+        let ctx5 = mock_ctx(1004, "host5", "5.5.5.5", false, 200);
+        let (res5, _) = classifier.classify_event(prefix.clone(), &ctx5, 0.0, 0.0, None, None);
+        if let Some(event) = res5 {
+            assert_ne!(event.classification_type, ClassificationType::Hijack);
+        }
+
+        // 6. New origin seen by 5th host (SHOULD be Hijack)
+        let ctx6 = mock_ctx(1005, "host6", "6.6.6.6", false, 200);
+        let (res6, _) = classifier.classify_event(prefix.clone(), &ctx6, 0.0, 0.0, None, None);
+        assert!(res6.is_some());
+        assert_eq!(
+            res6.unwrap().classification_type,
+            ClassificationType::Hijack
+        );
     }
 
     #[test]
