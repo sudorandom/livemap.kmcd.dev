@@ -1232,7 +1232,7 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	}
 
 	// 2. We only care about tracking and displaying these specific critical events
-	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack && ct != bgp.ClassificationFlap {
+	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack {
 		e.streamDirty = true
 		return
 	}

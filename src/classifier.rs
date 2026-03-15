@@ -512,6 +512,12 @@ impl Classifier {
                 state.active_incident_id = None;
             }
         } else if result.is_none() && state.classified_type != ClassificationType::None {
+            let emitted_classification = if state.classified_type == ClassificationType::RouteLeak || state.classified_type == ClassificationType::MinorRouteLeak || state.classified_type == ClassificationType::Hijack {
+                ClassificationType::Discovery
+            } else {
+                state.classified_type
+            };
+
             result = Some(PendingEvent {
                 prefix: prefix.clone(),
                 asn: resolved_asn,
@@ -519,8 +525,8 @@ impl Classifier {
                 peer_ip: ctx.peer.clone(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
-                classification_type: state.classified_type,
-                old_classification: state.classified_type,
+                classification_type: emitted_classification,
+                old_classification: emitted_classification,
                 incident_id: state.active_incident_id.clone(),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: if state.leak_type != LeakType::None {
