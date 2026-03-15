@@ -103,16 +103,16 @@ const (
 )
 
 const (
-	ClassificationNone ClassificationType = iota
-	ClassificationBogon
-	ClassificationHijack
-	ClassificationRouteLeak
-	ClassificationMinorRouteLeak
-	ClassificationOutage
-	ClassificationDDoSMitigation
-	ClassificationFlap
-	ClassificationPathHunting
-	ClassificationDiscovery
+	ClassificationNone           ClassificationType = 0
+	ClassificationBogon          ClassificationType = 1
+	ClassificationHijack         ClassificationType = 2
+	ClassificationRouteLeak      ClassificationType = 3
+	ClassificationOutage         ClassificationType = 4
+	ClassificationDDoSMitigation ClassificationType = 5
+	ClassificationFlap           ClassificationType = 6
+	ClassificationPathHunting    ClassificationType = 8
+	ClassificationDiscovery      ClassificationType = 9
+	ClassificationMinorRouteLeak ClassificationType = 10
 )
 
 func (t ClassificationType) String() string {

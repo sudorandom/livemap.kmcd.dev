@@ -1,0 +1,8 @@
+print("Ah! It searches for `ce.Anom == anomName && ce.ASN == trans.Asn`.")
+print("If it's NOT found, it creates a new one.")
+print("If `anomName` is `bgp.NameHijack`, and it finds one, it updates it. Otherwise, it creates a new Hijack event.")
+print("Wait, what does `removePrefixFromOldEventsLocked` do?")
+print("```go\nif oldCt != bgp.ClassificationNone && oldCt != bgp.ClassificationDiscovery && oldCt != ct {\n    e.removePrefixFromOldEventsLocked(trans.Prefix, anomName)\n```")
+print("Wait! `removePrefixFromOldEventsLocked` deletes `trans.Prefix` from any old events that are NOT `anomName`.")
+print("Wait... does it?")
+print("Let's look at `removePrefixFromOldEventsLocked`.")
