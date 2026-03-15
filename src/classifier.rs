@@ -1017,9 +1017,10 @@ impl Classifier {
     fn is_bogon(&self, prefix: &str, _ctx: &MessageContext) -> bool {
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard
-            && let Ok(is_bogon) = bgpkit.bogons_match(prefix) {
-                return is_bogon;
-            }
+            && let Ok(is_bogon) = bgpkit.bogons_match(prefix)
+        {
+            return is_bogon;
+        }
 
         // Fallback local checks if bogons list is not loaded or missing
         if let Ok(net) = IpNet::from_str(prefix) {
