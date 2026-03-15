@@ -1491,19 +1491,33 @@ mod tests {
             assert_ne!(event.classification_type, ClassificationType::Hijack);
         }
 
-        // 3. New origin seen by 2nd host (still NOT Hijack because threshold is 3)
+        // 3. New origin seen by 2nd host (still NOT Hijack because threshold is 5)
         let ctx3 = mock_ctx(1002, "host3", "3.3.3.3", false, 200);
         let (res3, _) = classifier.classify_event(prefix.clone(), &ctx3, 0.0, 0.0, None, None);
         if let Some(event) = res3 {
             assert_ne!(event.classification_type, ClassificationType::Hijack);
         }
 
-        // 4. New origin seen by 3rd host (SHOULD be Hijack)
+        // 4. New origin seen by 3rd host (still NOT Hijack)
         let ctx4 = mock_ctx(1003, "host4", "4.4.4.4", false, 200);
         let (res4, _) = classifier.classify_event(prefix.clone(), &ctx4, 0.0, 0.0, None, None);
-        assert!(res4.is_some());
+        if let Some(event) = res4 {
+            assert_ne!(event.classification_type, ClassificationType::Hijack);
+        }
+
+        // 5. New origin seen by 4th host (still NOT Hijack)
+        let ctx5 = mock_ctx(1004, "host5", "5.5.5.5", false, 200);
+        let (res5, _) = classifier.classify_event(prefix.clone(), &ctx5, 0.0, 0.0, None, None);
+        if let Some(event) = res5 {
+            assert_ne!(event.classification_type, ClassificationType::Hijack);
+        }
+
+        // 6. New origin seen by 5th host (SHOULD be Hijack)
+        let ctx6 = mock_ctx(1005, "host6", "6.6.6.6", false, 200);
+        let (res6, _) = classifier.classify_event(prefix.clone(), &ctx6, 0.0, 0.0, None, None);
+        assert!(res6.is_some());
         assert_eq!(
-            res4.unwrap().classification_type,
+            res6.unwrap().classification_type,
             ClassificationType::Hijack
         );
     }
