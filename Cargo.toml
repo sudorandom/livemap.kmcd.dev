@@ -8,7 +8,7 @@ name = "bgp-collector"
 path = "src/main.rs"
 
 [dependencies]
-bgpkit-commons = { version = "0.10.2", features = ["asinfo", "rpki"] }
+bgpkit-commons = { version = "0.10.2", features = ["asinfo", "rpki", "bogons", "as2rel", "mrt_collectors"] }
 bgpkit-parser = { version = "0.15.0", features = ["rislive"] }
 bytes = "1.11.1"
 chrono = "0.4.44"

@@ -1015,6 +1015,13 @@ impl Classifier {
     }
 
     fn is_bogon(&self, prefix: &str, _ctx: &MessageContext) -> bool {
+        let bgpkit_guard = self.bgpkit.read();
+        if let Some(ref bgpkit) = *bgpkit_guard
+            && let Ok(is_bogon) = bgpkit.bogons_match(prefix) {
+                return is_bogon;
+            }
+
+        // Fallback local checks if bogons list is not loaded or missing
         if let Ok(net) = IpNet::from_str(prefix) {
             let addr = net.addr();
             if addr.is_loopback() || addr.is_multicast() || addr.is_unspecified() {
@@ -1038,6 +1045,7 @@ impl Classifier {
                 return true;
             }
         }
+
         false
     }
 
@@ -1110,6 +1118,15 @@ impl Classifier {
         if asn1 == asn2 {
             return true;
         }
+
+        let bgpkit_guard = self.bgpkit.read();
+        if let Some(ref bgpkit) = *bgpkit_guard
+            && let Ok(are_siblings) = bgpkit.asinfo_are_siblings(asn1, asn2)
+            && are_siblings
+        {
+            return true;
+        }
+
         if let (Some(o1), Some(o2)) = (self.get_as_org(asn1), self.get_as_org(asn2))
             && o1 == o2
         {
