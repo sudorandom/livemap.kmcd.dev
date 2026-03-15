@@ -231,3 +231,42 @@ impl Db {
         results
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_global_counts_asn_zero() {
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("state.db");
+        let db = Db::new(path.to_str().unwrap(), None);
+
+        // Wait briefly for the pool to initialize
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
+        let pool = db.get_pool();
+        if let Ok(mut conn) = pool.get() {
+            let tx = conn.transaction().unwrap();
+            tx.execute(
+                "INSERT INTO prefix_state (prefix, state, last_update_ts, classified_type, origin_asn) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params!["1.1.1.0/24", "{}", 0, 0, 0],
+            ).unwrap();
+            tx.execute(
+                "INSERT INTO prefix_state (prefix, state, last_update_ts, classified_type, origin_asn) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params!["2.2.2.0/24", "{}", 0, 0, 12345],
+            ).unwrap();
+            tx.execute(
+                "INSERT INTO prefix_state (prefix, state, last_update_ts, classified_type, origin_asn) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params!["2.2.3.0/24", "{}", 0, 0, 12345],
+            ).unwrap();
+            tx.commit().unwrap();
+        }
+
+        let counts = db.get_global_counts();
+        // asn_count should ignore 0, and count DISTINCT non-zero ASNs
+        assert_eq!(counts.asn_count, 1);
+        assert_eq!(counts.prefix_count, 3);
+    }
+}

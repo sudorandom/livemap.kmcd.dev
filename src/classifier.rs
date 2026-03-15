@@ -558,6 +558,8 @@ impl Classifier {
             {
                 let p_asn = if ctx.origin_asn != 0 {
                     ctx.origin_asn
+                } else if state.last_origin_asn != 0 {
+                    state.last_origin_asn
                 } else {
                     state.historical_origin_asn
                 };
@@ -1076,15 +1078,21 @@ impl Classifier {
                 && p1 != p3
                 && self.is_provider(p1, p2)
             {
-                return Some(LeakDetail {
-                    leak_type: LeakType::Hairpin,
-                    leaker_asn: p2,
-                    victim_asn: p3,
-                    leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
-                    victim_as_name: self.get_as_name(p3).unwrap_or_default(),
-                    leaker_rpki_status: self.rpki_validate(p2, prefix),
-                    victim_rpki_status: self.rpki_validate(p3, prefix),
-                });
+                let leaker_rpki_status = self.rpki_validate(p2, prefix);
+                let victim_rpki_status = self.rpki_validate(p3, prefix);
+                if (victim_rpki_status == 1 || victim_rpki_status == 2)
+                    && (leaker_rpki_status != 1 && leaker_rpki_status != 2)
+                {
+                    return Some(LeakDetail {
+                        leak_type: LeakType::Hairpin,
+                        leaker_asn: p2,
+                        victim_asn: p3,
+                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(p3).unwrap_or_default(),
+                        leaker_rpki_status,
+                        victim_rpki_status,
+                    });
+                }
             }
         }
         None
@@ -1174,8 +1182,10 @@ impl Classifier {
                 debug!("AS name not found for AS{}", asn);
             }
 
-            let mut cache = self.bgpkit_cache.lock();
-            cache.as2name.insert(asn, name.clone());
+            if name.is_some() {
+                let mut cache = self.bgpkit_cache.lock();
+                cache.as2name.insert(asn, name.clone());
+            }
             return name;
         }
         None
@@ -1195,8 +1205,10 @@ impl Classifier {
                 .ok()
                 .flatten()
                 .and_then(|i| i.as2org.clone().map(|o| o.org_name));
-            let mut cache = self.bgpkit_cache.lock();
-            cache.as2org.insert(asn, org.clone());
+            if org.is_some() {
+                let mut cache = self.bgpkit_cache.lock();
+                cache.as2org.insert(asn, org.clone());
+            }
             return org;
         }
         None

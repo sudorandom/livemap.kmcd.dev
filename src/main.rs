@@ -704,16 +704,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(DiskTrie::new(seen_tree)),
         Some(db_for_classifier),
     ));
+    info!("Loading BGPKIT AS data in foreground...");
+    let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
+    let start_asinfo = Instant::now();
+    if let Err(e) = bgpkit.load_asinfo(true, true, true, true) {
+        warn!("Failed to load BGPKIT AS info: {}", e);
+    } else {
+        info!(
+            "BGPKIT AS info loaded (took {}s).",
+            start_asinfo.elapsed().as_secs()
+        );
+    }
+
+    // Assign to classifier
+    {
+        *classifier.bgpkit.write() = Some(bgpkit);
+    }
+
     let classifier_bg = classifier.clone();
     tokio::task::spawn_blocking(move || {
-        info!("Loading BGPKIT data in background...");
+        info!("Loading BGPKIT RPKI data in background...");
         let start = Instant::now();
-        let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
-        if let Err(e) = bgpkit.load_asinfo(true, true, true, true) {
-            warn!("Failed to load BGPKIT AS info: {}", e);
-        } else {
-            info!("BGPKIT AS info loaded.");
-        }
+        let mut bgpkit = classifier_bg.bgpkit.write().take().unwrap_or_default();
+
         if let Err(e) = bgpkit.load_rpki(None) {
             warn!("Failed to load BGPKIT RPKI data: {}", e);
         }
@@ -721,7 +734,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             *classifier_bg.bgpkit.write() = Some(bgpkit);
         }
         info!(
-            "BGPKIT data loading complete (took {}s).",
+            "BGPKIT RPKI data loading complete (took {}s).",
             start.elapsed().as_secs()
         );
     });
@@ -981,8 +994,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         victim_asn: ld.victim_asn,
                                         leaker_as_name: c_ingest.get_as_name(ld.leaker_asn).unwrap_or_default(),
                                         victim_as_name: c_ingest.get_as_name(ld.victim_asn).unwrap_or_default(),
-                                        leaker_rpki_status: ld.leaker_rpki_status.into(),
-                                        victim_rpki_status: ld.victim_rpki_status.into()
+                                        leaker_rpki_status: ld.leaker_rpki_status,
+                                        victim_rpki_status: ld.victim_rpki_status
                                     })
                                 });
                             }
