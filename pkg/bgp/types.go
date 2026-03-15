@@ -42,6 +42,7 @@ const (
 	DDoSRTBH
 	DDoSFlowspec
 	DDoSTrafficRedirection
+	LeakValleyFree
 )
 
 const (
@@ -66,6 +67,8 @@ func (t LeakType) String() string {
 		return "Flowspec"
 	case DDoSTrafficRedirection:
 		return "Traffic Redirection"
+	case LeakValleyFree:
+		return "Valley-Free Violation"
 	default:
 		return StrUnknown
 	}
@@ -92,6 +95,7 @@ const (
 	NamePathHunting    = "Path Hunting"
 	NameHardOutage     = "Outage"
 	NameRouteLeak      = "Route Leak"
+	NameMinorRouteLeak = "Minor Route Leak"
 	NameDiscovery      = "Discovery"
 	NameDDoSMitigation = "DDoS Mitigation"
 	NameHijack         = "BGP Hijack"
@@ -103,6 +107,7 @@ const (
 	ClassificationBogon
 	ClassificationHijack
 	ClassificationRouteLeak
+	ClassificationMinorRouteLeak
 	ClassificationOutage
 	ClassificationDDoSMitigation
 	ClassificationFlap
@@ -116,7 +121,7 @@ func (t ClassificationType) String() string {
 		return NameBogon
 	case ClassificationHijack:
 		return NameHijack
-	case ClassificationRouteLeak:
+	case ClassificationRouteLeak, ClassificationMinorRouteLeak:
 		return NameRouteLeak
 	case ClassificationOutage:
 		return NameHardOutage

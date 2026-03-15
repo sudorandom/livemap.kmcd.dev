@@ -80,6 +80,7 @@ pub enum ClassificationType {
     Bogon = 1,
     Hijack = 2,
     RouteLeak = 3,
+    MinorRouteLeak = 10,
     Outage = 4,
     DDoSMitigation = 5,
     Flap = 6,
@@ -93,6 +94,7 @@ impl ClassificationType {
             1 => ClassificationType::Bogon,
             2 => ClassificationType::Hijack,
             3 => ClassificationType::RouteLeak,
+            10 => ClassificationType::MinorRouteLeak,
             4 => ClassificationType::Outage,
             5 => ClassificationType::DDoSMitigation,
             6 => ClassificationType::Flap,
@@ -112,6 +114,7 @@ pub enum LeakType {
     Flowspec = 4,
     RTBH = 5,
     TrafficRedirection = 6,
+    ValleyFreeViolation = 7,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -630,6 +633,7 @@ impl Classifier {
                 ClassificationType::Hijack
                     | ClassificationType::Outage
                     | ClassificationType::RouteLeak
+                    | ClassificationType::MinorRouteLeak
             );
             if is_new_broad && is_old_specific && (ctx.now - state.classified_time_ts < 300) {
                 return (None, needs_timer);
@@ -639,12 +643,14 @@ impl Classifier {
                 event.classification_type,
                 ClassificationType::Hijack
                     | ClassificationType::RouteLeak
+                    | ClassificationType::MinorRouteLeak
                     | ClassificationType::Outage
             );
             let is_old_bad = matches!(
                 old_classified_type,
                 ClassificationType::Hijack
                     | ClassificationType::RouteLeak
+                    | ClassificationType::MinorRouteLeak
                     | ClassificationType::Outage
             );
             if is_new_bad && !is_old_bad {
@@ -799,9 +805,14 @@ impl Classifier {
                 return (None, true);
             }
         }
-        if s.unique_hosts.len() >= 3
+                if s.unique_hosts.len() >= 2
             && let Some(ld) = self.detect_route_leak(prefix, ctx)
         {
+            let classification = if s.unique_hosts.len() >= 5 {
+                ClassificationType::RouteLeak
+            } else {
+                ClassificationType::MinorRouteLeak
+            };
             return (
                 Some(PendingEvent {
                     prefix: prefix.to_string(),
@@ -810,7 +821,7 @@ impl Classifier {
                     peer_ip: ctx.peer.clone(),
                     historical_asn: historical_origin_asn,
                     timestamp: ctx.now,
-                    classification_type: ClassificationType::RouteLeak,
+                    classification_type: classification,
                     old_classification: ClassificationType::None,
                     incident_id: None,
                     incident_start_time: 0,
@@ -825,9 +836,9 @@ impl Classifier {
                 false,
             );
         }
-        if s.unique_hosts.len() >= 3
+        if s.unique_hosts.len() >= 2
             && (s.path_len_inc >= 1 || s.path_len_dec >= 1)
-            && s.path_changes >= 4
+            && s.path_changes >= 2
         {
             return (
                 Some(PendingEvent {
@@ -1080,6 +1091,8 @@ impl Classifier {
         if path.len() < 3 {
             return None;
         }
+
+        // 1. Valley-Free Violation: Customer to Provider to Provider/Peer
         for i in 0..path.len() - 2 {
             let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
             if (self.is_tier1(p1) || self.is_large_network(p1))
@@ -1090,7 +1103,7 @@ impl Classifier {
                 && p2 != p3
             {
                 return Some(LeakDetail {
-                    leak_type: LeakType::Hairpin,
+                    leak_type: LeakType::ValleyFreeViolation, // Renamed from Hairpin since Hairpin is specifically when routing goes back to the same network
                     leaker_asn: p2,
                     victim_asn: p3,
                     leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
@@ -1100,6 +1113,23 @@ impl Classifier {
                 });
             }
         }
+
+        // 2. Hairpin Turn: Route goes A -> B -> A
+        for i in 0..path.len() - 2 {
+            let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
+            if p1 == p3 && p1 != p2 {
+                return Some(LeakDetail {
+                    leak_type: LeakType::Hairpin,
+                    leaker_asn: p2,
+                    victim_asn: p1,
+                    leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                    victim_as_name: self.get_as_name(p1).unwrap_or_default(),
+                    leaker_rpki_status: self.rpki_validate(p2, prefix),
+                    victim_rpki_status: self.rpki_validate(p1, prefix),
+                });
+            }
+        }
+
         None
     }
 

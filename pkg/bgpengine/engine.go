@@ -129,6 +129,7 @@ type CriticalEvent struct {
 	VictimName string
 	VictimRPKI int32
 	Locations  string
+	Country    string
 	Color      color.RGBA
 	UIColor    color.RGBA
 
@@ -178,8 +179,6 @@ type Engine struct {
 	pulseImage     *ebiten.Image
 	flareImage     *ebiten.Image
 	squareImage    *ebiten.Image
-	trendLineImg   *ebiten.Image
-	trendCircleImg *ebiten.Image
 	whitePixel     *ebiten.Image
 	fadeMask       *ebiten.Image
 	fontSource     *text.GoTextFaceSource
@@ -208,15 +207,9 @@ type Engine struct {
 	impactBuffer       *ebiten.Image
 	streamBuffer       *ebiten.Image
 	streamClipBuffer   *ebiten.Image
-	trendLinesBuffer   *ebiten.Image
-	trendClipBuffer    *ebiten.Image
-	ipTrendLinesBuffer *ebiten.Image
-	ipTrendClipBuffer  *ebiten.Image
 	nowPlayingBuffer   *ebiten.Image
 	nowPlayingDirty    bool
 
-	trendGridVertices []ebiten.Vertex
-	trendGridIndices  []uint16
 
 	hubChangedAt map[string]time.Time
 	lastHubs     map[string]int
@@ -225,8 +218,6 @@ type Engine struct {
 	IsConnected atomic.Bool
 
 	lastMetricsUpdate time.Time
-	lastTrendUpdate   time.Time
-	lastIPTrendUpdate time.Time
 	lastDrawTime      time.Time
 	droppedFrames     atomic.Uint64
 	grpcMsgCount      atomic.Uint64
@@ -553,7 +544,6 @@ func NewEngine(width, height int, scale float64) *Engine {
 	e.InitPulseTexture()
 	e.InitFlareTexture()
 	e.InitSquareTexture()
-	e.InitTrendlineTexture()
 
 	return e
 }
@@ -1242,7 +1232,7 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	}
 
 	// 2. We only care about tracking and displaying these specific critical events
-	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationHijack {
+	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack {
 		e.streamDirty = true
 		return
 	}
@@ -1349,6 +1339,8 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 			ce.LeakType = bgp.DDoSRTBH
 		case 6:
 			ce.LeakType = bgp.DDoSTrafficRedirection
+		case 7:
+			ce.LeakType = bgp.LeakValleyFree
 		default:
 			ce.LeakType = bgp.LeakUnknown
 		}
@@ -1356,11 +1348,20 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 
 	ce.Resolved = len(ce.ActivePrefixes) == 0
 
-	if trans.City != "" {
+	loc := ""
+	if trans.City != "" && trans.Country != "" {
+		loc = trans.City + ", " + trans.Country
+	} else if trans.City != "" {
+		loc = trans.City
+	} else if trans.Country != "" {
+		loc = trans.Country
+	}
+
+	if loc != "" {
 		if ce.Locations == "" {
-			ce.Locations = trans.City
-		} else if !strings.Contains(ce.Locations, trans.City) {
-			ce.Locations += " | " + trans.City
+			ce.Locations = loc
+		} else if !strings.Contains(ce.Locations, loc) {
+			ce.Locations += " | " + loc
 		}
 	}
 	e.updateCriticalEventCacheStrs(ce)
@@ -1387,7 +1388,7 @@ func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransitio
 		ASN:               trans.Asn,
 		ASNStr:            fmt.Sprintf("AS%d", trans.Asn),
 		OrgID:             trans.AsName,
-		Locations:         trans.City,
+		Locations:         func() string { if trans.Country != "" && trans.City != "" { return trans.City + ", " + trans.Country }; if trans.City != "" { return trans.City }; return trans.Country }(),
 		Color:             c,
 		UIColor:           uiCol,
 		ImpactedPrefixes:  make(map[string]struct{}),
@@ -1425,6 +1426,8 @@ func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransitio
 			ce.LeakType = bgp.DDoSRTBH
 		case 6:
 			ce.LeakType = bgp.DDoSTrafficRedirection
+		case 7:
+			ce.LeakType = bgp.LeakValleyFree
 		default:
 			ce.LeakType = bgp.LeakUnknown
 		}
@@ -1488,7 +1491,7 @@ func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
 	for p := range ce.ImpactedPrefixes {
 		if strings.Contains(p, ":") {
 			v6Count++
-			if v6Count >= 10 {
+			if v6Count >= 20 {
 				return true
 			}
 		}
@@ -1550,7 +1553,11 @@ func (e *Engine) updateCriticalStream() {
 }
 
 func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
-	ce.CachedTypeLabel = fmt.Sprintf("[%s]", strings.ToUpper(ce.Anom))
+		if (ce.Anom == bgp.NameRouteLeak || ce.Anom == bgp.NameMinorRouteLeak) && ce.LeakType != bgp.LeakUnknown {
+		ce.CachedTypeLabel = fmt.Sprintf("[%s - %s]", strings.ToUpper(ce.Anom), strings.ToUpper(ce.LeakType.String()))
+	} else {
+		ce.CachedTypeLabel = fmt.Sprintf("[%s]", strings.ToUpper(ce.Anom))
+	}
 	if e.subMonoFace != nil {
 		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
 	}
@@ -1561,7 +1568,7 @@ func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
 	}
 
 	switch ce.Anom {
-	case bgp.NameRouteLeak:
+	case bgp.NameRouteLeak, bgp.NameMinorRouteLeak:
 		e.cacheLeakStrings(ce)
 	case bgp.NameHardOutage:
 		e.cacheOutageStrings(ce)
@@ -1677,7 +1684,11 @@ func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
 			ce.CachedVictimVal = fmt.Sprintf("AS%d", ce.VictimASN)
 		}
 	} else {
-		ce.CachedVictimVal = ce.ASNStr
+		if ce.OrgID != "" {
+			ce.CachedVictimVal = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
+		} else {
+			ce.CachedVictimVal = ce.ASNStr
+		}
 	}
 
 	// Networks line
@@ -1753,15 +1764,15 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 		default:
 			impactStr = fmt.Sprintf("%d", ce.ImpactedIPs)
 		}
-		impactParts = append(impactParts, fmt.Sprintf("%s IPv4", impactStr))
+		impactParts = append(impactParts, fmt.Sprintf("%s IPv4 Addrs", impactStr))
 	}
 	if v6Count > 0 {
-		impactParts = append(impactParts, fmt.Sprintf("%d IPv6 PFXs", v6Count))
+		impactParts = append(impactParts, fmt.Sprintf("%d IPv6 Prefixes", v6Count))
 	}
 
 	if len(impactParts) > 0 {
 		// Update label to include impact count
-		ce.CachedTypeLabel = fmt.Sprintf("[%s - %s]", strings.ToUpper(ce.Anom), strings.Join(impactParts, ", "))
+		ce.CachedTypeLabel = fmt.Sprintf("[%s] %s", strings.ToUpper(ce.Anom), strings.Join(impactParts, ", "))
 		if e.subMonoFace != nil {
 			ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
 		}
@@ -2046,25 +2057,6 @@ func (e *Engine) generateFlarePixels(size int) []byte {
 		}
 	}
 	return flarePixels
-}
-
-func (e *Engine) InitTrendlineTexture() {
-	e.trendLineImg = ebiten.NewImage(1, 1)
-	e.trendLineImg.Fill(color.White)
-	size := 64
-	e.trendCircleImg = ebiten.NewImage(size, size)
-	pixels := make([]byte, size*size*4)
-	center, maxDist := float64(size)/2.0, float64(size)/2.0
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			dx, dy := float64(x)-center, float64(y)-center
-			if math.Sqrt(dx*dx+dy*dy) < maxDist {
-				pixels[(y*size+x)*4+3] = 255
-				pixels[(y*size+x)*4+0], pixels[(y*size+x)*4+1], pixels[(y*size+x)*4+2] = 255, 255, 255
-			}
-		}
-	}
-	e.trendCircleImg.WritePixels(pixels)
 }
 
 // StartBufferLoop runs a background loop that periodically processes buffered BGP events.
