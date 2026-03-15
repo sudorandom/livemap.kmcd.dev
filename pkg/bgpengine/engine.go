@@ -102,12 +102,12 @@ var (
 )
 
 const (
-	MaxActivePulses      = 250000
-	MaxVisualQueueSize   = 1500000
-	DefaultPulsesPerTick = 1000
-	BurstPulsesPerTick   = 10000
-	VisualQueueThreshold = 50000
-	VisualQueueCull      = 500000
+	MaxActivePulses      = 30000
+	MaxVisualQueueSize   = 500000
+	DefaultPulsesPerTick = 500
+	BurstPulsesPerTick   = 2000
+	VisualQueueThreshold = 10000
+	VisualQueueCull      = 100000
 )
 
 type asnGroupKey struct {
@@ -1178,11 +1178,39 @@ func (e *Engine) runEventWorker() {
 }
 
 func (e *Engine) processEventBatch(batch []*bgpEvent) {
-	e.metricsMu.Lock()
-	defer e.metricsMu.Unlock()
+	type batchKey struct {
+		lat, lng float64
+		c        color.RGBA
+		shape    EventShape
+	}
+	localBatch := make(map[batchKey]int)
 
 	for _, ev := range batch {
-		e.processEventLocked(ev)
+		c, _, shape := e.getClassificationVisuals(ev.classificationType)
+		if c == (color.RGBA{}) || (ev.lat == 0 && ev.lng == 0) {
+			continue
+		}
+		// Round to 2 decimal places to aggregate pulses that are very close (~1.1km)
+		lat := math.Round(ev.lat*100) / 100
+		lng := math.Round(ev.lng*100) / 100
+		localBatch[batchKey{lat, lng, c, shape}]++
+	}
+
+	e.bufferMu.Lock()
+	defer e.bufferMu.Unlock()
+	for k, count := range localBatch {
+		hashKey := math.Float64bits(k.lat) ^ (math.Float64bits(k.lng) << 1)
+		b, ok := e.cityBuffer[hashKey]
+		if !ok {
+			b = e.cityBufferPool.Get().(*BufferedCity)
+			b.Lat = k.lat
+			b.Lng = k.lng
+			e.cityBuffer[hashKey] = b
+		}
+		if b.Counts == nil {
+			b.Counts = make(map[PulseKey]int)
+		}
+		b.Counts[PulseKey{Color: k.c, Shape: k.shape}] += count
 	}
 }
 
@@ -1192,14 +1220,6 @@ func (e *Engine) recordEvent(lat, lng float64, cc, city string, eventType bgp.Ev
 	default:
 		// Drop event if engine is too busy
 	}
-}
-
-func (e *Engine) processEventLocked(ev *bgpEvent) {
-	// 1. Determine color, name, and shape based on Level 2 type
-	c, _, shape := e.getClassificationVisuals(ev.classificationType)
-
-	// 2. Buffer city activity
-	e.incrementCityBuffer(ev.lat, ev.lng, c, shape)
 }
 
 func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
@@ -1836,31 +1856,6 @@ func (e *Engine) drawGlitchImage(screen, img *ebiten.Image, tx, ty, intensity fl
 	op.ColorScale.Scale(1, 1, 1, alpha)
 	op.Blend = ebiten.BlendSourceOver
 	screen.DrawImage(img, op)
-}
-
-func (e *Engine) incrementCityBuffer(lat, lng float64, c color.RGBA, shape EventShape) {
-	if c == (color.RGBA{}) || (lat == 0 && lng == 0) {
-		return
-	}
-
-	// Round to 2 decimal places to aggregate pulses that are very close (~1.1km)
-	lat = math.Round(lat*100) / 100
-	lng = math.Round(lng*100) / 100
-
-	key := math.Float64bits(lat) ^ (math.Float64bits(lng) << 1)
-	e.bufferMu.Lock()
-	defer e.bufferMu.Unlock()
-	b, ok := e.cityBuffer[key]
-	if !ok {
-		b = e.cityBufferPool.Get().(*BufferedCity)
-		b.Lat = lat
-		b.Lng = lng
-		e.cityBuffer[key] = b
-	}
-	if b.Counts == nil {
-		b.Counts = make(map[PulseKey]int)
-	}
-	b.Counts[PulseKey{Color: c, Shape: shape}]++
 }
 
 func (e *Engine) getClassificationVisuals(classificationType bgp.ClassificationType) (visualColor color.RGBA, classificationName string, shape EventShape) {

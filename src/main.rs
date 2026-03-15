@@ -705,16 +705,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(db_for_classifier),
     ));
     info!("Loading BGPKIT AS data in foreground...");
-    let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
-    let start_asinfo = Instant::now();
-    if let Err(e) = bgpkit.load_asinfo(true, true, true, true) {
-        warn!("Failed to load BGPKIT AS info: {}", e);
-    } else {
-        info!(
-            "BGPKIT AS info loaded (took {}s).",
-            start_asinfo.elapsed().as_secs()
-        );
-    }
+    let bgpkit = tokio::task::spawn_blocking(|| {
+        let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
+        let start_asinfo = Instant::now();
+        if let Err(e) = bgpkit.load_asinfo(true, true, true, true) {
+            warn!("Failed to load BGPKIT AS info: {}", e);
+        } else {
+            info!(
+                "BGPKIT AS info loaded (took {}s).",
+                start_asinfo.elapsed().as_secs()
+            );
+        }
+        bgpkit
+    })
+    .await?;
 
     // Assign to classifier
     {
