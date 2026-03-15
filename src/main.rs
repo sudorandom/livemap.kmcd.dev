@@ -91,6 +91,7 @@ fn map_classification(c: ClassificationType) -> ProtoClassification {
         ClassificationType::Flap => ProtoClassification::Flap,
         ClassificationType::PathHunting => ProtoClassification::PathHunting,
         ClassificationType::Discovery => ProtoClassification::Discovery,
+        ClassificationType::MinorRouteLeak => ProtoClassification::MinorRouteLeak,
     }
 }
 

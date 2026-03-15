@@ -15,6 +15,7 @@ enum Classification {
     CLASSIFICATION_FLAP = 6;
     CLASSIFICATION_PATH_HUNTING = 8;
     CLASSIFICATION_DISCOVERY = 9;
+    CLASSIFICATION_MINOR_ROUTE_LEAK = 10;
 }
 
 // GeoData represents geographic coordinates.
