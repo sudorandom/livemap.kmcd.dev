@@ -152,6 +152,7 @@ pub struct StatsBucket {
     pub local_pref_changes: u32,
     pub path_length_increases: u32,
     pub path_length_decreases: u32,
+    pub flaps: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -279,6 +280,7 @@ pub struct AggregatedStats {
     pub path_changes: u32,
     pub path_len_inc: u32,
     pub path_len_dec: u32,
+    pub total_flaps: u32,
     pub unique_peers: HashSet<String>,
     pub unique_hosts: HashSet<String>,
     pub withdrawn_peers: HashSet<String>,
@@ -295,6 +297,7 @@ impl AggregatedStats {
             path_changes: 0,
             path_len_inc: 0,
             path_len_dec: 0,
+            total_flaps: 0,
             unique_peers: HashSet::new(),
             unique_hosts: HashSet::new(),
             withdrawn_peers: HashSet::new(),
@@ -388,24 +391,34 @@ impl Classifier {
 
         if ctx.is_withdrawal {
             state.buckets.entry(minute_ts).or_default().withdrawals += 1;
-            let last = state
-                .peer_last_attrs
-                .entry(format!("{}:{}", ctx.host, ctx.peer))
-                .or_insert_with(|| LastAttrs {
-                    path: String::new(),
-                    communities: String::new(),
-                    next_hop: String::new(),
-                    aggregator: String::new(),
-                    last_path_len: 0,
-                    origin_asn: 0,
-                    med: None,
-                    local_pref: None,
-                    last_update_ts: ctx.now,
-                    host: ctx.host.clone(),
-                    withdrawn: true,
-                });
-            last.withdrawn = true;
-            last.last_update_ts = ctx.now;
+            let session_key = format!("{}:{}", ctx.host, ctx.peer);
+            if let Some(last) = state.peer_last_attrs.get_mut(&session_key) {
+                if !last.withdrawn {
+                    state.buckets.entry(minute_ts).or_default().flaps += 1;
+                }
+                last.withdrawn = true;
+                last.last_update_ts = ctx.now;
+            } else {
+                state.peer_last_attrs.insert(
+                    session_key,
+                    LastAttrs {
+                        path: String::new(),
+                        communities: String::new(),
+                        next_hop: String::new(),
+                        aggregator: String::new(),
+                        last_path_len: 0,
+                        origin_asn: 0,
+                        med: None,
+                        local_pref: None,
+                        last_update_ts: ctx.now,
+                        host: ctx.host.clone(),
+                        withdrawn: true,
+                    },
+                );
+            }
+            if state.classified_type == ClassificationType::Outage {
+                state.classified_time_ts = ctx.now;
+            }
         } else {
             self.update_announcement_stats(&mut state, minute_ts, ctx);
             if ctx.origin_asn != 0 {
@@ -420,19 +433,12 @@ impl Classifier {
 
         if state.classified_type != ClassificationType::None {
             let expiry = match state.classified_type {
-                ClassificationType::Outage => 300,
+                ClassificationType::Outage => 1800,
                 ClassificationType::Flap => 60,
                 _ => 600,
             };
             if ctx.now - state.classified_time_ts > expiry
-                || (state.classified_type == ClassificationType::Outage
-                    && !ctx.is_withdrawal
-                    && state
-                        .buckets
-                        .get(&minute_ts)
-                        .map(|b| b.announcements)
-                        .unwrap_or(0)
-                        > 2)
+                || (state.classified_type == ClassificationType::Outage && !ctx.is_withdrawal)
             {
                 state.classified_type = ClassificationType::None;
             }
@@ -480,7 +486,19 @@ impl Classifier {
                 old_classification: old_classified_type,
                 incident_id: state.active_incident_id.clone(),
                 incident_start_time: state.classified_time_ts,
-                leak_detail: None,
+                leak_detail: if state.leak_type != LeakType::None {
+                    Some(LeakDetail {
+                        leak_type: state.leak_type,
+                        leaker_asn: state.leaker_asn,
+                        victim_asn: state.victim_asn,
+                        leaker_as_name: self.get_as_name(state.leaker_asn).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(state.victim_asn).unwrap_or_default(),
+                        leaker_rpki_status: self.rpki_validate(state.leaker_asn, &prefix),
+                        victim_rpki_status: self.rpki_validate(state.victim_asn, &prefix),
+                    })
+                } else {
+                    None
+                },
                 anomaly_details: None,
                 source: ctx.source.clone(),
                 lat,
@@ -729,8 +747,6 @@ impl Classifier {
             && ctx.origin_asn != 0
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
-            // && self.rpki_validate(historical_origin_asn, prefix) != 2
-            && (self.rpki_validate(ctx.origin_asn, prefix) == 2 || self.rpki_validate(historical_origin_asn, prefix) == 1)
         {
             let mut hosts = HashSet::new();
             for attr in &s.peer_attrs_values {
@@ -805,7 +821,7 @@ impl Classifier {
                 return (None, true);
             }
         }
-                if s.unique_hosts.len() >= 2
+        if s.unique_hosts.len() >= 2
             && let Some(ld) = self.detect_route_leak(prefix, ctx)
         {
             let classification = if s.unique_hosts.len() >= 5 {
@@ -836,10 +852,7 @@ impl Classifier {
                 false,
             );
         }
-        if s.unique_hosts.len() >= 2
-            && (s.path_len_inc >= 1 || s.path_len_dec >= 1)
-            && s.path_changes >= 2
-        {
+        if s.unique_hosts.len() >= 2 && s.path_len_inc >= 2 && s.path_changes >= 3 {
             return (
                 Some(PendingEvent {
                     prefix: prefix.to_string(),
@@ -863,11 +876,7 @@ impl Classifier {
                 false,
             );
         }
-        if s.unique_hosts.len() >= 3
-            && s.total_ann >= 10
-            && s.total_with >= 10
-            && (s.total_ann + s.total_with) >= 25
-        {
+        if s.unique_hosts.len() >= 2 && s.total_flaps >= 3 {
             return (
                 Some(PendingEvent {
                     prefix: prefix.to_string(),
@@ -881,7 +890,13 @@ impl Classifier {
                     incident_id: None,
                     incident_start_time: 0,
                     leak_detail: None,
-                    anomaly_details: None,
+                    anomaly_details: Some(AnomalyDetails {
+                        num_collectors: s.unique_hosts.len(),
+                        num_peers: s.unique_peers.len() + s.withdrawn_peers.len(),
+                        num_withdrawals: s.total_with,
+                        num_announcements: s.total_ann,
+                        flap_count: s.total_flaps as usize,
+                    }),
                     source: ctx.source.clone(),
                     lat,
                     lon,
@@ -939,6 +954,7 @@ impl Classifier {
             s.path_changes += b.path_changes;
             s.path_len_inc += b.path_length_increases;
             s.path_len_dec += b.path_length_decreases;
+            s.total_flaps += b.flaps;
         }
         for (peer, attr) in &state.peer_last_attrs {
             s.peer_attrs_values.push(attr.clone());
@@ -959,7 +975,7 @@ impl Classifier {
         ctx: &MessageContext,
     ) {
         let session_key = format!("{}:{}", ctx.host, ctx.peer);
-        let (path_changed, len_inc, len_dec) =
+        let (path_changed, len_inc, len_dec, was_withdrawn) =
             if let Some(last) = state.peer_last_attrs.get(&session_key) {
                 let pc = last.path != ctx.path_str;
                 let inc = if pc && ctx.path_len > last.last_path_len as usize {
@@ -972,12 +988,15 @@ impl Classifier {
                 } else {
                     0
                 };
-                (pc, inc, dec)
+                (pc, inc, dec, last.withdrawn)
             } else {
-                (true, 0, 0)
+                (true, 0, 0, false)
             };
         let bucket = state.buckets.entry(minute_ts).or_default();
         bucket.announcements += 1;
+        if was_withdrawn {
+            bucket.flaps += 1;
+        }
         if path_changed {
             bucket.path_changes += 1;
             bucket.path_length_increases += len_inc;
