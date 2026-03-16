@@ -2226,13 +2226,16 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	}
 
 	metricStr := ""
-	if alert.ImpactedIpv4Ips > 0 {
-		metricStr = fmt.Sprintf("%d IPv4 IPs; %.0f%% Increase", alert.ImpactedIpv4Ips, alert.PercentageIncrease)
+	if alert.ImpactedIpv4Ips > 0 && alert.ImpactedIpv6Prefixes > 0 {
+		cachedTypeLabel = fmt.Sprintf("%s %d IPv4 IPs, %d IPv6 Prefixes", cachedTypeLabel, alert.ImpactedIpv4Ips, alert.ImpactedIpv6Prefixes)
+	} else if alert.ImpactedIpv4Ips > 0 {
+		cachedTypeLabel = fmt.Sprintf("%s %d IPv4 IPs", cachedTypeLabel, alert.ImpactedIpv4Ips)
 	} else if alert.ImpactedIpv6Prefixes > 0 {
-		metricStr = fmt.Sprintf("%d IPv6 Prefixes; %.0f%% Increase", alert.ImpactedIpv6Prefixes, alert.PercentageIncrease)
+		cachedTypeLabel = fmt.Sprintf("%s %d IPv6 Prefixes", cachedTypeLabel, alert.ImpactedIpv6Prefixes)
 	} else {
-		metricStr = fmt.Sprintf("%d Events; %.0f%% Increase", alert.EventsCount, alert.PercentageIncrease)
+		cachedTypeLabel = fmt.Sprintf("%s %d Events", cachedTypeLabel, alert.EventsCount)
 	}
+	metricStr = fmt.Sprintf("%.0f%% Increase in last 5m", alert.PercentageIncrease)
 
 	// [ROUTE LEAK] [SUB TYPE] already calculated
 

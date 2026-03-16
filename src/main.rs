@@ -1159,6 +1159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
         let mut rolling_windows = RollingWindows::default();
+        let mut emitted_alerts: HashMap<String, i64> = HashMap::new();
         let mut last_alert_check = Utc::now().timestamp();
         loop {
             tokio::select! {
@@ -1238,6 +1239,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let now_tick = Utc::now().timestamp();
                     if now_tick - last_alert_check >= 60 {
                         rolling_windows.cleanup(now_tick, 300); // 5 minutes window
+                        emitted_alerts.retain(|_, v| now_tick - *v < 3600); // 1 hour window
                         let mut alerts = Vec::new();
 
                         // Check by Location
@@ -1275,7 +1277,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let top_city = city_counts.into_iter().max_by_key(|&(_, c)| c).map(|(c, _)| c).unwrap_or_default();
                             let top_country = country_counts.into_iter().max_by_key(|&(_, c)| c).map(|(c, _)| c).unwrap_or_default();
 
-                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 {
+                            let alert_key = format!("loc:{}:{}:{}:{}", lat_q, lon_q, class as i32, top_country);
+                            let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 && now_tick - last_emitted >= 300 {
+                                emitted_alerts.insert(alert_key, now_tick);
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByLocation.into(),
                                     location: Some(livemap_proto::AlertLocation {
@@ -1328,7 +1333,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let delta = count_recent - avg_old;
                             let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
 
-                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 {
+                            let alert_key = format!("asn:{}:{}", asn, class as i32);
+                            let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 && now_tick - last_emitted >= 300 {
+                                emitted_alerts.insert(alert_key, now_tick);
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByAsn.into(),
                                     location: None,
@@ -1371,7 +1379,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let delta = count_recent - avg_old;
                             let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
 
-                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 {
+                            let alert_key = format!("country:{}:{}", country, *class as i32);
+                            let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 && now_tick - last_emitted >= 300 {
+                                emitted_alerts.insert(alert_key, now_tick);
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByCountry.into(),
                                     location: None,
