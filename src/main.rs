@@ -73,11 +73,21 @@ const BEACON_PREFIXES: &[&str] = &[
     "93.175.147.0/24",
 ];
 
+#[derive(Clone)]
+struct WindowEntry {
+    ts: i64,
+    prefix: String,
+    city: Option<String>,
+    country: Option<String>,
+    asn: u32,
+    as_name: String,
+}
+
 #[derive(Default)]
 struct RollingWindows {
-    by_location: HashMap<(i32, i32, ClassificationType), Vec<i64>>, // lat_q, lon_q, class -> timestamps
-    by_asn: HashMap<(u32, ClassificationType), Vec<i64>>,           // asn, class -> timestamps
-    by_country: HashMap<(String, ClassificationType), Vec<i64>>,    // country, class -> timestamps
+    by_location: HashMap<(i32, i32, ClassificationType), Vec<WindowEntry>>, // lat_q, lon_q, class -> entries
+    by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>,           // asn, class -> entries
+    by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>,    // country, class -> entries
 }
 
 impl RollingWindows {
@@ -86,37 +96,50 @@ impl RollingWindows {
         lat: f32,
         lon: f32,
         asn: u32,
-        country: String,
+        as_name: String,
+        country_opt: Option<String>,
+        city_opt: Option<String>,
         class: ClassificationType,
         now: i64,
+        prefix: String,
     ) {
         let lat_q = (lat * 10.0) as i32;
         let lon_q = (lon * 10.0) as i32;
+        let entry = WindowEntry {
+            ts: now,
+            prefix: prefix.clone(),
+            city: city_opt.clone(),
+            country: country_opt.clone(),
+            asn,
+            as_name: as_name.clone(),
+        };
         self.by_location
             .entry((lat_q, lon_q, class))
             .or_default()
-            .push(now);
-        self.by_asn.entry((asn, class)).or_default().push(now);
-        if !country.is_empty() {
-            self.by_country
-                .entry((country, class))
-                .or_default()
-                .push(now);
+            .push(entry.clone());
+        self.by_asn.entry((asn, class)).or_default().push(entry.clone());
+        if let Some(country) = country_opt {
+            if !country.is_empty() {
+                self.by_country
+                    .entry((country, class))
+                    .or_default()
+                    .push(entry);
+            }
         }
     }
 
     fn cleanup(&mut self, now: i64, window: i64) {
         let cutoff = now - window;
         self.by_location.retain(|_, v| {
-            v.retain(|&ts| ts >= cutoff);
+            v.retain(|e| e.ts >= cutoff);
             !v.is_empty()
         });
         self.by_asn.retain(|_, v| {
-            v.retain(|&ts| ts >= cutoff);
+            v.retain(|e| e.ts >= cutoff);
             !v.is_empty()
         });
         self.by_country.retain(|_, v| {
-            v.retain(|&ts| ts >= cutoff);
+            v.retain(|e| e.ts >= cutoff);
             !v.is_empty()
         });
     }
@@ -198,6 +221,7 @@ impl CumulativeStats {
             self.last_bucket_ts.store(now as u64, Ordering::Relaxed);
         }
     }
+    #[allow(clippy::too_many_arguments)]
     fn add_event(&self, ts: i64) {
         self.msg_count.fetch_add(1, Ordering::Relaxed);
         self.cleanup_buckets(ts);
@@ -1148,7 +1172,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         *aggregate_buffer.entry(key).or_insert(0) += 1;
 
                         if matches!(pending.classification_type, ClassificationType::RouteLeak | ClassificationType::MinorRouteLeak | ClassificationType::Hijack | ClassificationType::Outage | ClassificationType::Flap) {
-                            rolling_windows.add_event(pending.lat, pending.lon, pending.asn, pending.country.clone().unwrap_or_default(), pending.classification_type, now);
+                            rolling_windows.add_event(pending.lat, pending.lon, pending.asn, pending.as_name.clone(), pending.country.clone(), pending.city.clone(), pending.classification_type, now, pending.prefix.clone());
                         }
                         if pending.classification_type != pending.old_classification
                             && let Some(id) = &pending.incident_id {
@@ -1197,67 +1221,152 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         // Check by Location
                         for (&(lat_q, lon_q, class), v) in &rolling_windows.by_location {
+                            let mut unique_prefixes = std::collections::HashSet::new();
+                            let mut ipv4_count = 0u64;
+                            let mut ipv6_prefixes = 0u32;
+                            let mut city_counts = std::collections::HashMap::new();
+                            let mut country_counts = std::collections::HashMap::new();
+
+                            let mut count_recent = 0;
+                            for e in v {
+                                if unique_prefixes.insert(e.prefix.clone()) {
+                                    if let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
+                                        match net {
+                                            ipnet::IpNet::V4(v4) => ipv4_count += 2u64.pow((32 - v4.prefix_len()) as u32),
+                                            ipnet::IpNet::V6(_) => ipv6_prefixes += 1,
+                                        }
+                                    }
+                                }
+                                if e.ts >= now_tick - 60 {
+                                    count_recent += 1;
+                                }
+                                if let Some(ref c) = e.city {
+                                    *city_counts.entry(c.clone()).or_insert(0) += 1;
+                                }
+                                if let Some(ref c) = e.country {
+                                    *country_counts.entry(c.clone()).or_insert(0) += 1;
+                                }
+                            }
                             let count = v.len() as u32;
-                            let count_recent = v.iter().filter(|&&ts| ts >= now_tick - 60).count() as i32;
                             let count_old = v.len() as i32 - count_recent;
                             let avg_old = (count_old as f32 / 4.0).ceil() as i32;
                             let delta = count_recent - avg_old;
+                            let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
+                            let top_city = city_counts.into_iter().max_by_key(|&(_, c)| c).map(|(c, _)| c).unwrap_or_default();
+                            let top_country = country_counts.into_iter().max_by_key(|&(_, c)| c).map(|(c, _)| c).unwrap_or_default();
 
-                            // Emit alert if delta is significant (e.g. > 50 spike in last minute compared to avg of previous 4 mins)
-                            if count >= 100 && delta > 50 {
+                            if ipv4_count >= 5000 || ipv6_prefixes >= 20 {
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByLocation.into(),
-                                    location: format!("lat:{},lon:{}", lat_q as f32 / 10.0, lon_q as f32 / 10.0),
+                                    location: Some(livemap_proto::AlertLocation {
+                                        city: top_city,
+                                        country: top_country,
+                                        lat: lat_q as f32 / 10.0,
+                                        lon: lon_q as f32 / 10.0,
+                                        radius_km: 11.0,
+                                    }),
                                     asn: 0,
                                     country: String::new(),
                                     classification: map_classification(class).into(),
-                                    count,
+                                    events_count: count,
                                     delta,
                                     timestamp: now_tick,
+                                    impacted_ipv4_ips: ipv4_count,
+                                    impacted_ipv6_prefixes: ipv6_prefixes,
+                                    percentage_increase,
+                                    as_name: String::new(),
                                 });
                             }
                         }
 
                         // Check by ASN
                         for (&(asn, class), v) in &rolling_windows.by_asn {
+                            let mut unique_prefixes = std::collections::HashSet::new();
+                            let mut ipv4_count = 0u64;
+                            let mut ipv6_prefixes = 0u32;
+                            let mut as_name = String::new();
+
+                            let mut count_recent = 0;
+                            for e in v {
+                                if unique_prefixes.insert(e.prefix.clone()) {
+                                    if let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
+                                        match net {
+                                            ipnet::IpNet::V4(v4) => ipv4_count += 2u64.pow((32 - v4.prefix_len()) as u32),
+                                            ipnet::IpNet::V6(_) => ipv6_prefixes += 1,
+                                        }
+                                    }
+                                }
+                                if e.ts >= now_tick - 60 {
+                                    count_recent += 1;
+                                }
+                                if !e.as_name.is_empty() {
+                                    as_name = e.as_name.clone();
+                                }
+                            }
                             let count = v.len() as u32;
-                            let count_recent = v.iter().filter(|&&ts| ts >= now_tick - 60).count() as i32;
                             let count_old = v.len() as i32 - count_recent;
                             let avg_old = (count_old as f32 / 4.0).ceil() as i32;
                             let delta = count_recent - avg_old;
+                            let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
 
-                            if count >= 200 && delta > 100 {
+                            if ipv4_count >= 5000 || ipv6_prefixes >= 20 {
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByAsn.into(),
-                                    location: String::new(),
+                                    location: None,
                                     asn,
                                     country: String::new(),
                                     classification: map_classification(class).into(),
-                                    count,
+                                    events_count: count,
                                     delta,
                                     timestamp: now_tick,
+                                    impacted_ipv4_ips: ipv4_count,
+                                    impacted_ipv6_prefixes: ipv6_prefixes,
+                                    percentage_increase,
+                                    as_name,
                                 });
                             }
                         }
 
                         // Check by Country
                         for ((country, class), v) in &rolling_windows.by_country {
+                            let mut unique_prefixes = std::collections::HashSet::new();
+                            let mut ipv4_count = 0u64;
+                            let mut ipv6_prefixes = 0u32;
+
+                            let mut count_recent = 0;
+                            for e in v {
+                                if unique_prefixes.insert(e.prefix.clone()) {
+                                    if let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
+                                        match net {
+                                            ipnet::IpNet::V4(v4) => ipv4_count += 2u64.pow((32 - v4.prefix_len()) as u32),
+                                            ipnet::IpNet::V6(_) => ipv6_prefixes += 1,
+                                        }
+                                    }
+                                }
+                                if e.ts >= now_tick - 60 {
+                                    count_recent += 1;
+                                }
+                            }
                             let count = v.len() as u32;
-                            let count_recent = v.iter().filter(|&&ts| ts >= now_tick - 60).count() as i32;
                             let count_old = v.len() as i32 - count_recent;
                             let avg_old = (count_old as f32 / 4.0).ceil() as i32;
                             let delta = count_recent - avg_old;
+                            let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
 
-                            if count >= 500 && delta > 250 {
+                            if ipv4_count >= 5000 || ipv6_prefixes >= 20 {
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByCountry.into(),
-                                    location: String::new(),
+                                    location: None,
                                     asn: 0,
                                     country: country.clone(),
                                     classification: map_classification(*class).into(),
-                                    count,
+                                    events_count: count,
                                     delta,
                                     timestamp: now_tick,
+                                    impacted_ipv4_ips: ipv4_count,
+                                    impacted_ipv6_prefixes: ipv6_prefixes,
+                                    percentage_increase,
+                                    as_name: String::new(),
                                 });
                             }
                         }
