@@ -3,20 +3,14 @@ import re
 with open("src/classifier.rs", "r") as f:
     content = f.read()
 
-# Current path hunting heuristic:
-#        if s.unique_hosts.len() >= 3
-#            && (s.path_len_inc >= 1 || s.path_len_dec >= 1)
-#            && s.path_changes >= 4
+# Fix first error
+content = content.replace("        if historical_origin_asn != 0\n            && ctx.origin_asn != 0\n            && ctx.origin_asn != historical_origin_asn\n            && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)\n        {\n            if self.rpki_validate(ctx.origin_asn, prefix) != 1 {",
+                          "        if historical_origin_asn != 0\n            && ctx.origin_asn != 0\n            && ctx.origin_asn != historical_origin_asn\n            && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)\n            && self.rpki_validate(ctx.origin_asn, prefix) != 1\n        {")
 
-# Adjusted path hunting heuristic:
-#        if s.unique_hosts.len() >= 2
-#            && (s.path_len_inc >= 1 || s.path_len_dec >= 1)
-#            && s.path_changes >= 2
-content = re.sub(
-    r'if s\.unique_hosts\.len\(\) >= 3\s+&& \(s\.path_len_inc >= 1 \|\| s\.path_len_dec >= 1\)\s+&& s\.path_changes >= 4',
-    'if s.unique_hosts.len() >= 2\n            && (s.path_len_inc >= 1 || s.path_len_dec >= 1)\n            && s.path_changes >= 2',
-    content
-)
+# Delete extra bracket
+c_idx = content.find("&& self.rpki_validate(ctx.origin_asn, prefix) != 1")
+end_idx = content.find("            }", c_idx)
+# This one is tricky, let's just use regular expressions or simpler logic. Let's try to just run cargo clippy --fix
 
 with open("src/classifier.rs", "w") as f:
-    f.write(content)
+    pass
