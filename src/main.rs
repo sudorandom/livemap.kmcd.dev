@@ -683,14 +683,14 @@ async fn consume_routeviews(
     tx: mpsc::Sender<(PendingEvent, bool)>,
 ) {
     let mut backoff = Duration::from_secs(5);
-    let group_id = "livemap-kmcd-dev-routeviews";
+    let group_id = format!("livemap-kmcd-dev-routeviews-{}", &uuid::Uuid::new_v4().to_string()[..8]);
     let pattern = "^routeviews\\..*\\..*\\.bmp_raw";
 
     loop {
         debug!("Connecting to RouteViews Kafka with group {}...", group_id);
         let res: Result<StreamConsumer, _> = ClientConfig::new()
             .set("bootstrap.servers", "stream.routeviews.org:9092")
-            .set("group.id", group_id)
+            .set("group.id", &group_id)
             .set("auto.offset.reset", "latest")
             .set("session.timeout.ms", "60000")
             .set("heartbeat.interval.ms", "20000")

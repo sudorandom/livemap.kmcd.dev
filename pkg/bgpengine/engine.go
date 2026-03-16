@@ -1481,7 +1481,7 @@ func (e *Engine) createCriticalEvent(ev *bgpEvent, c color.RGBA, name, asnStr, o
 }
 
 func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
-	if ce.Anom != bgp.NameHardOutage {
+	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
 		return true
 	}
 	if ce.ImpactedIPs >= 5000 {

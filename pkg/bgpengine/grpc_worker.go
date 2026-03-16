@@ -279,7 +279,6 @@ func (e *Engine) consumeStateTransitions(ctx context.Context, client livemap.Liv
 			livemap.Classification_CLASSIFICATION_HIJACK,
 			livemap.Classification_CLASSIFICATION_ROUTE_LEAK,
 			livemap.Classification_CLASSIFICATION_OUTAGE,
-			livemap.Classification_CLASSIFICATION_FLAP,
 		},
 	})
 	if err != nil {
