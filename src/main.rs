@@ -74,6 +74,7 @@ const BEACON_PREFIXES: &[&str] = &[
 ];
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct WindowEntry {
     ts: i64,
     prefix: String,
@@ -87,10 +88,11 @@ struct WindowEntry {
 struct RollingWindows {
     by_location: HashMap<(i32, i32, ClassificationType), Vec<WindowEntry>>, // lat_q, lon_q, class -> entries
     by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>,           // asn, class -> entries
-    by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>,    // country, class -> entries
+    by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // country, class -> entries
 }
 
 impl RollingWindows {
+    #[allow(clippy::too_many_arguments)]
     fn add_event(
         &mut self,
         lat: f32,
@@ -117,15 +119,17 @@ impl RollingWindows {
             .entry((lat_q, lon_q, class))
             .or_default()
             .push(entry.clone());
-        self.by_asn.entry((asn, class)).or_default().push(entry.clone());
-        if let Some(country) = country_opt {
-            if !country.is_empty() {
+        self.by_asn
+            .entry((asn, class))
+            .or_default()
+            .push(entry.clone());
+        if let Some(country) = country_opt
+            && !country.is_empty() {
                 self.by_country
                     .entry((country, class))
                     .or_default()
                     .push(entry);
             }
-        }
     }
 
     fn cleanup(&mut self, now: i64, window: i64) {
@@ -221,6 +225,7 @@ impl CumulativeStats {
             self.last_bucket_ts.store(now as u64, Ordering::Relaxed);
         }
     }
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::too_many_arguments)]
     fn add_event(&self, ts: i64) {
         self.msg_count.fetch_add(1, Ordering::Relaxed);
@@ -1229,14 +1234,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             let mut count_recent = 0;
                             for e in v {
-                                if unique_prefixes.insert(e.prefix.clone()) {
-                                    if let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
+                                if unique_prefixes.insert(e.prefix.clone())
+                                    && let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
                                         match net {
                                             ipnet::IpNet::V4(v4) => ipv4_count += 2u64.pow((32 - v4.prefix_len()) as u32),
                                             ipnet::IpNet::V6(_) => ipv6_prefixes += 1,
                                         }
                                     }
-                                }
                                 if e.ts >= now_tick - 60 {
                                     count_recent += 1;
                                 }
@@ -1288,14 +1292,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             let mut count_recent = 0;
                             for e in v {
-                                if unique_prefixes.insert(e.prefix.clone()) {
-                                    if let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
+                                if unique_prefixes.insert(e.prefix.clone())
+                                    && let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
                                         match net {
                                             ipnet::IpNet::V4(v4) => ipv4_count += 2u64.pow((32 - v4.prefix_len()) as u32),
                                             ipnet::IpNet::V6(_) => ipv6_prefixes += 1,
                                         }
                                     }
-                                }
                                 if e.ts >= now_tick - 60 {
                                     count_recent += 1;
                                 }
@@ -1335,14 +1338,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             let mut count_recent = 0;
                             for e in v {
-                                if unique_prefixes.insert(e.prefix.clone()) {
-                                    if let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
+                                if unique_prefixes.insert(e.prefix.clone())
+                                    && let Ok(net) = ipnet::IpNet::from_str(&e.prefix) {
                                         match net {
                                             ipnet::IpNet::V4(v4) => ipv4_count += 2u64.pow((32 - v4.prefix_len()) as u32),
                                             ipnet::IpNet::V6(_) => ipv6_prefixes += 1,
                                         }
                                     }
-                                }
                                 if e.ts >= now_tick - 60 {
                                     count_recent += 1;
                                 }
