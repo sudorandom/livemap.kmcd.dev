@@ -50,7 +50,10 @@ func (e *Engine) runGRPCClient(addr string) error {
 	// 2. Start State Transition Stream
 	go e.consumeStateTransitions(ctx, client)
 
-	// 3. Start Event Stream
+	// 3. Start Alert Stream
+	go e.consumeAlertStream(ctx, client)
+
+	// 4. Start Event Stream
 	return e.consumeEventStream(ctx, client)
 }
 
@@ -297,6 +300,28 @@ func (e *Engine) consumeStateTransitions(ctx context.Context, client livemap.Liv
 
 		if trans := resp.GetTransition(); trans != nil {
 			e.RecordStateTransition(trans)
+		}
+	}
+}
+
+func (e *Engine) consumeAlertStream(ctx context.Context, client livemap.LiveMapServiceClient) error {
+	stream, err := client.StreamAlerts(ctx, &livemap.StreamAlertsRequest{})
+	if err != nil {
+		return err
+	}
+
+	log.Println("[GRPC] Subscribed to alert stream")
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if alert := resp.GetAlert(); alert != nil {
+			e.RecordAlert(alert)
 		}
 	}
 }

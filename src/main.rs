@@ -37,10 +37,10 @@ use livemap_proto::live_map_service_server::{
     LiveMapService as LiveMap, LiveMapServiceServer as LiveMapServer,
 };
 use livemap_proto::{
-    AggregatedEvent, Classification as ProtoClassification, ClassificationCount, CompositionEntry,
-    GeoData as ProtoGeoData, GetSummaryRequest, GetSummaryResponse, StateTransition,
-    StreamStateTransitionsRequest, StreamStateTransitionsResponse, SubscribeEventsRequest,
-    SubscribeEventsResponse,
+    AggregatedEvent, Alert, AlertType, Classification as ProtoClassification, ClassificationCount,
+    CompositionEntry, GeoData as ProtoGeoData, GetSummaryRequest, GetSummaryResponse,
+    StateTransition, StreamAlertsRequest, StreamAlertsResponse, StreamStateTransitionsRequest,
+    StreamStateTransitionsResponse, SubscribeEventsRequest, SubscribeEventsResponse,
 };
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
@@ -72,6 +72,55 @@ const BEACON_PREFIXES: &[&str] = &[
     "93.175.146.0/24",
     "93.175.147.0/24",
 ];
+
+#[derive(Default)]
+struct RollingWindows {
+    by_location: HashMap<(i32, i32, ClassificationType), Vec<i64>>, // lat_q, lon_q, class -> timestamps
+    by_asn: HashMap<(u32, ClassificationType), Vec<i64>>,           // asn, class -> timestamps
+    by_country: HashMap<(String, ClassificationType), Vec<i64>>,    // country, class -> timestamps
+}
+
+impl RollingWindows {
+    fn add_event(
+        &mut self,
+        lat: f32,
+        lon: f32,
+        asn: u32,
+        country: String,
+        class: ClassificationType,
+        now: i64,
+    ) {
+        let lat_q = (lat * 10.0) as i32;
+        let lon_q = (lon * 10.0) as i32;
+        self.by_location
+            .entry((lat_q, lon_q, class))
+            .or_default()
+            .push(now);
+        self.by_asn.entry((asn, class)).or_default().push(now);
+        if !country.is_empty() {
+            self.by_country
+                .entry((country, class))
+                .or_default()
+                .push(now);
+        }
+    }
+
+    fn cleanup(&mut self, now: i64, window: i64) {
+        let cutoff = now - window;
+        self.by_location.retain(|_, v| {
+            v.retain(|&ts| ts >= cutoff);
+            !v.is_empty()
+        });
+        self.by_asn.retain(|_, v| {
+            v.retain(|&ts| ts >= cutoff);
+            !v.is_empty()
+        });
+        self.by_country.retain(|_, v| {
+            v.retain(|&ts| ts >= cutoff);
+            !v.is_empty()
+        });
+    }
+}
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 struct AggregationKey {
@@ -197,6 +246,7 @@ impl CumulativeStats {
 #[allow(clippy::type_complexity)]
 struct AppState {
     subscribers: RwLock<Vec<mpsc::Sender<Result<SubscribeEventsResponse, Status>>>>,
+    alert_subscribers: RwLock<Vec<mpsc::Sender<Result<StreamAlertsResponse, Status>>>>,
     transition_subscribers: RwLock<
         Vec<(
             mpsc::Sender<Result<StreamStateTransitionsResponse, Status>>,
@@ -231,6 +281,17 @@ impl LiveMap for LiveMapService {
     type SubscribeEventsStream = ReceiverStream<Result<SubscribeEventsResponse, Status>>;
     type StreamStateTransitionsStream =
         ReceiverStream<Result<StreamStateTransitionsResponse, Status>>;
+
+    type StreamAlertsStream = ReceiverStream<Result<StreamAlertsResponse, Status>>;
+    async fn stream_alerts(
+        &self,
+        _req: Request<StreamAlertsRequest>,
+    ) -> Result<Response<Self::StreamAlertsStream>, Status> {
+        let (tx, rx) = mpsc::channel(100);
+        self.state.alert_subscribers.write().await.push(tx);
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
     async fn subscribe_events(
         &self,
         _req: Request<SubscribeEventsRequest>,
@@ -683,7 +744,10 @@ async fn consume_routeviews(
     tx: mpsc::Sender<(PendingEvent, bool)>,
 ) {
     let mut backoff = Duration::from_secs(5);
-    let group_id = format!("livemap-kmcd-dev-routeviews-{}", &uuid::Uuid::new_v4().to_string()[..8]);
+    let group_id = format!(
+        "livemap-kmcd-dev-routeviews-{}",
+        &uuid::Uuid::new_v4().to_string()[..8]
+    );
     let pattern = "^routeviews\\..*\\..*\\.bmp_raw";
 
     loop {
@@ -864,6 +928,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let app_state = Arc::new(AppState {
         subscribers: RwLock::new(Vec::new()),
+        alert_subscribers: RwLock::new(Vec::new()),
         transition_subscribers: RwLock::new(Vec::new()),
         global_stats,
         ris_live_stats: CumulativeStats::default(),
@@ -1060,6 +1125,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
+        let mut rolling_windows = RollingWindows::default();
+        let mut last_alert_check = Utc::now().timestamp();
         loop {
             tokio::select! {
                 Some(first_msg) = rx.recv() => {
@@ -1079,6 +1146,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             classification: pending.classification_type
                         };
                         *aggregate_buffer.entry(key).or_insert(0) += 1;
+
+                        if matches!(pending.classification_type, ClassificationType::RouteLeak | ClassificationType::MinorRouteLeak | ClassificationType::Hijack | ClassificationType::Outage | ClassificationType::Flap) {
+                            rolling_windows.add_event(pending.lat, pending.lon, pending.asn, pending.country.clone().unwrap_or_default(), pending.classification_type, now);
+                        }
                         if pending.classification_type != pending.old_classification
                             && let Some(id) = &pending.incident_id {
                                 let cur_as_name = c_ingest.get_as_name(pending.asn).unwrap_or_default();
@@ -1119,6 +1190,88 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 _ = interval.tick() => {
+                    let now_tick = Utc::now().timestamp();
+                    if now_tick - last_alert_check >= 60 {
+                        rolling_windows.cleanup(now_tick, 300); // 5 minutes window
+                        let mut alerts = Vec::new();
+
+                        // Check by Location
+                        for (&(lat_q, lon_q, class), v) in &rolling_windows.by_location {
+                            let count = v.len() as u32;
+                            let count_recent = v.iter().filter(|&&ts| ts >= now_tick - 60).count() as i32;
+                            let count_old = v.len() as i32 - count_recent;
+                            let avg_old = (count_old as f32 / 4.0).ceil() as i32;
+                            let delta = count_recent - avg_old;
+
+                            // Emit alert if delta is significant (e.g. > 50 spike in last minute compared to avg of previous 4 mins)
+                            if count >= 100 && delta > 50 {
+                                alerts.push(Alert {
+                                    alert_type: AlertType::ByLocation.into(),
+                                    location: format!("lat:{},lon:{}", lat_q as f32 / 10.0, lon_q as f32 / 10.0),
+                                    asn: 0,
+                                    country: String::new(),
+                                    classification: map_classification(class).into(),
+                                    count,
+                                    delta,
+                                    timestamp: now_tick,
+                                });
+                            }
+                        }
+
+                        // Check by ASN
+                        for (&(asn, class), v) in &rolling_windows.by_asn {
+                            let count = v.len() as u32;
+                            let count_recent = v.iter().filter(|&&ts| ts >= now_tick - 60).count() as i32;
+                            let count_old = v.len() as i32 - count_recent;
+                            let avg_old = (count_old as f32 / 4.0).ceil() as i32;
+                            let delta = count_recent - avg_old;
+
+                            if count >= 200 && delta > 100 {
+                                alerts.push(Alert {
+                                    alert_type: AlertType::ByAsn.into(),
+                                    location: String::new(),
+                                    asn,
+                                    country: String::new(),
+                                    classification: map_classification(class).into(),
+                                    count,
+                                    delta,
+                                    timestamp: now_tick,
+                                });
+                            }
+                        }
+
+                        // Check by Country
+                        for ((country, class), v) in &rolling_windows.by_country {
+                            let count = v.len() as u32;
+                            let count_recent = v.iter().filter(|&&ts| ts >= now_tick - 60).count() as i32;
+                            let count_old = v.len() as i32 - count_recent;
+                            let avg_old = (count_old as f32 / 4.0).ceil() as i32;
+                            let delta = count_recent - avg_old;
+
+                            if count >= 500 && delta > 250 {
+                                alerts.push(Alert {
+                                    alert_type: AlertType::ByCountry.into(),
+                                    location: String::new(),
+                                    asn: 0,
+                                    country: country.clone(),
+                                    classification: map_classification(*class).into(),
+                                    count,
+                                    delta,
+                                    timestamp: now_tick,
+                                });
+                            }
+                        }
+
+                        if !alerts.is_empty() {
+                            let mut alert_subs = s_ingest.alert_subscribers.write().await;
+                            for alert in alerts {
+                                alert_subs.retain(|sub| sub.try_send(Ok(StreamAlertsResponse { alert: Some(alert.clone()) })).is_ok());
+                            }
+                        }
+
+                        last_alert_check = now_tick;
+                    }
+
                     if !aggregate_buffer.is_empty() {
                         let events = aggregate_buffer.drain().map(|(k, count)| AggregatedEvent {
                             geo: Some(ProtoGeoData {

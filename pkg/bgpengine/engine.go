@@ -1316,7 +1316,7 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 		if trans.LeakDetail.LeakerAsName != "" {
 			ce.LeakerName = trans.LeakDetail.LeakerAsName
 		}
-		ce.LeakerRPKI = trans.LeakDetail.LeakerRpkiStatus
+		ce.LeakerRPKI = int32(trans.LeakDetail.LeakerRpkiStatus)
 
 		if trans.LeakDetail.VictimAsn > 0 {
 			ce.VictimASN = trans.LeakDetail.VictimAsn
@@ -1324,7 +1324,7 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 		if trans.LeakDetail.VictimAsName != "" {
 			ce.VictimName = trans.LeakDetail.VictimAsName
 		}
-		ce.VictimRPKI = trans.LeakDetail.VictimRpkiStatus
+		ce.VictimRPKI = int32(trans.LeakDetail.VictimRpkiStatus)
 
 		switch trans.LeakDetail.LeakType {
 		case 1:
@@ -1407,10 +1407,10 @@ func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransitio
 	if trans.LeakDetail != nil {
 		ce.LeakerASN = trans.LeakDetail.LeakerAsn
 		ce.LeakerName = trans.LeakDetail.LeakerAsName
-		ce.LeakerRPKI = trans.LeakDetail.LeakerRpkiStatus
+		ce.LeakerRPKI = int32(trans.LeakDetail.LeakerRpkiStatus)
 		ce.VictimASN = trans.LeakDetail.VictimAsn
 		ce.VictimName = trans.LeakDetail.VictimAsName
-		ce.VictimRPKI = trans.LeakDetail.VictimRpkiStatus
+		ce.VictimRPKI = int32(trans.LeakDetail.VictimRpkiStatus)
 
 		// Map from Rust's LeakType enum to Go's bgp.LeakType
 		switch trans.LeakDetail.LeakType {
@@ -1481,8 +1481,9 @@ func (e *Engine) createCriticalEvent(ev *bgpEvent, c color.RGBA, name, asnStr, o
 }
 
 func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
+	// Only consider these major anomalies for the major event stream
 	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
-		return true
+		return false
 	}
 	if ce.ImpactedIPs >= 5000 {
 		return true
@@ -2183,4 +2184,51 @@ func (e *Engine) Stop() {
 		log.Printf("Video generation complete.")
 		e.VideoWriter = nil
 	}
+}
+
+func (e *Engine) RecordAlert(alert *livemap.Alert) {
+	e.streamMu.Lock()
+	defer e.streamMu.Unlock()
+
+	ct := bgp.ClassificationType(alert.Classification)
+	anomName := ct.String()
+
+	uiCol := e.getClassificationUIColor(anomName)
+	realCol, _, _ := e.getClassificationVisuals(ct)
+
+	// Create Critical Event based on alert type
+	alertType := ""
+	locStr := ""
+	switch alert.AlertType {
+	case livemap.AlertType_ALERT_TYPE_BY_LOCATION:
+		alertType = "[SPIKE: LOCATION]"
+		locStr = alert.Location
+	case livemap.AlertType_ALERT_TYPE_BY_ASN:
+		alertType = "[SPIKE: ASN]"
+		locStr = fmt.Sprintf("AS%d", alert.Asn)
+	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
+		alertType = "[SPIKE: COUNTRY]"
+		locStr = alert.Country
+	}
+
+	ce := &CriticalEvent{
+		Timestamp:       time.Unix(alert.Timestamp, 0),
+		Anom:            anomName,
+		ASN:             alert.Asn,
+		ASNStr:          locStr,
+		Locations:       alert.Location,
+		Color:           realCol,
+		UIColor:         uiCol,
+		CachedTypeLabel: alertType + " " + anomName,
+		CachedFirstLine: fmt.Sprintf("Count: %d (Delta: %d)", alert.Count, alert.Delta),
+		ImpactedIPs:     uint64(alert.Count),
+	}
+
+	if e.subMonoFace != nil {
+		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
+	}
+
+	e.criticalQueue = append(e.criticalQueue, ce)
+	e.lastCriticalAddedAt = time.Now()
+	e.streamDirty = true
 }

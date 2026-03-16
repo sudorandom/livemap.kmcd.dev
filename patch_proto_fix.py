@@ -1,4 +1,11 @@
-syntax = "proto3";
+import re
+
+with open("proto/livemap/v1/livemap.proto", "r") as f:
+    content = f.read()
+
+# Fix ordering of messages
+
+new_content = """syntax = "proto3";
 
 package livemap.v1;
 
@@ -88,7 +95,7 @@ enum RPKIStatus {
 
 // LeakDetail contains information specific to route leaks.
 message LeakDetail {
-    uint32 leak_type = 1; 
+    uint32 leak_type = 1;
     uint32 leaker_asn = 2;
     uint32 victim_asn = 3;
     string leaker_as_name = 4;
@@ -156,3 +163,9 @@ service LiveMapService {
     rpc StreamStateTransitions(StreamStateTransitionsRequest) returns (stream StreamStateTransitionsResponse);
     rpc StreamAlerts(StreamAlertsRequest) returns (stream StreamAlertsResponse);
 }
+"""
+
+with open("proto/livemap/v1/livemap.proto", "w") as f:
+    f.write(new_content)
+
+print("Fixed ordering.")

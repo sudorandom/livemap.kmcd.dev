@@ -22,6 +22,7 @@ const (
 	LiveMapService_SubscribeEvents_FullMethodName        = "/livemap.v1.LiveMapService/SubscribeEvents"
 	LiveMapService_GetSummary_FullMethodName             = "/livemap.v1.LiveMapService/GetSummary"
 	LiveMapService_StreamStateTransitions_FullMethodName = "/livemap.v1.LiveMapService/StreamStateTransitions"
+	LiveMapService_StreamAlerts_FullMethodName           = "/livemap.v1.LiveMapService/StreamAlerts"
 )
 
 // LiveMapServiceClient is the client API for LiveMapService service.
@@ -33,6 +34,7 @@ type LiveMapServiceClient interface {
 	SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SubscribeEventsResponse], error)
 	GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error)
 	StreamStateTransitions(ctx context.Context, in *StreamStateTransitionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamStateTransitionsResponse], error)
+	StreamAlerts(ctx context.Context, in *StreamAlertsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamAlertsResponse], error)
 }
 
 type liveMapServiceClient struct {
@@ -91,6 +93,25 @@ func (c *liveMapServiceClient) StreamStateTransitions(ctx context.Context, in *S
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LiveMapService_StreamStateTransitionsClient = grpc.ServerStreamingClient[StreamStateTransitionsResponse]
 
+func (c *liveMapServiceClient) StreamAlerts(ctx context.Context, in *StreamAlertsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamAlertsResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LiveMapService_ServiceDesc.Streams[2], LiveMapService_StreamAlerts_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamAlertsRequest, StreamAlertsResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LiveMapService_StreamAlertsClient = grpc.ServerStreamingClient[StreamAlertsResponse]
+
 // LiveMapServiceServer is the server API for LiveMapService service.
 // All implementations must embed UnimplementedLiveMapServiceServer
 // for forward compatibility.
@@ -100,6 +121,7 @@ type LiveMapServiceServer interface {
 	SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[SubscribeEventsResponse]) error
 	GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error)
 	StreamStateTransitions(*StreamStateTransitionsRequest, grpc.ServerStreamingServer[StreamStateTransitionsResponse]) error
+	StreamAlerts(*StreamAlertsRequest, grpc.ServerStreamingServer[StreamAlertsResponse]) error
 	mustEmbedUnimplementedLiveMapServiceServer()
 }
 
@@ -118,6 +140,9 @@ func (UnimplementedLiveMapServiceServer) GetSummary(context.Context, *GetSummary
 }
 func (UnimplementedLiveMapServiceServer) StreamStateTransitions(*StreamStateTransitionsRequest, grpc.ServerStreamingServer[StreamStateTransitionsResponse]) error {
 	return status.Error(codes.Unimplemented, "method StreamStateTransitions not implemented")
+}
+func (UnimplementedLiveMapServiceServer) StreamAlerts(*StreamAlertsRequest, grpc.ServerStreamingServer[StreamAlertsResponse]) error {
+	return status.Error(codes.Unimplemented, "method StreamAlerts not implemented")
 }
 func (UnimplementedLiveMapServiceServer) mustEmbedUnimplementedLiveMapServiceServer() {}
 func (UnimplementedLiveMapServiceServer) testEmbeddedByValue()                        {}
@@ -180,6 +205,17 @@ func _LiveMapService_StreamStateTransitions_Handler(srv interface{}, stream grpc
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LiveMapService_StreamStateTransitionsServer = grpc.ServerStreamingServer[StreamStateTransitionsResponse]
 
+func _LiveMapService_StreamAlerts_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamAlertsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(LiveMapServiceServer).StreamAlerts(m, &grpc.GenericServerStream[StreamAlertsRequest, StreamAlertsResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LiveMapService_StreamAlertsServer = grpc.ServerStreamingServer[StreamAlertsResponse]
+
 // LiveMapService_ServiceDesc is the grpc.ServiceDesc for LiveMapService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -201,6 +237,11 @@ var LiveMapService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StreamStateTransitions",
 			Handler:       _LiveMapService_StreamStateTransitions_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamAlerts",
+			Handler:       _LiveMapService_StreamAlerts_Handler,
 			ServerStreams: true,
 		},
 	},

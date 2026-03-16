@@ -774,94 +774,18 @@ impl Classifier {
             && ctx.origin_asn != 0
             && ctx.origin_asn != historical_origin_asn
             && !self.is_likely_sibling(ctx.origin_asn, historical_origin_asn)
+            && self.rpki_validate(ctx.origin_asn, prefix) != 1
         {
-            if self.rpki_validate(ctx.origin_asn, prefix) != 1 {
-                let mut hosts = HashSet::new();
-                for attr in &s.peer_attrs_values {
-                    if !attr.withdrawn && attr.origin_asn == ctx.origin_asn {
-                        hosts.insert(attr.host.clone());
-                    }
-                }
-                if !s.unique_hosts.contains(&ctx.host) {
-                    hosts.insert(ctx.host.clone());
-                }
-                if hosts.len() >= 5 {
-                    candidates.push(PendingEvent {
-                        prefix: prefix.to_string(),
-                        asn: resolved_asn,
-                        as_name: as_name.clone(),
-                        peer_ip: ctx.peer.clone(),
-                        historical_asn: historical_origin_asn,
-                        timestamp: ctx.now,
-                        classification_type: ClassificationType::Hijack,
-                        old_classification: ClassificationType::None,
-                        incident_id: None,
-                        incident_start_time: 0,
-                        leak_detail: Some(LeakDetail {
-                            leak_type: LeakType::None,
-                            leaker_asn: ctx.origin_asn,
-                            victim_asn: historical_origin_asn,
-                            leaker_as_name: self.get_as_name(ctx.origin_asn).unwrap_or_default(),
-                            victim_as_name: self
-                                .get_as_name(historical_origin_asn)
-                                .unwrap_or_default(),
-                            leaker_rpki_status: self.rpki_validate(ctx.origin_asn, prefix),
-                            victim_rpki_status: self.rpki_validate(historical_origin_asn, prefix),
-                        }),
-                        anomaly_details: None,
-                        source: ctx.source.clone(),
-                        lat,
-                        lon,
-                        city: city.clone(),
-                        country: country.clone(),
-                    });
+            let mut hosts = HashSet::new();
+            for attr in &s.peer_attrs_values {
+                if !attr.withdrawn && attr.origin_asn == ctx.origin_asn {
+                    hosts.insert(attr.host.clone());
                 }
             }
-        }
-
-        // Outage (90)
-        let total_known = s.unique_peers.len() + s.withdrawn_peers.len();
-        if total_known >= 3 && s.unique_peers.is_empty() && elapsed > 30.0 && resolved_asn != 0 {
-            if let Some(fw_ts) = fully_withdrawn_ts {
-                if ctx.now - fw_ts >= 10 {
-                    candidates.push(PendingEvent {
-                        prefix: prefix.to_string(),
-                        asn: resolved_asn,
-                        as_name: as_name.clone(),
-                        peer_ip: ctx.peer.clone(),
-                        historical_asn: historical_origin_asn,
-                        timestamp: ctx.now,
-                        classification_type: ClassificationType::Outage,
-                        old_classification: ClassificationType::None,
-                        incident_id: None,
-                        incident_start_time: 0,
-                        leak_detail: None,
-                        anomaly_details: Some(AnomalyDetails {
-                            num_collectors: s.unique_hosts.len(),
-                            num_peers: s.withdrawn_peers.len(),
-                            num_withdrawals: s.total_with,
-                            ..Default::default()
-                        }),
-                        source: ctx.source.clone(),
-                        lat,
-                        lon,
-                        city: city.clone(),
-                        country: country.clone(),
-                    });
-                } else {
-                    needs_timer = true;
-                }
+            if !s.unique_hosts.contains(&ctx.host) {
+                hosts.insert(ctx.host.clone());
             }
-        }
-
-        // Route Leak (80) & Minor Leak (60)
-        if s.unique_hosts.len() >= 7 {
-            if let Some(ld) = self.detect_route_leak(prefix, ctx) {
-                let classification = if s.unique_hosts.len() >= 15 {
-                    ClassificationType::RouteLeak
-                } else {
-                    ClassificationType::MinorRouteLeak
-                };
+            if hosts.len() >= 5 {
                 candidates.push(PendingEvent {
                     prefix: prefix.to_string(),
                     asn: resolved_asn,
@@ -869,11 +793,19 @@ impl Classifier {
                     peer_ip: ctx.peer.clone(),
                     historical_asn: historical_origin_asn,
                     timestamp: ctx.now,
-                    classification_type: classification,
+                    classification_type: ClassificationType::Hijack,
                     old_classification: ClassificationType::None,
                     incident_id: None,
                     incident_start_time: 0,
-                    leak_detail: Some(ld),
+                    leak_detail: Some(LeakDetail {
+                        leak_type: LeakType::None,
+                        leaker_asn: ctx.origin_asn,
+                        victim_asn: historical_origin_asn,
+                        leaker_as_name: self.get_as_name(ctx.origin_asn).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(historical_origin_asn).unwrap_or_default(),
+                        leaker_rpki_status: self.rpki_validate(ctx.origin_asn, prefix),
+                        victim_rpki_status: self.rpki_validate(historical_origin_asn, prefix),
+                    }),
                     anomaly_details: None,
                     source: ctx.source.clone(),
                     lat,
@@ -882,6 +814,74 @@ impl Classifier {
                     country: country.clone(),
                 });
             }
+        }
+
+        // Outage (90)
+        let total_known = s.unique_peers.len() + s.withdrawn_peers.len();
+        if total_known >= 3
+            && s.unique_peers.is_empty()
+            && elapsed > 30.0
+            && resolved_asn != 0
+            && let Some(fw_ts) = fully_withdrawn_ts
+        {
+            if ctx.now - fw_ts >= 10 {
+                candidates.push(PendingEvent {
+                    prefix: prefix.to_string(),
+                    asn: resolved_asn,
+                    as_name: as_name.clone(),
+                    peer_ip: ctx.peer.clone(),
+                    historical_asn: historical_origin_asn,
+                    timestamp: ctx.now,
+                    classification_type: ClassificationType::Outage,
+                    old_classification: ClassificationType::None,
+                    incident_id: None,
+                    incident_start_time: 0,
+                    leak_detail: None,
+                    anomaly_details: Some(AnomalyDetails {
+                        num_collectors: s.unique_hosts.len(),
+                        num_peers: s.withdrawn_peers.len(),
+                        num_withdrawals: s.total_with,
+                        ..Default::default()
+                    }),
+                    source: ctx.source.clone(),
+                    lat,
+                    lon,
+                    city: city.clone(),
+                    country: country.clone(),
+                });
+            } else {
+                needs_timer = true;
+            }
+        }
+
+        // Route Leak (80) & Minor Leak (60)
+        if s.unique_hosts.len() >= 7
+            && let Some(ld) = self.detect_route_leak(prefix, ctx)
+        {
+            let classification = if s.unique_hosts.len() >= 15 {
+                ClassificationType::RouteLeak
+            } else {
+                ClassificationType::MinorRouteLeak
+            };
+            candidates.push(PendingEvent {
+                prefix: prefix.to_string(),
+                asn: resolved_asn,
+                as_name: as_name.clone(),
+                peer_ip: ctx.peer.clone(),
+                historical_asn: historical_origin_asn,
+                timestamp: ctx.now,
+                classification_type: classification,
+                old_classification: ClassificationType::None,
+                incident_id: None,
+                incident_start_time: 0,
+                leak_detail: Some(ld),
+                anomaly_details: None,
+                source: ctx.source.clone(),
+                lat,
+                lon,
+                city: city.clone(),
+                country: country.clone(),
+            });
         }
 
         // Path Hunting (30)
@@ -1167,21 +1167,22 @@ impl Classifier {
         // 2. Type 2: Lateral ISP-ISP-ISP Leak
         for i in 0..path.len() - 2 {
             let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
-            if p1 != p3 && p1 != p2 && p2 != p3 {
-                if (self.is_tier1(p1) || self.is_large_network(p1))
-                    && (self.is_tier1(p2) || self.is_large_network(p2))
-                    && (self.is_tier1(p3) || self.is_large_network(p3))
-                {
-                    return Some(LeakDetail {
-                        leak_type: LeakType::Lateral,
-                        leaker_asn: p2,
-                        victim_asn: p1,
-                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
-                        victim_as_name: self.get_as_name(p1).unwrap_or_default(),
-                        leaker_rpki_status: self.rpki_validate(p2, prefix),
-                        victim_rpki_status: self.rpki_validate(p1, prefix),
-                    });
-                }
+            if p1 != p3
+                && p1 != p2
+                && p2 != p3
+                && (self.is_tier1(p1) || self.is_large_network(p1))
+                && (self.is_tier1(p2) || self.is_large_network(p2))
+                && (self.is_tier1(p3) || self.is_large_network(p3))
+            {
+                return Some(LeakDetail {
+                    leak_type: LeakType::Lateral,
+                    leaker_asn: p2,
+                    victim_asn: p1,
+                    leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                    victim_as_name: self.get_as_name(p1).unwrap_or_default(),
+                    leaker_rpki_status: self.rpki_validate(p2, prefix),
+                    victim_rpki_status: self.rpki_validate(p1, prefix),
+                });
             }
         }
 
@@ -1779,9 +1780,13 @@ mod tests {
             None,
             None,
         );
-        let (res_ddos, _) = classifier.classify_event(prefix.clone(), &ctx_ddos, 0.0, 0.0, None, None);
+        let (res_ddos, _) =
+            classifier.classify_event(prefix.clone(), &ctx_ddos, 0.0, 0.0, None, None);
         // Should be Discovery (continuation) because Hijack (100) > DDoS (50)
         assert!(res_ddos.is_some());
-        assert_eq!(res_ddos.unwrap().classification_type, ClassificationType::Discovery);
+        assert_eq!(
+            res_ddos.unwrap().classification_type,
+            ClassificationType::Discovery
+        );
     }
 }
