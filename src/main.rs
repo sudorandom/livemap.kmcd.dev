@@ -1150,7 +1150,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let s_ingest = app_state.clone();
     let c_ingest = classifier.clone();
-    let beacon_set: HashSet<String> = BEACON_PREFIXES.iter().map(|s| s.to_string()).collect();
+    let beacon_nets: Vec<ipnet::IpNet> = BEACON_PREFIXES
+        .iter()
+        .filter_map(|s| ipnet::IpNet::from_str(s).ok())
+        .collect();
     let research_set: HashSet<u32> = EXCLUDED_ASNS.iter().cloned().collect();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
@@ -1168,8 +1171,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         s_ingest.global_stats.add_event(now);
                         if pending.source == "ris" { s_ingest.ris_live_stats.add_event(now); } else if pending.source == "routeviews" { s_ingest.routeviews_stats.add_event(now); }
                         if let Some(cs) = s_ingest.class_stats.get(&pending.classification_type) { cs.add_event(now); }
-                        if beacon_set.contains(&pending.prefix) { s_ingest.beacon_stats.add_event(now); }
-                        else if research_set.contains(&pending.asn) { s_ingest.research_stats.add_event(now); }
+                                                                        let mut is_beacon = false;
+                        if let Ok(net) = ipnet::IpNet::from_str(&pending.prefix) {
+                            for bnet in &beacon_nets {
+                                if bnet.contains(&net.network()) || net.contains(&bnet.network()) {
+                                    is_beacon = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if is_beacon {
+                            s_ingest.beacon_stats.add_event(now);
+                        } else if research_set.contains(&pending.asn) {
+                            s_ingest.research_stats.add_event(now);
+                        }
                         let key = AggregationKey {
                             lat_q: (pending.lat * 10.0) as i32,
                             lon_q: (pending.lon * 10.0) as i32,
@@ -1260,7 +1275,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let top_city = city_counts.into_iter().max_by_key(|&(_, c)| c).map(|(c, _)| c).unwrap_or_default();
                             let top_country = country_counts.into_iter().max_by_key(|&(_, c)| c).map(|(c, _)| c).unwrap_or_default();
 
-                            if ipv4_count >= 5000 || ipv6_prefixes >= 20 {
+                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 {
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByLocation.into(),
                                     location: Some(livemap_proto::AlertLocation {
@@ -1313,7 +1328,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let delta = count_recent - avg_old;
                             let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
 
-                            if ipv4_count >= 5000 || ipv6_prefixes >= 20 {
+                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 {
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByAsn.into(),
                                     location: None,
@@ -1356,7 +1371,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let delta = count_recent - avg_old;
                             let percentage_increase = if avg_old > 0 { (delta as f32 / avg_old as f32) * 100.0 } else { 0.0 };
 
-                            if ipv4_count >= 5000 || ipv6_prefixes >= 20 {
+                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 {
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByCountry.into(),
                                     location: None,
