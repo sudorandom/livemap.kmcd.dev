@@ -121,16 +121,28 @@ enum AlertType {
     ALERT_TYPE_BY_COUNTRY = 3;
 }
 
+message AlertLocation {
+    string city = 1;
+    string country = 2;
+    float lat = 3;
+    float lon = 4;
+    float radius_km = 5;
+}
+
 // Alert represents a significant spike in anomalies.
 message Alert {
     AlertType alert_type = 1;
-    string location = 2; // Can be a radius, a city name, or just a generic string representing the area.
+    AlertLocation location = 2; // Can be a radius, a city name, or just a generic string representing the area.
     uint32 asn = 3;
     string country = 4;
     Classification classification = 5;
-    uint32 count = 6;
+    uint32 events_count = 6;
     int32 delta = 7; // Change in count over the last 5 minutes
     int64 timestamp = 8;
+    uint64 impacted_ipv4_ips = 9;
+    uint32 impacted_ipv6_prefixes = 10;
+    float percentage_increase = 11;
+    string as_name = 12;
 }
 
 message StreamAlertsRequest {}
