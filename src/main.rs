@@ -25,6 +25,11 @@ pub mod classifier;
 pub mod db;
 pub mod map;
 
+pub mod rolling_windows;
+pub mod stats;
+use rolling_windows::*;
+use stats::*;
+
 use classifier::{ClassificationType, Classifier, DiskTrie, MessageContext, PendingEvent};
 use db::{ClassificationStats, Db};
 use map::Geolocation;
@@ -73,90 +78,6 @@ const BEACON_PREFIXES: &[&str] = &[
     "93.175.147.0/24",
 ];
 
-#[derive(Clone)]
-#[allow(dead_code)]
-struct WindowEntry {
-    ts: i64,
-    prefix: String,
-    city: Option<String>,
-    country: Option<String>,
-    asn: u32,
-    as_name: String,
-}
-
-#[derive(Default)]
-struct RollingWindows {
-    by_location: HashMap<(i32, i32, ClassificationType), Vec<WindowEntry>>, // lat_q, lon_q, class -> entries
-    by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>,           // asn, class -> entries
-    by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // country, class -> entries
-}
-
-impl RollingWindows {
-    #[allow(clippy::too_many_arguments)]
-    fn add_event(
-        &mut self,
-        lat: f32,
-        lon: f32,
-        asn: u32,
-        as_name: String,
-        country_opt: Option<String>,
-        city_opt: Option<String>,
-        class: ClassificationType,
-        now: i64,
-        prefix: String,
-    ) {
-        let lat_q = (lat * 10.0) as i32;
-        let lon_q = (lon * 10.0) as i32;
-        let entry = WindowEntry {
-            ts: now,
-            prefix: prefix.clone(),
-            city: city_opt.clone(),
-            country: country_opt.clone(),
-            asn,
-            as_name: as_name.clone(),
-        };
-        self.by_location
-            .entry((lat_q, lon_q, class))
-            .or_default()
-            .push(entry.clone());
-        self.by_asn
-            .entry((asn, class))
-            .or_default()
-            .push(entry.clone());
-        if let Some(country) = country_opt
-            && !country.is_empty()
-        {
-            self.by_country
-                .entry((country, class))
-                .or_default()
-                .push(entry);
-        }
-    }
-
-    fn cleanup(&mut self, now: i64, window: i64) {
-        let cutoff = now - window;
-        self.by_location.retain(|_, v| {
-            v.retain(|e| e.ts >= cutoff);
-            !v.is_empty()
-        });
-        self.by_asn.retain(|_, v| {
-            v.retain(|e| e.ts >= cutoff);
-            !v.is_empty()
-        });
-        self.by_country.retain(|_, v| {
-            v.retain(|e| e.ts >= cutoff);
-            !v.is_empty()
-        });
-    }
-}
-
-#[derive(Clone, Hash, Eq, PartialEq)]
-struct AggregationKey {
-    lat_q: i32,
-    lon_q: i32,
-    classification: ClassificationType,
-}
-
 fn map_classification(c: ClassificationType) -> ProtoClassification {
     match c {
         ClassificationType::None => ProtoClassification::Unspecified,
@@ -172,105 +93,11 @@ fn map_classification(c: ClassificationType) -> ProtoClassification {
     }
 }
 
-fn default_rate_buckets() -> Vec<Arc<AtomicU64>> {
-    (0..60).map(|_| Arc::new(AtomicU64::new(0))).collect()
-}
-
-struct CumulativeStats {
-    pub msg_count: AtomicU64,
-    pub rate_buckets: Vec<Arc<AtomicU64>>,
-    pub last_bucket_ts: AtomicU64,
-}
-
-impl Default for CumulativeStats {
-    fn default() -> Self {
-        Self {
-            msg_count: AtomicU64::new(0),
-            rate_buckets: default_rate_buckets(),
-            last_bucket_ts: AtomicU64::new(0),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-struct StatsSnapshot {
-    pub msg_count: u64,
-    pub last_bucket_ts: i64,
-}
-
 #[derive(Serialize, Deserialize)]
 struct Checkpoint {
     pub global_stats: StatsSnapshot,
     pub class_stats: HashMap<i32, StatsSnapshot>,
     pub timestamp: i64,
-}
-
-impl CumulativeStats {
-    fn cleanup_buckets(&self, now: i64) {
-        let last = self.last_bucket_ts.load(Ordering::Relaxed) as i64;
-        if last == 0 {
-            self.last_bucket_ts.store(now as u64, Ordering::Relaxed);
-            return;
-        }
-        if now > last {
-            let diff = now - last;
-            if diff >= 60 {
-                for i in 0..60 {
-                    self.rate_buckets[i].store(0, Ordering::Relaxed);
-                }
-            } else {
-                for t in (last + 1)..=now {
-                    self.rate_buckets[(t % 60) as usize].store(0, Ordering::Relaxed);
-                }
-            }
-            self.last_bucket_ts.store(now as u64, Ordering::Relaxed);
-        }
-    }
-    #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::too_many_arguments)]
-    fn add_event(&self, ts: i64) {
-        self.msg_count.fetch_add(1, Ordering::Relaxed);
-        self.cleanup_buckets(ts);
-        self.rate_buckets[(ts % 60) as usize].fetch_add(1, Ordering::Relaxed);
-    }
-    fn get_current_rate(&self, now: i64, start_ts: i64) -> f32 {
-        self.cleanup_buckets(now);
-        let last = self.last_bucket_ts.load(Ordering::Relaxed) as i64;
-        if now - last >= 60 {
-            return 0.0;
-        }
-        let elapsed = (now - start_ts).max(1);
-        let divisor = elapsed.min(60) as f32;
-        let total: u64 = self
-            .rate_buckets
-            .iter()
-            .map(|b| b.load(Ordering::Relaxed))
-            .sum();
-        total as f32 / divisor
-    }
-    fn get_rate_for_window(&self, now: i64, window_secs: i64) -> f32 {
-        self.cleanup_buckets(now);
-        let window = window_secs.clamp(1, 60);
-        let mut total = 0;
-        for i in 0..window {
-            let ts = now - i;
-            total += self.rate_buckets[(ts % 60) as usize].load(Ordering::Relaxed);
-        }
-        total as f32 / window as f32
-    }
-    fn to_snapshot(&self) -> StatsSnapshot {
-        StatsSnapshot {
-            msg_count: self.msg_count.load(Ordering::Relaxed),
-            last_bucket_ts: self.last_bucket_ts.load(Ordering::Relaxed) as i64,
-        }
-    }
-    fn from_snapshot(snap: StatsSnapshot) -> Self {
-        Self {
-            msg_count: AtomicU64::new(snap.msg_count),
-            rate_buckets: default_rate_buckets(),
-            last_bucket_ts: AtomicU64::new(snap.last_bucket_ts as u64),
-        }
-    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -1424,3 +1251,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod rolling_windows_test;
+#[cfg(test)]
+mod stats_test;
