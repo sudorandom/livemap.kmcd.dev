@@ -124,12 +124,13 @@ impl RollingWindows {
             .or_default()
             .push(entry.clone());
         if let Some(country) = country_opt
-            && !country.is_empty() {
-                self.by_country
-                    .entry((country, class))
-                    .or_default()
-                    .push(entry);
-            }
+            && !country.is_empty()
+        {
+            self.by_country
+                .entry((country, class))
+                .or_default()
+                .push(entry);
+        }
     }
 
     fn cleanup(&mut self, now: i64, window: i64) {
