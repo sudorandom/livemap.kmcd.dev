@@ -512,7 +512,10 @@ impl Classifier {
                 state.active_incident_id = None;
             }
         } else if result.is_none() && state.classified_type != ClassificationType::None {
-            let emitted_classification = if state.classified_type == ClassificationType::RouteLeak || state.classified_type == ClassificationType::MinorRouteLeak || state.classified_type == ClassificationType::Hijack {
+            let emitted_classification = if state.classified_type == ClassificationType::RouteLeak
+                || state.classified_type == ClassificationType::MinorRouteLeak
+                || state.classified_type == ClassificationType::Hijack
+            {
                 ClassificationType::Discovery
             } else {
                 state.classified_type
@@ -1136,7 +1139,85 @@ impl Classifier {
             return None;
         }
 
-        // 1. Valley-Free Violation: Customer to Provider to Provider/Peer
+        // 1. Type 1: Hairpin Turn (Provider-Customer-Provider)
+        for i in 0..path.len() - 2 {
+            let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
+            if p1 != p3 && p1 != p2 && p2 != p3 {
+                // If p1 provides to p2, and p3 provides to p2
+                if self.is_provider(p1, p2) && self.is_provider(p3, p2) {
+                    return Some(LeakDetail {
+                        leak_type: LeakType::Hairpin,
+                        leaker_asn: p2,
+                        victim_asn: p1,
+                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(p1).unwrap_or_default(),
+                        leaker_rpki_status: self.rpki_validate(p2, prefix),
+                        victim_rpki_status: self.rpki_validate(p1, prefix),
+                    });
+                }
+            }
+        }
+
+        // 2. Type 2: Lateral ISP-ISP-ISP Leak
+        for i in 0..path.len() - 2 {
+            let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
+            if p1 != p3 && p1 != p2 && p2 != p3 {
+                if (self.is_tier1(p1) || self.is_large_network(p1))
+                    && (self.is_tier1(p2) || self.is_large_network(p2))
+                    && (self.is_tier1(p3) || self.is_large_network(p3))
+                {
+                    return Some(LeakDetail {
+                        leak_type: LeakType::Lateral,
+                        leaker_asn: p2,
+                        victim_asn: p1,
+                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(p1).unwrap_or_default(),
+                        leaker_rpki_status: self.rpki_validate(p2, prefix),
+                        victim_rpki_status: self.rpki_validate(p1, prefix),
+                    });
+                }
+            }
+        }
+
+        // 3. Type 3/4: Provider to Peer / Peer to Provider
+        for i in 0..path.len() - 2 {
+            let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
+            if p1 != p3 && p1 != p2 && p2 != p3 {
+                // If p1 provides to p2, but p3 does NOT provide to p2 AND p2 does NOT provide to p3 (they are peers)
+                if self.is_provider(p1, p2)
+                    && !self.is_provider(p3, p2)
+                    && !self.is_provider(p2, p3)
+                {
+                    return Some(LeakDetail {
+                        leak_type: LeakType::ValleyFreeViolation,
+                        leaker_asn: p2,
+                        victim_asn: p1,
+                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(p1).unwrap_or_default(),
+                        leaker_rpki_status: self.rpki_validate(p2, prefix),
+                        victim_rpki_status: self.rpki_validate(p1, prefix),
+                    });
+                }
+
+                // If p2 and p1 are peers, and p3 provides to p2
+                if !self.is_provider(p1, p2)
+                    && !self.is_provider(p2, p1)
+                    && self.is_provider(p3, p2)
+                {
+                    return Some(LeakDetail {
+                        leak_type: LeakType::ValleyFreeViolation,
+                        leaker_asn: p2,
+                        victim_asn: p3,
+                        leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
+                        victim_as_name: self.get_as_name(p3).unwrap_or_default(),
+                        leaker_rpki_status: self.rpki_validate(p2, prefix),
+                        victim_rpki_status: self.rpki_validate(p3, prefix),
+                    });
+                }
+            }
+        }
+
+        // Fallback: Valley-Free Violation: Customer to Provider to Provider/Peer
         for i in 0..path.len() - 2 {
             let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
             if (self.is_tier1(p1) || self.is_large_network(p1))
@@ -1147,7 +1228,7 @@ impl Classifier {
                 && p2 != p3
             {
                 return Some(LeakDetail {
-                    leak_type: LeakType::ValleyFreeViolation, // Renamed from Hairpin since Hairpin is specifically when routing goes back to the same network
+                    leak_type: LeakType::ValleyFreeViolation,
                     leaker_asn: p2,
                     victim_asn: p3,
                     leaker_as_name: self.get_as_name(p2).unwrap_or_default(),
@@ -1158,7 +1239,7 @@ impl Classifier {
             }
         }
 
-        // 2. Hairpin Turn: Route goes A -> B -> A
+        // Old Hairpin Turn Fallback: Route goes A -> B -> A
         for i in 0..path.len() - 2 {
             let (p1, p2, p3) = (path[i], path[i + 1], path[i + 2]);
             if p1 == p3 && p1 != p2 {
