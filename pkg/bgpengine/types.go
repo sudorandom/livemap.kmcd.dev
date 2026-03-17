@@ -65,6 +65,7 @@ type CriticalEvent struct {
 	Country    string
 	Color      color.RGBA
 	UIColor    color.RGBA
+	IsAggregate bool
 
 	ImpactedIPs       uint64
 	ImpactedPrefixes  map[string]struct{}

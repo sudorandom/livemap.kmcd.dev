@@ -59,6 +59,7 @@ impl Db {
                  );
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_type ON prefix_state(classified_type);
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_asn ON prefix_state(origin_asn);
+                 CREATE INDEX IF NOT EXISTS idx_prefix_state_stats ON prefix_state(classified_type, origin_asn, prefix);
                  ",
             )
             .expect("Failed to initialize SQLite schema");
@@ -139,12 +140,12 @@ impl Db {
             ipv6_prefix_count: 0,
         };
         if let Ok(conn) = self.pool.get() {
-            if let Ok(mut stmt) = conn.prepare_cached("SELECT count(DISTINCT CASE WHEN origin_asn != 0 THEN origin_asn END) FROM prefix_state") { counts.asn_count = stmt.query_row([], |row| row.get(0)).unwrap_or(0); }
+            if let Ok(mut stmt) = conn.prepare_cached("SELECT count(DISTINCT origin_asn) FILTER (WHERE origin_asn != 0) FROM prefix_state") { counts.asn_count = stmt.query_row([], |row| row.get(0)).unwrap_or(0); }
             if let Ok(mut stmt) = conn.prepare_cached("SELECT count(*) FROM prefix_state") {
                 counts.prefix_count = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
             }
             if let Ok(mut stmt) =
-                conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE prefix NOT LIKE '%:%'")
+                conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE instr(prefix, ':') = 0")
             {
                 counts.ipv4_prefix_count = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
             }
@@ -156,7 +157,7 @@ impl Db {
     pub fn get_classification_stats(&self) -> HashMap<ClassificationType, ClassificationStats> {
         let mut stats = HashMap::new();
         if let Ok(conn) = self.pool.get() {
-            let query = "SELECT classified_type, count(*) as total, count(CASE WHEN prefix NOT LIKE '%:%' THEN 1 END) as ipv4_total, count(DISTINCT CASE WHEN origin_asn != 0 THEN origin_asn END) as asns FROM prefix_state GROUP BY classified_type";
+            let query = "SELECT classified_type, count(*) as total, count(CASE WHEN instr(prefix, ':') = 0 THEN 1 END) as ipv4_total, count(DISTINCT origin_asn) FILTER (WHERE origin_asn != 0) as asns FROM prefix_state GROUP BY classified_type";
             if let Ok(mut stmt) = conn.prepare_cached(query)
                 && let Ok(mut rows) = stmt.query([])
             {

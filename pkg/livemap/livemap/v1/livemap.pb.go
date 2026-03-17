@@ -149,10 +149,11 @@ func (RPKIStatus) EnumDescriptor() ([]byte, []int) {
 type AlertType int32
 
 const (
-	AlertType_ALERT_TYPE_UNSPECIFIED AlertType = 0
-	AlertType_ALERT_TYPE_BY_LOCATION AlertType = 1
-	AlertType_ALERT_TYPE_BY_ASN      AlertType = 2
-	AlertType_ALERT_TYPE_BY_COUNTRY  AlertType = 3
+	AlertType_ALERT_TYPE_UNSPECIFIED     AlertType = 0
+	AlertType_ALERT_TYPE_BY_LOCATION     AlertType = 1
+	AlertType_ALERT_TYPE_BY_ASN          AlertType = 2
+	AlertType_ALERT_TYPE_BY_COUNTRY      AlertType = 3
+	AlertType_ALERT_TYPE_BY_ORGANIZATION AlertType = 4
 )
 
 // Enum value maps for AlertType.
@@ -162,12 +163,14 @@ var (
 		1: "ALERT_TYPE_BY_LOCATION",
 		2: "ALERT_TYPE_BY_ASN",
 		3: "ALERT_TYPE_BY_COUNTRY",
+		4: "ALERT_TYPE_BY_ORGANIZATION",
 	}
 	AlertType_value = map[string]int32{
-		"ALERT_TYPE_UNSPECIFIED": 0,
-		"ALERT_TYPE_BY_LOCATION": 1,
-		"ALERT_TYPE_BY_ASN":      2,
-		"ALERT_TYPE_BY_COUNTRY":  3,
+		"ALERT_TYPE_UNSPECIFIED":     0,
+		"ALERT_TYPE_BY_LOCATION":     1,
+		"ALERT_TYPE_BY_ASN":          2,
+		"ALERT_TYPE_BY_COUNTRY":      3,
+		"ALERT_TYPE_BY_ORGANIZATION": 4,
 	}
 )
 
@@ -1051,6 +1054,8 @@ type Alert struct {
 	ImpactedIpv6Prefixes uint32                 `protobuf:"varint,10,opt,name=impacted_ipv6_prefixes,json=impactedIpv6Prefixes,proto3" json:"impacted_ipv6_prefixes,omitempty"`
 	PercentageIncrease   float32                `protobuf:"fixed32,11,opt,name=percentage_increase,json=percentageIncrease,proto3" json:"percentage_increase,omitempty"`
 	AsName               string                 `protobuf:"bytes,12,opt,name=as_name,json=asName,proto3" json:"as_name,omitempty"`
+	Organization         string                 `protobuf:"bytes,13,opt,name=organization,proto3" json:"organization,omitempty"`
+	AsnCount             uint32                 `protobuf:"varint,14,opt,name=asn_count,json=asnCount,proto3" json:"asn_count,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1167,6 +1172,20 @@ func (x *Alert) GetAsName() string {
 		return x.AsName
 	}
 	return ""
+}
+
+func (x *Alert) GetOrganization() string {
+	if x != nil {
+		return x.Organization
+	}
+	return ""
+}
+
+func (x *Alert) GetAsnCount() uint32 {
+	if x != nil {
+		return x.AsnCount
+	}
+	return 0
 }
 
 type StreamAlertsRequest struct {
@@ -1423,7 +1442,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\acountry\x18\x02 \x01(\tR\acountry\x12\x10\n" +
 	"\x03lat\x18\x03 \x01(\x02R\x03lat\x12\x10\n" +
 	"\x03lon\x18\x04 \x01(\x02R\x03lon\x12\x1b\n" +
-	"\tradius_km\x18\x05 \x01(\x02R\bradiusKm\"\xe7\x03\n" +
+	"\tradius_km\x18\x05 \x01(\x02R\bradiusKm\"\xa8\x04\n" +
 	"\x05Alert\x124\n" +
 	"\n" +
 	"alert_type\x18\x01 \x01(\x0e2\x15.livemap.v1.AlertTypeR\talertType\x125\n" +
@@ -1438,7 +1457,9 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x16impacted_ipv6_prefixes\x18\n" +
 	" \x01(\rR\x14impactedIpv6Prefixes\x12/\n" +
 	"\x13percentage_increase\x18\v \x01(\x02R\x12percentageIncrease\x12\x17\n" +
-	"\aas_name\x18\f \x01(\tR\x06asName\"\x15\n" +
+	"\aas_name\x18\f \x01(\tR\x06asName\x12\"\n" +
+	"\forganization\x18\r \x01(\tR\forganization\x12\x1b\n" +
+	"\tasn_count\x18\x0e \x01(\rR\basnCount\"\x15\n" +
 	"\x13StreamAlertsRequest\"?\n" +
 	"\x14StreamAlertsResponse\x12'\n" +
 	"\x05alert\x18\x01 \x01(\v2\x11.livemap.v1.AlertR\x05alert\"`\n" +
@@ -1465,12 +1486,13 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x17RPKI_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11RPKI_STATUS_VALID\x10\x01\x12\x17\n" +
 	"\x13RPKI_STATUS_INVALID\x10\x02\x12\x19\n" +
-	"\x15RPKI_STATUS_NOT_FOUND\x10\x03*u\n" +
+	"\x15RPKI_STATUS_NOT_FOUND\x10\x03*\x95\x01\n" +
 	"\tAlertType\x12\x1a\n" +
 	"\x16ALERT_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16ALERT_TYPE_BY_LOCATION\x10\x01\x12\x15\n" +
 	"\x11ALERT_TYPE_BY_ASN\x10\x02\x12\x19\n" +
-	"\x15ALERT_TYPE_BY_COUNTRY\x10\x032\x83\x03\n" +
+	"\x15ALERT_TYPE_BY_COUNTRY\x10\x03\x12\x1e\n" +
+	"\x1aALERT_TYPE_BY_ORGANIZATION\x10\x042\x83\x03\n" +
 	"\x0eLiveMapService\x12\\\n" +
 	"\x0fSubscribeEvents\x12\".livemap.v1.SubscribeEventsRequest\x1a#.livemap.v1.SubscribeEventsResponse0\x01\x12K\n" +
 	"\n" +

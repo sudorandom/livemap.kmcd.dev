@@ -62,10 +62,6 @@ type Engine struct {
 	monoSource     *text.GoTextFaceSource
 
 	displayBeaconPercent                   float64
-	displayResearchPercent                 float64
-	displayOrganicPercent                  float64
-	targetResearchPercent                  float64
-	targetOrganicPercent                   float64
 
 	countryActivity map[string]int
 
@@ -563,15 +559,16 @@ func (e *Engine) drawLineFast(img *image.RGBA, x1, y1, x2, y2 int, c color.RGBA)
 }
 
 func (e *Engine) AddPulse(lat, lng float64, c color.RGBA, count int, shape ...EventShape) {
-	// De-emphasize Discovery/None pulses (Blue) - less aggressively now
-	// if c == ColorDiscovery && rand.Float64() > 0.4 {
-	// 	return
-	// }
 	s := ShapeCircle
 	if len(shape) > 0 {
 		s = shape[0]
 	} else if c == ColorLeak {
 		s = ShapeFlare
+	}
+
+	// De-emphasize Discovery pulses slightly
+	if c == ColorDiscovery {
+		c.A = 160
 	}
 
 	lat += (rand.Float64() - 0.5) * 1.5
@@ -583,6 +580,10 @@ func (e *Engine) AddPulse(lat, lng float64, c color.RGBA, count int, shape ...Ev
 		baseRad := 6.0
 		if e.Width > 2000 {
 			baseRad = 12.0
+		}
+
+		if c == ColorDiscovery {
+			baseRad *= 0.7
 		}
 
 		// Use natural log (ln) for slower growth at high counts
@@ -754,10 +755,6 @@ func (e *Engine) updateMetrics() {
 			delete(e.VisualHubs, cc)
 		}
 	}
-
-	// Interpolate research/organic percentages
-	e.displayResearchPercent += (e.targetResearchPercent - e.displayResearchPercent) * 0.05
-	e.displayOrganicPercent += (e.targetOrganicPercent - e.displayOrganicPercent) * 0.05
 
 	// Cleanup Critical Event Stream (remove entries older than 10 mins)
 	now := e.Now()
@@ -1142,6 +1139,8 @@ func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransitio
 		ImpactedPrefixes:  make(map[string]struct{}),
 		ActivePrefixes:    make(map[string]struct{}),
 		ActiveIncidentIDs: make(map[string]struct{}),
+		VictimASN:         trans.Asn,
+		VictimName:        trans.AsName,
 	}
 	ce.ImpactedPrefixes[trans.Prefix] = struct{}{}
 	if trans.EndTime == 0 {
@@ -1302,22 +1301,39 @@ func (e *Engine) updateCriticalStream() {
 }
 
 func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
+	if ce.CachedTypeLabel == "" {
 		if (ce.Anom == bgp.NameRouteLeak || ce.Anom == bgp.NameMinorRouteLeak) && ce.LeakType != bgp.LeakUnknown {
-		ce.CachedTypeLabel = fmt.Sprintf("[%s - %s]", strings.ToUpper(ce.Anom), strings.ToUpper(ce.LeakType.String()))
-	} else {
-		ce.CachedTypeLabel = fmt.Sprintf("[%s]", strings.ToUpper(ce.Anom))
+			ce.CachedTypeLabel = fmt.Sprintf("[%s] [%s]", strings.ToUpper(ce.Anom), strings.ToUpper(ce.LeakType.String()))
+		} else {
+			ce.CachedTypeLabel = fmt.Sprintf("[%s]", strings.ToUpper(ce.Anom))
+		}
 	}
 	if e.subMonoFace != nil {
 		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
 	}
 
-	ce.CachedFirstLine = ce.ASNStr
-	if ce.OrgID != "" {
-		ce.CachedFirstLine = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
+	if ce.IsAggregate {
+		// Locations line
+		if ce.CachedLocLabel == "" {
+			ce.CachedLocLabel = " "
+		}
+		if ce.Locations != "" {
+			locs := strings.Split(ce.Locations, " | ")
+			if len(locs) <= 2 {
+				ce.CachedLocVal = ce.Locations
+			} else {
+				displayLocs := locs[:2]
+				ce.CachedLocVal = fmt.Sprintf("%s | %s (%d more)", displayLocs[0], displayLocs[1], len(locs)-2)
+			}
+		} else {
+			ce.CachedLocVal = ""
+		}
+		return
 	}
 
 	switch ce.Anom {
 	case bgp.NameRouteLeak, bgp.NameMinorRouteLeak:
+		// ASN is redundant for Route Leaks as Leaker/Victim are already shown
 		e.cacheLeakStrings(ce)
 	case bgp.NameHardOutage:
 		e.cacheOutageStrings(ce)
@@ -1326,16 +1342,25 @@ func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
 	}
 
 	e.cacheImpactStrings(ce)
+
+	// Locations line
+	if ce.CachedLocLabel == "" {
+		ce.CachedLocLabel = " "
+	}
+	if ce.Locations != "" {
+		locs := strings.Split(ce.Locations, " | ")
+		if len(locs) <= 2 {
+			ce.CachedLocVal = ce.Locations
+		} else {
+			displayLocs := locs[:2]
+			ce.CachedLocVal = fmt.Sprintf("%s | %s (%d more)", displayLocs[0], displayLocs[1], len(locs)-2)
+		}
+	} else {
+		ce.CachedLocVal = ""
+	}
 }
 
 func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
-	// First line should be ASN and OrgID (network name)
-	if ce.OrgID != "" {
-		ce.CachedFirstLine = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
-	} else {
-		ce.CachedFirstLine = ce.ASNStr
-	}
-
 	// Attacker/Source line
 	if ce.Anom == bgp.NameHijack {
 		ce.CachedLeakerLabel = " Attacker"
@@ -1407,13 +1432,6 @@ func formatRPKI(status int32) string {
 }
 
 func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
-	// First line should be ASN and OrgID (network name)
-	if ce.OrgID != "" {
-		ce.CachedFirstLine = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
-	} else {
-		ce.CachedFirstLine = ce.ASNStr
-	}
-
 	// Leaker line
 	ce.CachedLeakerLabel = "   Leaker"
 	if ce.LeakerASN > 0 {
@@ -1469,7 +1487,7 @@ func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
 
 func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 	// ASN line
-	ce.CachedASNLabel = "   Network: "
+	ce.CachedASNLabel = ""
 	if ce.OrgID != "" {
 		ce.CachedASNVal = fmt.Sprintf("%s (%s)", ce.ASNStr, ce.OrgID)
 	} else {
@@ -1529,16 +1547,6 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 		if e.subMonoFace != nil {
 			ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
 		}
-	}
-
-	// Locations line
-	ce.CachedLocLabel = "  Location: "
-	locs := strings.Split(ce.Locations, " | ")
-	if len(locs) <= 2 {
-		ce.CachedLocVal = ce.Locations
-	} else {
-		displayLocs := locs[:2]
-		ce.CachedLocVal = fmt.Sprintf("%s | %s (%d more)", displayLocs[0], displayLocs[1], len(locs)-2)
 	}
 
 	// Clear FirstLine so only the label (with count) is shown on the first line
@@ -1945,9 +1953,8 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	ct := bgp.ClassificationType(alert.Classification)
 	anomName := strings.ToUpper(ct.String())
 	cachedTypeLabel := fmt.Sprintf("[%s]", anomName)
-	if strings.Contains(anomName, " - ") {
-		parts := strings.Split(anomName, " - ")
-		cachedTypeLabel = fmt.Sprintf("[%s] [%s]", parts[0], parts[1])
+	if alert.AlertType == livemap.AlertType_ALERT_TYPE_BY_ASN {
+		cachedTypeLabel = fmt.Sprintf("[%s] [NETWORK ALERT]", anomName)
 	}
 
 	uiCol := e.getClassificationUIColor(ct.String())
@@ -1960,20 +1967,32 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		if alert.Location != nil && alert.Location.City != "" {
 			locStr = fmt.Sprintf("Around %s, %s", alert.Location.City, alert.Location.Country)
 		} else if alert.Location != nil {
-			locStr = fmt.Sprintf("%.1f, %.1f", alert.Location.Lat, alert.Location.Lon)
+			locStr = fmt.Sprintf("Radius: %.1f, %.1f", alert.Location.Lat, alert.Location.Lon)
 		} else {
-			locStr = "Unknown"
+			locStr = "Radius: Unknown"
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_ASN:
+		locStr = fmt.Sprintf("AS%d", alert.Asn)
 		if alert.AsName != "" {
 			locStr = fmt.Sprintf("AS%d - %s", alert.Asn, alert.AsName)
-		} else {
-			locStr = fmt.Sprintf("AS%d", alert.Asn)
+		}
+		if alert.Location != nil && alert.Location.City != "" {
+			locStr = fmt.Sprintf("%s (%s, %s)", locStr, alert.Location.City, alert.Location.Country)
+		}
+	case livemap.AlertType_ALERT_TYPE_BY_ORGANIZATION:
+		locStr = fmt.Sprintf("Organization: %s", alert.Organization)
+		if alert.Location != nil && alert.Location.City != "" {
+			locStr = fmt.Sprintf("%s (%s, %s)", locStr, alert.Location.City, alert.Location.Country)
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
-		locStr = fmt.Sprintf("%s", alert.Country)
+		locStr = fmt.Sprintf("Country: %s", alert.Country)
+		if alert.Location != nil && alert.Location.City != "" {
+			locStr = fmt.Sprintf("%s (%s)", locStr, alert.Location.City)
+		}
 	}
-
+	if alert.AsnCount > 1 {
+		locStr = fmt.Sprintf("%s (Across %d different networks)", locStr, alert.AsnCount)
+	}
 
 	metricStr := ""
 
@@ -1995,7 +2014,12 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	} else {
 		cachedTypeLabel = fmt.Sprintf("%s %s Events", cachedTypeLabel, formatImpactCount(alert.EventsCount))
 	}
-	metricStr = fmt.Sprintf("%.0f%% Increase in last 5m", alert.PercentageIncrease)
+
+	if alert.AsnCount > 1 {
+		cachedTypeLabel = fmt.Sprintf("%s across %d networks", cachedTypeLabel, alert.AsnCount)
+	}
+
+	metricStr = fmt.Sprintf("%.0f%% increase in last 5m", alert.PercentageIncrease)
 
 	// [ROUTE LEAK] [SUB TYPE] already calculated
 
@@ -2003,31 +2027,24 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		Timestamp:       time.Unix(alert.Timestamp, 0),
 		Anom:            ct.String(),
 		ASN:             alert.Asn,
-		ASNStr:          "",
+		ASNStr:          fmt.Sprintf("AS%d", alert.Asn),
+		OrgID:           alert.AsName,
 		Locations:       locStr,
 		Color:           realCol,
 		UIColor:         uiCol,
 		CachedTypeLabel: cachedTypeLabel,
 		CachedFirstLine: metricStr,
-		CachedLocVal:    locStr,
-		CachedLocLabel:  "Location: ",
+		CachedLocVal:    "",
+		CachedLocLabel:  "",
 		ImpactedIPs:     alert.ImpactedIpv4Ips,
+		IsAggregate:     true,
 	}
 
 	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
 		ce.Anom = bgp.NameHardOutage
 	}
 
-	if alert.AlertType == livemap.AlertType_ALERT_TYPE_BY_ASN {
-		ce.CachedLocLabel = "Network: "
-		ce.CachedLocVal = ""
-		ce.CachedASNLabel = "Network: "
-		ce.CachedASNVal = locStr
-	} else {
-		ce.CachedLocVal = ""
-		ce.CachedLocLabel = "Location: "
-		ce.CachedLocVal = locStr
-	}
+	e.updateCriticalEventCacheStrs(ce)
 
 	if e.subMonoFace != nil {
 		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)

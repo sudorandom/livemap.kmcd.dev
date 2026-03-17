@@ -685,7 +685,6 @@ impl Classifier {
                     | ClassificationType::RouteLeak
                     | ClassificationType::MinorRouteLeak
                     | ClassificationType::Outage
-                    | ClassificationType::Flap
             );
             let is_old_bad = matches!(
                 old_classified_type,
@@ -693,7 +692,6 @@ impl Classifier {
                     | ClassificationType::RouteLeak
                     | ClassificationType::MinorRouteLeak
                     | ClassificationType::Outage
-                    | ClassificationType::Flap
             );
             if is_new_bad && !is_old_bad {
                 state.active_incident_id = Some(uuid::Uuid::new_v4().to_string());
@@ -1058,16 +1056,16 @@ impl Classifier {
         if let Some(ref seen_db) = self.seen_db
             && let Ok(net) = IpNet::from_str(prefix)
         {
-            match net.addr() {
-                IpAddr::V4(v4) => {
-                    if let Ok(Some((_, val))) = seen_db.lookup_lpm_v4(v4)
+            match net {
+                IpNet::V4(v4) => {
+                    if let Ok(Some((_, val))) = seen_db.lookup_lpm_v4(v4.network())
                         && val.len() == 4
                     {
                         return u32::from_be_bytes(val.try_into().unwrap());
                     }
                 }
-                IpAddr::V6(v6) => {
-                    if let Ok(Some((_, val))) = seen_db.lookup_lpm_v6(v6)
+                IpNet::V6(v6) => {
+                    if let Ok(Some((_, val))) = seen_db.lookup_lpm_v6(v6.network())
                         && val.len() == 4
                     {
                         return u32::from_be_bytes(val.try_into().unwrap());
@@ -1398,7 +1396,7 @@ impl Classifier {
         None
     }
 
-    fn get_as_org(&self, asn: u32) -> Option<String> {
+    pub fn get_as_org(&self, asn: u32) -> Option<String> {
         {
             let cache = self.bgpkit_cache.lock();
             if let Some(res) = cache.as2org.get(&asn) {
@@ -1471,6 +1469,10 @@ impl Classifier {
             } else {
                 state.historical_origin_asn
             };
+
+            if resolved_asn == 0 {
+                return None;
+            }
 
             let s = self.aggregate_recent_buckets(&mut state, now, resolved_asn);
 

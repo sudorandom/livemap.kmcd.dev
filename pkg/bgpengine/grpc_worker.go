@@ -218,15 +218,6 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	e.prefixCounts = newPrefixCounts
 	e.impactDirty = true
 	e.loadingHistorical = resp.GetLoadingHistorical()
-
-	for _, comp := range resp.EventComposition {
-		switch comp.Type {
-		case "RESEARCH":
-			e.targetResearchPercent = float64(comp.Percentage)
-		case "ORGANIC":
-			e.targetOrganicPercent = float64(comp.Percentage)
-		}
-	}
 }
 
 func (e *Engine) consumeEventStream(ctx context.Context, client livemap.LiveMapServiceClient) error {

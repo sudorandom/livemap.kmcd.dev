@@ -119,6 +119,7 @@ enum AlertType {
     ALERT_TYPE_BY_LOCATION = 1;
     ALERT_TYPE_BY_ASN = 2;
     ALERT_TYPE_BY_COUNTRY = 3;
+    ALERT_TYPE_BY_ORGANIZATION = 4;
 }
 
 message AlertLocation {
@@ -143,6 +144,8 @@ message Alert {
     uint32 impacted_ipv6_prefixes = 10;
     float percentage_increase = 11;
     string as_name = 12;
+    string organization = 13;
+    uint32 asn_count = 14;
 }
 
 message StreamAlertsRequest {}
