@@ -417,11 +417,11 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 	}
 
 	// Calculate available width for the first line
-	firstLineX := x + typeWidth + 10
+	firstLineX := x
 	availableW := boxW - firstLineX - 5
-	nextY := e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, firstLineX, y, availableW, fontSize, textOp)
-	if nextY == y {
-		nextY = y + fontSize*1.1
+	nextY := e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, firstLineX, y+fontSize*1.1, availableW, fontSize, textOp)
+	if nextY == y+fontSize*1.1 {
+		nextY = y + fontSize*2.2
 	}
 
 	labelCol := color.RGBA{180, 180, 180, 255} // Light gray
@@ -460,6 +460,10 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 
 		// Networks line
 		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+	default:
+		if ce.CachedLocVal != "" {
+			nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+		}
 	}
 
 	return nextY
@@ -1010,6 +1014,10 @@ func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64)
 		h += e.labeledLineHeight(victimLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsW, fontSize)
 
 		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsW, fontSize)
+	default:
+		if ce.CachedLocVal != "" {
+			h += e.labeledLineHeight(ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, detailsW, fontSize)
+		}
 	}
 	return h
 }
