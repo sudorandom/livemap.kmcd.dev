@@ -1208,7 +1208,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             let alert_key = format!("country:{}", country);
                             let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                            if (ipv4_count >= 5000 || ipv6_prefixes >= 20) && percentage_increase > 0.0 && now_tick - last_emitted >= 300 {
+                            if (ipv4_count >= 50000 || ipv6_prefixes >= 200) && percentage_increase > 10.0 && now_tick - last_emitted >= 300 {
                                 emitted_alerts.insert(alert_key, now_tick);
                                 alerts.push(Alert {
                                     alert_type: AlertType::ByCountry.into(),
@@ -1228,8 +1228,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
 
                         if !alerts.is_empty() {
-                            let mut alert_subs = s_ingest.alert_subscribers.write().await;
+                            alerts.sort_by(|a, b| {
+                                let impact_a = a.impacted_ipv4_ips as u128 + (a.impacted_ipv6_prefixes as u128 * 10000);
+                                let impact_b = b.impacted_ipv4_ips as u128 + (b.impacted_ipv6_prefixes as u128 * 10000);
+                                impact_b.cmp(&impact_a) // Descending
+                            });
+
+                            let mut loc_count = 0;
+                            let mut asn_count = 0;
+                            let mut country_count = 0;
+
+                            let mut filtered_alerts = Vec::new();
                             for alert in alerts {
+                                match livemap_proto::AlertType::try_from(alert.alert_type).ok() {
+                                    None | Some(livemap_proto::AlertType::Unspecified) => {},
+                                    Some(livemap_proto::AlertType::ByLocation) => {
+                                        if loc_count < 2 {
+                                            filtered_alerts.push(alert);
+                                            loc_count += 1;
+                                        }
+                                    },
+                                    Some(livemap_proto::AlertType::ByAsn) => {
+                                        if asn_count < 2 {
+                                            filtered_alerts.push(alert);
+                                            asn_count += 1;
+                                        }
+                                    },
+                                    Some(livemap_proto::AlertType::ByCountry) => {
+                                        if country_count < 2 {
+                                            filtered_alerts.push(alert);
+                                            country_count += 1;
+                                        }
+                                    }
+                                }
+                            }
+
+                            let mut alert_subs = s_ingest.alert_subscribers.write().await;
+                            for alert in filtered_alerts {
                                 alert_subs.retain(|sub| sub.try_send(Ok(StreamAlertsResponse { alert: Some(alert.clone()) })).is_ok());
                             }
                         }
