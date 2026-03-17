@@ -13,6 +13,7 @@ fn test_rolling_windows_add_and_cleanup() {
         "AS12345".to_string(),
         Some("US".to_string()),
         Some("NYC".to_string()),
+        None,
         class,
         100,
         "10.0.0.0/24".to_string(),
@@ -40,6 +41,9 @@ fn test_window_entry_creation() {
         country: Some("JP".to_string()),
         asn: 4444,
         as_name: "AS4444".to_string(),
+        org_name: None,
+        lat: 0.0,
+        lon: 0.0,
     };
 
     assert_eq!(entry.asn, 4444);

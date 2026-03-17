@@ -31,10 +31,6 @@ import (
 	"github.com/sudorandom/bgp-stream/pkg/utils"
 )
 
-
-
-
-
 type Engine struct {
 	Width, Height int
 	FPS           int
@@ -52,16 +48,16 @@ type Engine struct {
 	queueMu            sync.Mutex
 	nextPulseEmittedAt time.Time
 
-	bgImage        *ebiten.Image
-	pulseImage     *ebiten.Image
-	flareImage     *ebiten.Image
-	squareImage    *ebiten.Image
-	whitePixel     *ebiten.Image
-	fadeMask       *ebiten.Image
-	fontSource     *text.GoTextFaceSource
-	monoSource     *text.GoTextFaceSource
+	bgImage     *ebiten.Image
+	pulseImage  *ebiten.Image
+	flareImage  *ebiten.Image
+	squareImage *ebiten.Image
+	whitePixel  *ebiten.Image
+	fadeMask    *ebiten.Image
+	fontSource  *text.GoTextFaceSource
+	monoSource  *text.GoTextFaceSource
 
-	displayBeaconPercent                   float64
+	displayBeaconPercent float64
 
 	countryActivity map[string]int
 
@@ -70,19 +66,18 @@ type Engine struct {
 	latestSnapshot MetricSnapshot
 	metricsMu      sync.RWMutex
 
-	CurrentSong        string
-	CurrentArtist      string
-	CurrentExtra       string
-	songChangedAt      time.Time
-	songBuffer         *ebiten.Image
-	artistBuffer       *ebiten.Image
-	extraBuffer        *ebiten.Image
-	impactBuffer       *ebiten.Image
-	streamBuffer       *ebiten.Image
-	streamClipBuffer   *ebiten.Image
-	nowPlayingBuffer   *ebiten.Image
-	nowPlayingDirty    bool
-
+	CurrentSong      string
+	CurrentArtist    string
+	CurrentExtra     string
+	songChangedAt    time.Time
+	songBuffer       *ebiten.Image
+	artistBuffer     *ebiten.Image
+	extraBuffer      *ebiten.Image
+	impactBuffer     *ebiten.Image
+	streamBuffer     *ebiten.Image
+	streamClipBuffer *ebiten.Image
+	nowPlayingBuffer *ebiten.Image
+	nowPlayingDirty  bool
 
 	hubChangedAt map[string]time.Time
 	lastHubs     map[string]int
@@ -1128,12 +1123,20 @@ func (e *Engine) cullResolvedEvents() {
 
 func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransition, c, uiCol color.RGBA, name string) *CriticalEvent {
 	ce := &CriticalEvent{
-		Timestamp:         time.Unix(trans.StartTime, 0),
-		Anom:              name,
-		ASN:               trans.Asn,
-		ASNStr:            fmt.Sprintf("AS%d", trans.Asn),
-		OrgID:             trans.AsName,
-		Locations:         func() string { if trans.Country != "" && trans.City != "" { return trans.City + ", " + trans.Country }; if trans.City != "" { return trans.City }; return trans.Country }(),
+		Timestamp: time.Unix(trans.StartTime, 0),
+		Anom:      name,
+		ASN:       trans.Asn,
+		ASNStr:    fmt.Sprintf("AS%d", trans.Asn),
+		OrgID:     trans.AsName,
+		Locations: func() string {
+			if trans.Country != "" && trans.City != "" {
+				return trans.City + ", " + trans.Country
+			}
+			if trans.City != "" {
+				return trans.City
+			}
+			return trans.Country
+		}(),
 		Color:             c,
 		UIColor:           uiCol,
 		ImpactedPrefixes:  make(map[string]struct{}),
@@ -1232,6 +1235,11 @@ func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
 	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
 		return false
 	}
+
+	if ce.IsAggregate {
+		return true
+	}
+
 	if ce.ImpactedIPs >= 5000 {
 		return true
 	}
@@ -1957,42 +1965,6 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	uiCol := e.getClassificationUIColor(ct.String())
 	realCol, _, _ := e.getClassificationVisuals(ct)
 
-
-	locStr := ""
-	switch alert.AlertType {
-	case livemap.AlertType_ALERT_TYPE_BY_LOCATION:
-		if alert.Location != nil && alert.Location.City != "" {
-			locStr = fmt.Sprintf("Around %s, %s", alert.Location.City, alert.Location.Country)
-		} else if alert.Location != nil {
-			locStr = fmt.Sprintf("Radius: %.1f, %.1f", alert.Location.Lat, alert.Location.Lon)
-		} else {
-			locStr = "Radius: Unknown"
-		}
-	case livemap.AlertType_ALERT_TYPE_BY_ASN:
-		locStr = fmt.Sprintf("AS%d", alert.Asn)
-		if alert.AsName != "" {
-			locStr = fmt.Sprintf("AS%d - %s", alert.Asn, alert.AsName)
-		}
-		if alert.Location != nil && alert.Location.City != "" {
-			locStr = fmt.Sprintf("%s (%s, %s)", locStr, alert.Location.City, alert.Location.Country)
-		}
-	case livemap.AlertType_ALERT_TYPE_BY_ORGANIZATION:
-		locStr = fmt.Sprintf("Organization: %s", alert.Organization)
-		if alert.Location != nil && alert.Location.City != "" {
-			locStr = fmt.Sprintf("%s (%s, %s)", locStr, alert.Location.City, alert.Location.Country)
-		}
-	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
-		locStr = fmt.Sprintf("Country: %s", alert.Country)
-		if alert.Location != nil && alert.Location.City != "" {
-			locStr = fmt.Sprintf("%s (%s)", locStr, alert.Location.City)
-		}
-	}
-	if alert.AsnCount > 1 {
-		locStr = fmt.Sprintf("%s (Across %d different networks)", locStr, alert.AsnCount)
-	}
-
-	metricStr := ""
-
 	formatImpactCount := func(count uint32) string {
 		if count >= 1000000 {
 			return fmt.Sprintf("%.0fm", float64(count)/1000000.0)
@@ -2012,13 +1984,49 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		cachedTypeLabel = fmt.Sprintf("%s %s Events", cachedTypeLabel, formatImpactCount(alert.EventsCount))
 	}
 
-	if alert.AsnCount > 1 {
-		cachedTypeLabel = fmt.Sprintf("%s across %d networks", cachedTypeLabel, alert.AsnCount)
+	metricStr := fmt.Sprintf("%.0f%% Increase in last 5m", alert.PercentageIncrease)
+
+	var locLabel, locVal string
+
+	switch alert.AlertType {
+	case livemap.AlertType_ALERT_TYPE_BY_LOCATION:
+		locLabel = "  Location:"
+		if alert.Location != nil && alert.Location.City != "" {
+			locVal = fmt.Sprintf("Around %s, %s", alert.Location.City, alert.Location.Country)
+		} else if alert.Location != nil {
+			locVal = fmt.Sprintf("Radius %.1f, %.1f", alert.Location.Lat, alert.Location.Lon)
+		} else {
+			locVal = "Unknown"
+		}
+	case livemap.AlertType_ALERT_TYPE_BY_ASN:
+		locLabel = "   Network:"
+		locVal = fmt.Sprintf("AS%d", alert.Asn)
+		if alert.AsName != "" {
+			locVal = fmt.Sprintf("AS%d - %s", alert.Asn, alert.AsName)
+		}
+		if alert.Location != nil && alert.Location.City != "" {
+			locVal = fmt.Sprintf("%s (%s, %s)", locVal, alert.Location.City, alert.Location.Country)
+		}
+	case livemap.AlertType_ALERT_TYPE_BY_ORGANIZATION:
+		locLabel = "      Org.:"
+		locVal = alert.Organization
+		if alert.Location != nil && alert.Location.City != "" {
+			locVal = fmt.Sprintf("%s (%s, %s)", locVal, alert.Location.City, alert.Location.Country)
+		}
+	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
+		locLabel = "   Country:"
+		locVal = alert.Country
+		if alert.Location != nil && alert.Location.City != "" {
+			locVal = fmt.Sprintf("%s (%s)", locVal, alert.Location.City)
+		}
+	default:
+		locLabel = "   Context:"
+		locVal = "Unknown"
 	}
 
-	metricStr = fmt.Sprintf("%.0f%% increase in last 5m", alert.PercentageIncrease)
-
-	// [ROUTE LEAK] [SUB TYPE] already calculated
+	if alert.AsnCount > 1 {
+		locVal = fmt.Sprintf("%s (Across %d networks)", locVal, alert.AsnCount)
+	}
 
 	ce := &CriticalEvent{
 		Timestamp:       time.Unix(alert.Timestamp, 0),
@@ -2026,13 +2034,13 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		ASN:             alert.Asn,
 		ASNStr:          fmt.Sprintf("AS%d", alert.Asn),
 		OrgID:           alert.AsName,
-		Locations:       locStr,
+		Locations:       locVal,
 		Color:           realCol,
 		UIColor:         uiCol,
 		CachedTypeLabel: cachedTypeLabel,
 		CachedFirstLine: metricStr,
-		CachedLocVal:    "",
-		CachedLocLabel:  "",
+		CachedLocLabel:  locLabel,
+		CachedLocVal:    locVal,
 		ImpactedIPs:     alert.ImpactedIpv4Ips,
 		IsAggregate:     true,
 	}
@@ -2040,8 +2048,6 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
 		ce.Anom = bgp.NameHardOutage
 	}
-
-	e.updateCriticalEventCacheStrs(ce)
 
 	if e.subMonoFace != nil {
 		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
