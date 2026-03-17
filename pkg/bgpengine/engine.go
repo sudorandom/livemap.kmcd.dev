@@ -1953,9 +1953,6 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	ct := bgp.ClassificationType(alert.Classification)
 	anomName := strings.ToUpper(ct.String())
 	cachedTypeLabel := fmt.Sprintf("[%s]", anomName)
-	if alert.AlertType == livemap.AlertType_ALERT_TYPE_BY_ASN {
-		cachedTypeLabel = fmt.Sprintf("[%s] [NETWORK ALERT]", anomName)
-	}
 
 	uiCol := e.getClassificationUIColor(ct.String())
 	realCol, _, _ := e.getClassificationVisuals(ct)
