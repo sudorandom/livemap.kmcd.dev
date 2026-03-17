@@ -1953,6 +1953,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	uiCol := e.getClassificationUIColor(ct.String())
 	realCol, _, _ := e.getClassificationVisuals(ct)
 
+
 	locStr := ""
 	switch alert.AlertType {
 	case livemap.AlertType_ALERT_TYPE_BY_LOCATION:
@@ -1973,15 +1974,26 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		locStr = fmt.Sprintf("%s", alert.Country)
 	}
 
+
 	metricStr := ""
+
+	formatImpactCount := func(count uint32) string {
+		if count >= 1000000 {
+			return fmt.Sprintf("%.0fm", float64(count)/1000000.0)
+		} else if count >= 1000 {
+			return fmt.Sprintf("%.0fk", float64(count)/1000.0)
+		}
+		return fmt.Sprintf("%d", count)
+	}
+
 	if alert.ImpactedIpv4Ips > 0 && alert.ImpactedIpv6Prefixes > 0 {
-		cachedTypeLabel = fmt.Sprintf("%s %d IPv4 IPs, %d IPv6 Prefixes", cachedTypeLabel, alert.ImpactedIpv4Ips, alert.ImpactedIpv6Prefixes)
+		cachedTypeLabel = fmt.Sprintf("%s %s IPv4 IPs, %s IPv6 Prefixes", cachedTypeLabel, formatImpactCount(uint32(alert.ImpactedIpv4Ips)), formatImpactCount(alert.ImpactedIpv6Prefixes))
 	} else if alert.ImpactedIpv4Ips > 0 {
-		cachedTypeLabel = fmt.Sprintf("%s %d IPv4 IPs", cachedTypeLabel, alert.ImpactedIpv4Ips)
+		cachedTypeLabel = fmt.Sprintf("%s %s IPv4 IPs", cachedTypeLabel, formatImpactCount(uint32(alert.ImpactedIpv4Ips)))
 	} else if alert.ImpactedIpv6Prefixes > 0 {
-		cachedTypeLabel = fmt.Sprintf("%s %d IPv6 Prefixes", cachedTypeLabel, alert.ImpactedIpv6Prefixes)
+		cachedTypeLabel = fmt.Sprintf("%s %s IPv6 Prefixes", cachedTypeLabel, formatImpactCount(alert.ImpactedIpv6Prefixes))
 	} else {
-		cachedTypeLabel = fmt.Sprintf("%s %d Events", cachedTypeLabel, alert.EventsCount)
+		cachedTypeLabel = fmt.Sprintf("%s %s Events", cachedTypeLabel, formatImpactCount(alert.EventsCount))
 	}
 	metricStr = fmt.Sprintf("%.0f%% Increase in last 5m", alert.PercentageIncrease)
 
@@ -1998,12 +2010,23 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		CachedTypeLabel: cachedTypeLabel,
 		CachedFirstLine: metricStr,
 		CachedLocVal:    locStr,
-		CachedLocLabel:  "  Location: ",
+		CachedLocLabel:  "Location: ",
 		ImpactedIPs:     alert.ImpactedIpv4Ips,
 	}
 
+	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
+		ce.Anom = bgp.NameHardOutage
+	}
+
 	if alert.AlertType == livemap.AlertType_ALERT_TYPE_BY_ASN {
-		ce.CachedLocLabel = "  Network: "
+		ce.CachedLocLabel = "Network: "
+		ce.CachedLocVal = ""
+		ce.CachedASNLabel = "Network: "
+		ce.CachedASNVal = locStr
+	} else {
+		ce.CachedLocVal = ""
+		ce.CachedLocLabel = "Location: "
+		ce.CachedLocVal = locStr
 	}
 
 	if e.subMonoFace != nil {
