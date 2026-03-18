@@ -39,7 +39,8 @@ impl PrefixAnomalyStats {
 
             // For missed windows (if more than 1 minute passed), update with 0
             if current_window - last_window > 1 {
-                for _ in 0..(current_window - last_window - 1).min(60) { // cap at 60 minutes
+                for _ in 0..(current_window - last_window - 1).min(60) {
+                    // cap at 60 minutes
                     let d = 0.0 - self.ewma_mean;
                     let i = (1.0 - alpha) * d;
                     self.ewma_mean += i;

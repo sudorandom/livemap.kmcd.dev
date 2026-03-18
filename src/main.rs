@@ -1385,7 +1385,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             if !alerts.is_empty() {
                 alerts.sort_by(|a, b| {
-                    b.anomaly_score.partial_cmp(&a.anomaly_score).unwrap_or(std::cmp::Ordering::Equal)
+                    b.anomaly_score
+                        .partial_cmp(&a.anomaly_score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
 
                 let mut loc_count = 0;
