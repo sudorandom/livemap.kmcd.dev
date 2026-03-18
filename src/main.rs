@@ -1495,7 +1495,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if pending.classification_type != pending.old_classification
                             && let Some(id) = &pending.incident_id {
-                                let transition_key = format!("{}:{}:{}", pending.prefix, pending.asn, pending.classification_type as i32);
+                                let transition_key = format!("{}:{}", pending.prefix, pending.asn);
                                 let last_emitted = last_emitted_transitions.get(&transition_key).copied().unwrap_or(0);
                                 if now - last_emitted >= 300 {
                                     last_emitted_transitions.insert(transition_key, now);
