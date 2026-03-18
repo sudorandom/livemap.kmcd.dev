@@ -251,7 +251,10 @@ impl LiveMap for LiveMapService {
         let flappiest_network = self.state.top_flappiest_network.read().await.clone();
         let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
         let largest_org_name = self.state.top_largest_org_name.read().await.clone();
-        let largest_org_ipv4_count = self.state.top_largest_org_ipv4_count.load(Ordering::Relaxed);
+        let largest_org_ipv4_count = self
+            .state
+            .top_largest_org_ipv4_count
+            .load(Ordering::Relaxed);
         let rpki_valid_ipv4 = self.state.top_rpki_valid_ipv4.load(Ordering::Relaxed);
         let rpki_invalid_ipv4 = self.state.top_rpki_invalid_ipv4.load(Ordering::Relaxed);
         let rpki_not_found_ipv4 = self.state.top_rpki_not_found_ipv4.load(Ordering::Relaxed);
@@ -883,7 +886,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             interval.tick().await;
             let db_c = db_stats.clone();
             if let Ok((g, c, ts)) = tokio::task::spawn_blocking(move || {
-                (db_c.get_global_counts(), db_c.get_classification_stats(), db_c.get_top_stats())
+                (
+                    db_c.get_global_counts(),
+                    db_c.get_classification_stats(),
+                    db_c.get_top_stats(),
+                )
             })
             .await
             {
@@ -902,7 +909,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 *s_stats.cached_class_db_stats.write().await = c;
 
                 if ts.flappiest_asn > 0 {
-                    s_stats.top_flappy_prefix_count.store(ts.flappy_prefix_count, Ordering::Relaxed);
+                    s_stats
+                        .top_flappy_prefix_count
+                        .store(ts.flappy_prefix_count, Ordering::Relaxed);
                     let mut flappiest_asn = format!("AS{}", ts.flappiest_asn);
                     let mut flappiest_org = String::new();
 
@@ -966,9 +975,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 // RPKI Check
                                 if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
                                     match status {
-                                        bgpkit_commons::rpki::RpkiValidation::Valid => rpki_valid.push(v4),
-                                        bgpkit_commons::rpki::RpkiValidation::Invalid => rpki_invalid.push(v4),
-                                        bgpkit_commons::rpki::RpkiValidation::Unknown => rpki_missing.push(v4),
+                                        bgpkit_commons::rpki::RpkiValidation::Valid => {
+                                            rpki_valid.push(v4)
+                                        }
+                                        bgpkit_commons::rpki::RpkiValidation::Invalid => {
+                                            rpki_invalid.push(v4)
+                                        }
+                                        bgpkit_commons::rpki::RpkiValidation::Unknown => {
+                                            rpki_missing.push(v4)
+                                        }
                                     }
                                 } else {
                                     rpki_missing.push(v4);
@@ -1017,15 +1032,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut largest_org_ips = 0;
                 for (org, nets) in org_v4 {
                     let ips = ipnet::Ipv4Net::aggregate(&nets)
-                            .iter()
-                            .map(|n| {
-                                if n.prefix_len() == 0 {
-                                    u32::MAX as u64 + 1
-                                } else {
-                                    1u64 << (32 - n.prefix_len())
-                                }
-                            })
-                            .sum::<u64>();
+                        .iter()
+                        .map(|n| {
+                            if n.prefix_len() == 0 {
+                                u32::MAX as u64 + 1
+                            } else {
+                                1u64 << (32 - n.prefix_len())
+                            }
+                        })
+                        .sum::<u64>();
                     if ips > largest_org_ips {
                         largest_org_ips = ips;
                         largest_org = org;
@@ -1063,10 +1078,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 s_heavy.loading_historical.store(false, Ordering::Relaxed);
 
                 *s_heavy.top_largest_org_name.write().await = summary.2;
-                s_heavy.top_largest_org_ipv4_count.store(summary.3, Ordering::Relaxed);
-                s_heavy.top_rpki_valid_ipv4.store(summary.4, Ordering::Relaxed);
-                s_heavy.top_rpki_invalid_ipv4.store(summary.5, Ordering::Relaxed);
-                s_heavy.top_rpki_not_found_ipv4.store(summary.6, Ordering::Relaxed);
+                s_heavy
+                    .top_largest_org_ipv4_count
+                    .store(summary.3, Ordering::Relaxed);
+                s_heavy
+                    .top_rpki_valid_ipv4
+                    .store(summary.4, Ordering::Relaxed);
+                s_heavy
+                    .top_rpki_invalid_ipv4
+                    .store(summary.5, Ordering::Relaxed);
+                s_heavy
+                    .top_rpki_not_found_ipv4
+                    .store(summary.6, Ordering::Relaxed);
 
                 info!("[STATS] Refreshed heavy IP aggregation.");
             }
