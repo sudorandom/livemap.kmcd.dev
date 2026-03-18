@@ -215,6 +215,17 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 		}
 	}
 
+	if e.topStatsFlappiestASN != resp.GetFlappiestAsnStr() || e.topStatsFlappiestOrg != resp.GetFlappiestNetwork() || e.topStatsLargestOrg != resp.GetLargestOrgName() || e.topStatsRPKIValidIPv4 != resp.GetRpkiValidIpv4() {
+		e.topStatsDirty = true
+	}
+
+	e.topStatsFlappiestASN = resp.GetFlappiestAsnStr()
+	e.topStatsFlappiestOrg = resp.GetFlappiestNetwork()
+	e.topStatsLargestOrg = resp.GetLargestOrgName()
+	e.topStatsRPKIValidIPv4 = resp.GetRpkiValidIpv4()
+	e.topStatsRPKIInvalidIPv4 = resp.GetRpkiInvalidIpv4()
+	e.topStatsRPKINotFoundIPv4 = resp.GetRpkiNotFoundIpv4()
+
 	e.prefixCounts = newPrefixCounts
 	e.impactDirty = true
 	e.loadingHistorical = resp.GetLoadingHistorical()

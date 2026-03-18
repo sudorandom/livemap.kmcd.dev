@@ -76,6 +76,16 @@ message GetSummaryResponse {
     bool loading_historical = 12;
     repeated CompositionEntry event_composition = 13;
     RPKIStatus last_rpki_status = 14;
+
+    // Top stats
+    string flappiest_asn_str = 15;
+    string flappiest_network = 16;
+    uint32 flappy_prefix_count = 17;
+    string largest_org_name = 18;
+    uint64 largest_org_ipv4_count = 19;
+    uint64 rpki_valid_ipv4 = 20;
+    uint64 rpki_invalid_ipv4 = 21;
+    uint64 rpki_not_found_ipv4 = 22;
 }
 
 // RPKIStatus defines the validation status of a prefix.

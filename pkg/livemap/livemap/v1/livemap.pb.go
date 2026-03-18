@@ -612,8 +612,17 @@ type GetSummaryResponse struct {
 	LoadingHistorical    bool                   `protobuf:"varint,12,opt,name=loading_historical,json=loadingHistorical,proto3" json:"loading_historical,omitempty"`
 	EventComposition     []*CompositionEntry    `protobuf:"bytes,13,rep,name=event_composition,json=eventComposition,proto3" json:"event_composition,omitempty"`
 	LastRpkiStatus       RPKIStatus             `protobuf:"varint,14,opt,name=last_rpki_status,json=lastRpkiStatus,proto3,enum=livemap.v1.RPKIStatus" json:"last_rpki_status,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Top stats
+	FlappiestAsnStr     string `protobuf:"bytes,15,opt,name=flappiest_asn_str,json=flappiestAsnStr,proto3" json:"flappiest_asn_str,omitempty"`
+	FlappiestNetwork    string `protobuf:"bytes,16,opt,name=flappiest_network,json=flappiestNetwork,proto3" json:"flappiest_network,omitempty"`
+	FlappyPrefixCount   uint32 `protobuf:"varint,17,opt,name=flappy_prefix_count,json=flappyPrefixCount,proto3" json:"flappy_prefix_count,omitempty"`
+	LargestOrgName      string `protobuf:"bytes,18,opt,name=largest_org_name,json=largestOrgName,proto3" json:"largest_org_name,omitempty"`
+	LargestOrgIpv4Count uint64 `protobuf:"varint,19,opt,name=largest_org_ipv4_count,json=largestOrgIpv4Count,proto3" json:"largest_org_ipv4_count,omitempty"`
+	RpkiValidIpv4       uint64 `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
+	RpkiInvalidIpv4     uint64 `protobuf:"varint,21,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
+	RpkiNotFoundIpv4    uint64 `protobuf:"varint,22,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *GetSummaryResponse) Reset() {
@@ -735,6 +744,62 @@ func (x *GetSummaryResponse) GetLastRpkiStatus() RPKIStatus {
 		return x.LastRpkiStatus
 	}
 	return RPKIStatus_RPKI_STATUS_UNSPECIFIED
+}
+
+func (x *GetSummaryResponse) GetFlappiestAsnStr() string {
+	if x != nil {
+		return x.FlappiestAsnStr
+	}
+	return ""
+}
+
+func (x *GetSummaryResponse) GetFlappiestNetwork() string {
+	if x != nil {
+		return x.FlappiestNetwork
+	}
+	return ""
+}
+
+func (x *GetSummaryResponse) GetFlappyPrefixCount() uint32 {
+	if x != nil {
+		return x.FlappyPrefixCount
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetLargestOrgName() string {
+	if x != nil {
+		return x.LargestOrgName
+	}
+	return ""
+}
+
+func (x *GetSummaryResponse) GetLargestOrgIpv4Count() uint64 {
+	if x != nil {
+		return x.LargestOrgIpv4Count
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetRpkiValidIpv4() uint64 {
+	if x != nil {
+		return x.RpkiValidIpv4
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetRpkiInvalidIpv4() uint64 {
+	if x != nil {
+		return x.RpkiInvalidIpv4
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetRpkiNotFoundIpv4() uint64 {
+	if x != nil {
+		return x.RpkiNotFoundIpv4
+	}
+	return 0
 }
 
 // LeakDetail contains information specific to route leaks.
@@ -1400,7 +1465,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
 	"\n" +
 	"percentage\x18\x02 \x01(\x02R\n" +
-	"percentage\"\x97\x05\n" +
+	"percentage\"\x82\b\n" +
 	"\x12GetSummaryResponse\x12.\n" +
 	"\x13messages_per_second\x18\x01 \x01(\x02R\x11messagesPerSecond\x12\x1b\n" +
 	"\tasn_count\x18\x02 \x01(\rR\basnCount\x12!\n" +
@@ -1416,7 +1481,15 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x0fmax_lag_seconds\x18\v \x01(\rR\rmaxLagSeconds\x12-\n" +
 	"\x12loading_historical\x18\f \x01(\bR\x11loadingHistorical\x12I\n" +
 	"\x11event_composition\x18\r \x03(\v2\x1c.livemap.v1.CompositionEntryR\x10eventComposition\x12@\n" +
-	"\x10last_rpki_status\x18\x0e \x01(\x0e2\x16.livemap.v1.RPKIStatusR\x0elastRpkiStatus\"\xbf\x02\n" +
+	"\x10last_rpki_status\x18\x0e \x01(\x0e2\x16.livemap.v1.RPKIStatusR\x0elastRpkiStatus\x12*\n" +
+	"\x11flappiest_asn_str\x18\x0f \x01(\tR\x0fflappiestAsnStr\x12+\n" +
+	"\x11flappiest_network\x18\x10 \x01(\tR\x10flappiestNetwork\x12.\n" +
+	"\x13flappy_prefix_count\x18\x11 \x01(\rR\x11flappyPrefixCount\x12(\n" +
+	"\x10largest_org_name\x18\x12 \x01(\tR\x0elargestOrgName\x123\n" +
+	"\x16largest_org_ipv4_count\x18\x13 \x01(\x04R\x13largestOrgIpv4Count\x12&\n" +
+	"\x0frpki_valid_ipv4\x18\x14 \x01(\x04R\rrpkiValidIpv4\x12*\n" +
+	"\x11rpki_invalid_ipv4\x18\x15 \x01(\x04R\x0frpkiInvalidIpv4\x12-\n" +
+	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\"\xbf\x02\n" +
 	"\n" +
 	"LeakDetail\x12\x1b\n" +
 	"\tleak_type\x18\x01 \x01(\rR\bleakType\x12\x1d\n" +
