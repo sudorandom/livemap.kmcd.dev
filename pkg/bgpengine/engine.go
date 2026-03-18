@@ -768,6 +768,7 @@ func (e *Engine) updateMetrics() {
 	if removedAny {
 		e.CriticalStream = activeStream
 		e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 	}
 	e.streamMu.Unlock()
 }
@@ -976,6 +977,7 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	// 2. We only care about tracking and displaying these specific critical events
 	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack {
 		e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 		return
 	}
 
@@ -1012,6 +1014,7 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	}
 
 	e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 }
 
 func (e *Engine) removePrefixFromOldEventsLocked(prefix, currentAnomName string) {
@@ -1265,9 +1268,11 @@ func (e *Engine) updateCriticalStream() {
 	if math.Abs(e.streamOffset) > 0.1 {
 		e.streamOffset *= 0.85
 		e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 	} else if e.streamOffset != 0 {
 		e.streamOffset = 0
 		e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 	}
 
 	// Clean up resolved events from queue first
@@ -1305,6 +1310,7 @@ func (e *Engine) updateCriticalStream() {
 			// Push the stream down visually
 			e.streamOffset += 1.0
 			e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 			e.lastCriticalAddedAt = time.Now()
 		}
 	}
@@ -2059,4 +2065,5 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	e.criticalQueue = append(e.criticalQueue, ce)
 	e.lastCriticalAddedAt = time.Now()
 	e.streamDirty = true
+	e.streamUpdatedAt = time.Now()
 }

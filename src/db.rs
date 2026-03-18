@@ -41,6 +41,11 @@ pub struct GlobalCounts {
     pub ipv6_prefix_count: u32,
 }
 
+pub struct TopStats {
+    pub flappiest_asn: u32,
+    pub flappy_prefix_count: u32,
+}
+
 impl Db {
     pub fn new(path: &str, seen_db: Option<crate::classifier::DiskTrie>) -> Self {
         let manager = SqliteConnectionManager::file(path);
@@ -152,6 +157,27 @@ impl Db {
             counts.ipv6_prefix_count = counts.prefix_count - counts.ipv4_prefix_count;
         }
         counts
+    }
+
+    pub fn get_top_stats(&self) -> TopStats {
+        let mut stats = TopStats {
+            flappiest_asn: 0,
+            flappy_prefix_count: 0,
+        };
+        if let Ok(conn) = self.pool.get() {
+            // Find the origin ASN with the most prefixes in FLAP state (assuming FLAP is 6 or so, need to pass correct int or just query where classified_type = 6)
+            // ClassificationType::Flap == 6
+            let query = "SELECT origin_asn, count(*) as c FROM prefix_state WHERE classified_type = 6 AND origin_asn != 0 GROUP BY origin_asn ORDER BY c DESC LIMIT 1";
+            if let Ok(mut stmt) = conn.prepare_cached(query) {
+                if let Ok(mut rows) = stmt.query([]) {
+                    if let Ok(Some(row)) = rows.next() {
+                        stats.flappiest_asn = row.get(0).unwrap_or(0);
+                        stats.flappy_prefix_count = row.get(1).unwrap_or(0);
+                    }
+                }
+            }
+        }
+        stats
     }
 
     pub fn get_classification_stats(&self) -> HashMap<ClassificationType, ClassificationStats> {

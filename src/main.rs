@@ -15,7 +15,7 @@ use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tokio::sync::mpsc;
@@ -127,6 +127,15 @@ struct AppState {
     cached_class_db_stats: RwLock<HashMap<ClassificationType, ClassificationStats>>,
     cached_class_ipv4_counts: RwLock<HashMap<ClassificationType, u64>>,
     loading_historical: AtomicBool,
+
+    top_flappiest_asn: RwLock<String>,
+    top_flappiest_network: RwLock<String>,
+    top_flappy_prefix_count: AtomicU32,
+    top_largest_org_name: RwLock<String>,
+    top_largest_org_ipv4_count: AtomicU64,
+    top_rpki_valid_ipv4: AtomicU64,
+    top_rpki_invalid_ipv4: AtomicU64,
+    top_rpki_not_found_ipv4: AtomicU64,
 }
 
 struct LiveMapService {
@@ -238,6 +247,18 @@ impl LiveMap for LiveMapService {
                 total_count,
             });
         }
+        let flappiest_asn = self.state.top_flappiest_asn.read().await.clone();
+        let flappiest_network = self.state.top_flappiest_network.read().await.clone();
+        let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
+        let largest_org_name = self.state.top_largest_org_name.read().await.clone();
+        let largest_org_ipv4_count = self
+            .state
+            .top_largest_org_ipv4_count
+            .load(Ordering::Relaxed);
+        let rpki_valid_ipv4 = self.state.top_rpki_valid_ipv4.load(Ordering::Relaxed);
+        let rpki_invalid_ipv4 = self.state.top_rpki_invalid_ipv4.load(Ordering::Relaxed);
+        let rpki_not_found_ipv4 = self.state.top_rpki_not_found_ipv4.load(Ordering::Relaxed);
+
         Ok(Response::new(GetSummaryResponse {
             messages_per_second: self.state.global_stats.get_current_rate(now, start_ts),
             asn_count: self.state.cached_global_asn_count.load(Ordering::Relaxed) as u32,
@@ -261,6 +282,14 @@ impl LiveMap for LiveMapService {
             loading_historical: self.state.loading_historical.load(Ordering::Relaxed),
             event_composition: Vec::new(),
             last_rpki_status: 0,
+            flappiest_asn_str: flappiest_asn,
+            flappiest_network,
+            flappy_prefix_count,
+            largest_org_name,
+            largest_org_ipv4_count,
+            rpki_valid_ipv4,
+            rpki_invalid_ipv4,
+            rpki_not_found_ipv4,
         }))
     }
 }
@@ -789,6 +818,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cached_class_db_stats: RwLock::new(HashMap::new()),
         cached_class_ipv4_counts: RwLock::new(HashMap::new()),
         loading_historical: AtomicBool::new(true),
+
+        top_flappiest_asn: RwLock::new(String::new()),
+        top_flappiest_network: RwLock::new(String::new()),
+        top_flappy_prefix_count: AtomicU32::new(0),
+        top_largest_org_name: RwLock::new(String::new()),
+        top_largest_org_ipv4_count: AtomicU64::new(0),
+        top_rpki_valid_ipv4: AtomicU64::new(0),
+        top_rpki_invalid_ipv4: AtomicU64::new(0),
+        top_rpki_not_found_ipv4: AtomicU64::new(0),
     });
     let c1 = classifier.clone();
     let g1 = geo.clone();
@@ -847,8 +885,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             interval.tick().await;
             let db_c = db_stats.clone();
-            if let Ok((g, c)) = tokio::task::spawn_blocking(move || {
-                (db_c.get_global_counts(), db_c.get_classification_stats())
+            if let Ok((g, c, ts)) = tokio::task::spawn_blocking(move || {
+                (
+                    db_c.get_global_counts(),
+                    db_c.get_classification_stats(),
+                    db_c.get_top_stats(),
+                )
             })
             .await
             {
@@ -865,6 +907,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .cached_global_ipv6_prefix_count
                     .store(g.ipv6_prefix_count as u64, Ordering::Relaxed);
                 *s_stats.cached_class_db_stats.write().await = c;
+
+                if ts.flappiest_asn > 0 {
+                    s_stats
+                        .top_flappy_prefix_count
+                        .store(ts.flappy_prefix_count, Ordering::Relaxed);
+                    let mut flappiest_asn = format!("AS{}", ts.flappiest_asn);
+                    let mut flappiest_org = String::new();
+
+                    let bgpkit = bgpkit_commons::BgpkitCommons::new();
+                    if let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
+                        if let Some(org) = info.as2org {
+                            flappiest_asn = format!("AS{}", ts.flappiest_asn);
+                            flappiest_org = org.org_name.clone();
+                        }
+                    }
+                    *s_stats.top_flappiest_asn.write().await = flappiest_asn;
+                    *s_stats.top_flappiest_network.write().await = flappiest_org;
+                }
             }
         }
     });
@@ -878,22 +938,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let pool = db_heavy.get_pool();
             if let Ok(summary) = tokio::task::spawn_blocking(move || {
                 let mut class_v4: HashMap<ClassificationType, Vec<ipnet::Ipv4Net>> = HashMap::new();
+                let mut org_v4: HashMap<String, Vec<ipnet::Ipv4Net>> = HashMap::new();
                 let mut global_v4 = Vec::new();
+
+                let mut rpki_valid = Vec::new();
+                let mut rpki_invalid = Vec::new();
+                let mut rpki_missing = Vec::new();
+
                 let mut count = 0;
+                let bgpkit = bgpkit_commons::BgpkitCommons::new();
                 if let Ok(conn) = pool.get()
                     && let Ok(mut stmt) =
-                        conn.prepare("SELECT prefix, classified_type FROM prefix_state")
+                        conn.prepare("SELECT prefix, classified_type, origin_asn FROM prefix_state")
                 {
                     let mut rows = stmt.query([]).unwrap();
                     while let Ok(Some(row)) = rows.next() {
                         let p_str: String = row.get(0).unwrap();
                         let c_i32: i32 = row.get(1).unwrap();
+                        let o_asn: u32 = row.get(2).unwrap_or(0);
                         if let Ok(IpNet::V4(v4)) = IpNet::from_str(&p_str) {
                             global_v4.push(v4);
                             class_v4
                                 .entry(ClassificationType::from_i32(c_i32))
                                 .or_default()
                                 .push(v4);
+
+                            if o_asn > 0 {
+                                let mut o_name = format!("AS{}", o_asn);
+                                if let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
+                                    if let Some(org) = info.as2org {
+                                        o_name = org.org_name.clone();
+                                    }
+                                }
+                                org_v4.entry(o_name).or_default().push(v4);
+
+                                // RPKI Check
+                                if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
+                                    match status {
+                                        bgpkit_commons::rpki::RpkiValidation::Valid => {
+                                            rpki_valid.push(v4)
+                                        }
+                                        bgpkit_commons::rpki::RpkiValidation::Invalid => {
+                                            rpki_invalid.push(v4)
+                                        }
+                                        bgpkit_commons::rpki::RpkiValidation::Unknown => {
+                                            rpki_missing.push(v4)
+                                        }
+                                    }
+                                } else {
+                                    rpki_missing.push(v4);
+                                }
+                            } else {
+                                rpki_missing.push(v4);
+                            }
+
                             count += 1;
                         }
                     }
@@ -929,7 +1027,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .sum::<u64>(),
                     );
                 }
-                (g_ipv4, c_ipv4)
+
+                let mut largest_org = String::new();
+                let mut largest_org_ips = 0;
+                for (org, nets) in org_v4 {
+                    let ips = ipnet::Ipv4Net::aggregate(&nets)
+                        .iter()
+                        .map(|n| {
+                            if n.prefix_len() == 0 {
+                                u32::MAX as u64 + 1
+                            } else {
+                                1u64 << (32 - n.prefix_len())
+                            }
+                        })
+                        .sum::<u64>();
+                    if ips > largest_org_ips {
+                        largest_org_ips = ips;
+                        largest_org = org;
+                    }
+                }
+
+                let sum_ips = |nets: &Vec<ipnet::Ipv4Net>| -> u64 {
+                    if nets.is_empty() {
+                        return 0;
+                    }
+                    ipnet::Ipv4Net::aggregate(nets)
+                        .iter()
+                        .map(|n| {
+                            if n.prefix_len() == 0 {
+                                u32::MAX as u64 + 1
+                            } else {
+                                1u64 << (32 - n.prefix_len())
+                            }
+                        })
+                        .sum::<u64>()
+                };
+
+                let rv = sum_ips(&rpki_valid);
+                let ri = sum_ips(&rpki_invalid);
+                let rm = sum_ips(&rpki_missing);
+
+                (g_ipv4, c_ipv4, largest_org, largest_org_ips, rv, ri, rm)
             })
             .await
             {
@@ -938,6 +1076,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .store(summary.0, Ordering::Relaxed);
                 *s_heavy.cached_class_ipv4_counts.write().await = summary.1;
                 s_heavy.loading_historical.store(false, Ordering::Relaxed);
+
+                *s_heavy.top_largest_org_name.write().await = summary.2;
+                s_heavy
+                    .top_largest_org_ipv4_count
+                    .store(summary.3, Ordering::Relaxed);
+                s_heavy
+                    .top_rpki_valid_ipv4
+                    .store(summary.4, Ordering::Relaxed);
+                s_heavy
+                    .top_rpki_invalid_ipv4
+                    .store(summary.5, Ordering::Relaxed);
+                s_heavy
+                    .top_rpki_not_found_ipv4
+                    .store(summary.6, Ordering::Relaxed);
+
                 info!("[STATS] Refreshed heavy IP aggregation.");
             }
         }
