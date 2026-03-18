@@ -129,7 +129,7 @@ jobs:
           fi
           mise exec -- cargo build --release --target ${{ matrix.rust_target }}
           mkdir -p build
-          cp target/${{ matrix.rust_target }}/release/livemap${{ matrix.ext }} build/
+          cp target/${{ matrix.rust_target }}/release/bgp-collector${{ matrix.ext }} build/
 
       - name: Create Archive
         shell: bash
