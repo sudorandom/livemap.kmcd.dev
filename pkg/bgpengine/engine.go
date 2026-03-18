@@ -29,6 +29,8 @@ import (
 	"github.com/sudorandom/bgp-stream/pkg/geoservice"
 	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/livemap/v1"
 	"github.com/sudorandom/bgp-stream/pkg/utils"
+	"golang.org/x/text/language"
+	"golang.org/x/text/language/display"
 )
 
 type Engine struct {
@@ -2017,8 +2019,8 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
 		locLabel = "Country:"
 		locVal = alert.Country
-		if name, ok := countryIsoMap[alert.Country]; ok {
-			locVal = name
+		if r, err := language.ParseRegion(alert.Country); err == nil {
+			locVal = display.English.Regions().Name(r)
 		}
 	default:
 		locLabel = "Context:"
