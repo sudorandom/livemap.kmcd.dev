@@ -1457,6 +1457,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
+        let mut last_emitted_transitions: HashMap<String, i64> = HashMap::new();
         loop {
             tokio::select! {
                 Some(first_msg) = rx.recv() => {
@@ -1494,29 +1495,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if pending.classification_type != pending.old_classification
                             && let Some(id) = &pending.incident_id {
-                                let cur_as_name = c_ingest.get_as_name(pending.asn).unwrap_or_default();
-                                transitions.push(StateTransition {
-                                    incident_id: id.clone(),
-                                    prefix: pending.prefix.clone(),
-                                    asn: pending.asn,
-                                    as_name: cur_as_name,
-                                    geo: Some(ProtoGeoData { lat: pending.lat, lon: pending.lon }),
-                                    city: pending.city.clone().unwrap_or_default(),
-                                    country: pending.country.clone().unwrap_or_default(),
-                                    new_state: map_classification(pending.classification_type).into(),
-                                    old_state: map_classification(pending.old_classification).into(),
-                                    start_time: pending.incident_start_time,
-                                    end_time: if pending.classification_type == ClassificationType::None { now } else { 0 },
-                                    leak_detail: pending.leak_detail.as_ref().map(|ld| livemap_proto::LeakDetail {
-                                        leak_type: ld.leak_type as u32,
-                                        leaker_asn: ld.leaker_asn,
-                                        victim_asn: ld.victim_asn,
-                                        leaker_as_name: c_ingest.get_as_name(ld.leaker_asn).unwrap_or_default(),
-                                        victim_as_name: c_ingest.get_as_name(ld.victim_asn).unwrap_or_default(),
-                                        leaker_rpki_status: ld.leaker_rpki_status,
-                                        victim_rpki_status: ld.victim_rpki_status
-                                    })
-                                });
+                                let transition_key = format!("{}:{}", pending.prefix, pending.asn);
+                                let last_emitted = last_emitted_transitions.get(&transition_key).copied().unwrap_or(0);
+                                if now - last_emitted >= 300 {
+                                    last_emitted_transitions.insert(transition_key, now);
+                                    let cur_as_name = c_ingest.get_as_name(pending.asn).unwrap_or_default();
+                                    transitions.push(StateTransition {
+                                        incident_id: id.clone(),
+                                        prefix: pending.prefix.clone(),
+                                        asn: pending.asn,
+                                        as_name: cur_as_name,
+                                        geo: Some(ProtoGeoData { lat: pending.lat, lon: pending.lon }),
+                                        city: pending.city.clone().unwrap_or_default(),
+                                        country: pending.country.clone().unwrap_or_default(),
+                                        new_state: map_classification(pending.classification_type).into(),
+                                        old_state: map_classification(pending.old_classification).into(),
+                                        start_time: pending.incident_start_time,
+                                        end_time: if pending.classification_type == ClassificationType::None { now } else { 0 },
+                                        leak_detail: pending.leak_detail.as_ref().map(|ld| livemap_proto::LeakDetail {
+                                            leak_type: ld.leak_type as u32,
+                                            leaker_asn: ld.leaker_asn,
+                                            victim_asn: ld.victim_asn,
+                                            leaker_as_name: c_ingest.get_as_name(ld.leaker_asn).unwrap_or_default(),
+                                            victim_as_name: c_ingest.get_as_name(ld.victim_asn).unwrap_or_default(),
+                                            leaker_rpki_status: ld.leaker_rpki_status,
+                                            victim_rpki_status: ld.victim_rpki_status
+                                        })
+                                    });
+                                }
                             }
                     }
                     s_ingest.max_lag.store(max_lag as u64, Ordering::Relaxed);
@@ -1532,6 +1538,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 _ = interval.tick() => {
+                    let now_tick = Utc::now().timestamp();
+                    last_emitted_transitions.retain(|_, v| now_tick - *v < 3600); // 1 hour window
+
                     if !aggregate_buffer.is_empty() {
                         let events = aggregate_buffer.drain().map(|(k, count)| AggregatedEvent {
                             geo: Some(ProtoGeoData {
