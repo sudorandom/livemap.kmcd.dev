@@ -1,7 +1,0 @@
-print("Look at `cacheHijackDDoSStrings(ce)` in `pkg/bgpengine/engine.go`!")
-print("```go\n    // Networks line\n    networks := make([]string, 0, len(ce.ImpactedPrefixes))\n    for p := range ce.ImpactedPrefixes {\n        networks = append(networks, p)\n    }\n    sort.Strings(networks)\n    ...\n    ce.CachedNetLabel = \"  Networks: \"\n    ...\n```")
-print("Wait, `cacheHijackDDoSStrings` DOES NOT contain `ce.CachedNetLabel = \"  Networks: \"`!!!")
-print("Let's look at `cacheHijackDDoSStrings` lines 1580-1630:")
-print("`networks := make([]string, 0, len(ce.ImpactedPrefixes))`")
-print("`for p := range ce.ImpactedPrefixes { networks = append(networks, p) }`")
-print("Wait, I truncated the output of `sed -n '1580,1630p'`. Let me look at lines 1622-1630!")

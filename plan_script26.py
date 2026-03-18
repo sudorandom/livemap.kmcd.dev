@@ -1,5 +1,0 @@
-print("Let's look at `createCriticalEventFromTransition` in `pkg/bgpengine/engine.go`:")
-print("```go\nif trans.LeakDetail != nil {\n    ...\n    // Map from Rust's LeakType enum to Go's bgp.LeakType\n    switch trans.LeakDetail.LeakType {\n    case 1:\n        ce.LeakType = bgp.LeakReOrigination\n    ...\n    }\n}\n```")
-print("Wait, what about `updateCriticalEventFromTransition`?")
-print("```go\nfunc (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *livemap.StateTransition) {\n    ...\n    if trans.LeakDetail != nil {\n        ...\n        // MAP LeakType ???\n```")
-print("Does `updateCriticalEventFromTransition` map `trans.LeakDetail.LeakType` to `ce.LeakType`?")

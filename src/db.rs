@@ -144,8 +144,8 @@ impl Db {
             if let Ok(mut stmt) = conn.prepare_cached("SELECT count(*) FROM prefix_state") {
                 counts.prefix_count = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
             }
-            if let Ok(mut stmt) =
-                conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE instr(prefix, ':') = 0")
+            if let Ok(mut stmt) = conn
+                .prepare_cached("SELECT count(*) FROM prefix_state WHERE instr(prefix, ':') = 0")
             {
                 counts.ipv4_prefix_count = stmt.query_row([], |row| row.get(0)).unwrap_or(0);
             }

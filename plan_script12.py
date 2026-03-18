@@ -1,5 +1,0 @@
-print("In `classifier.rs` line 1472:")
-print("Wait, `mock_ctx` uses 3 hosts. The test expects `res4.is_some()`. If `hosts.len() >= 5` is in `classifier.rs`, how did this test pass before my change?")
-print("Wait! Before my change:")
-print("`hosts.len() >= 5` WAS in `classifier.rs`!!")
-print("Let's read original file!")
