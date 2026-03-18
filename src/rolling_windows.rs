@@ -2,6 +2,82 @@ use crate::classifier::ClassificationType;
 use std::collections::HashMap;
 
 #[derive(Clone)]
+pub struct PrefixAnomalyStats {
+    pub current_window_count: f64,
+    pub last_window_ts: i64,
+    pub ewma_mean: f64,
+    pub ewma_var: f64,
+}
+
+impl Default for PrefixAnomalyStats {
+    fn default() -> Self {
+        Self {
+            current_window_count: 0.0,
+            last_window_ts: 0,
+            ewma_mean: 0.0,
+            ewma_var: 0.0,
+        }
+    }
+}
+
+impl PrefixAnomalyStats {
+    pub fn update(&mut self, now: i64) {
+        let current_window = now / 60; // 1-minute window
+        let last_window = self.last_window_ts / 60;
+
+        if self.last_window_ts == 0 {
+            self.last_window_ts = now;
+            self.current_window_count = 1.0;
+        } else if current_window > last_window {
+            let alpha = 0.95; // decay factor
+
+            // Apply EWMA update
+            let diff = self.current_window_count - self.ewma_mean;
+            let incr = (1.0 - alpha) * diff;
+            self.ewma_mean += incr;
+            self.ewma_var = alpha * (self.ewma_var + diff * incr);
+
+            // For missed windows (if more than 1 minute passed), update with 0
+            if current_window - last_window > 1 {
+                for _ in 0..(current_window - last_window - 1).min(60) {
+                    // cap at 60 minutes
+                    let d = 0.0 - self.ewma_mean;
+                    let i = (1.0 - alpha) * d;
+                    self.ewma_mean += i;
+                    self.ewma_var = alpha * (self.ewma_var + d * i);
+                }
+            }
+
+            self.current_window_count = 1.0;
+            self.last_window_ts = now;
+        } else {
+            self.current_window_count += 1.0;
+        }
+    }
+
+    pub fn z_score(&self, now: i64) -> f64 {
+        let current_window = now / 60;
+        let last_window = self.last_window_ts / 60;
+
+        let count = if current_window > last_window {
+            0.0 // The window rolled over, but this prefix hasn't had an event yet
+        } else {
+            self.current_window_count
+        };
+
+        let std_dev = self.ewma_var.sqrt();
+        if std_dev < 1e-5 {
+            if count > self.ewma_mean {
+                return count - self.ewma_mean;
+            } else {
+                return 0.0;
+            }
+        }
+        (count - self.ewma_mean) / std_dev
+    }
+}
+
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct WindowEntry {
     pub ts: i64,
@@ -21,6 +97,7 @@ pub struct RollingWindows {
     pub by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>, // asn, class -> entries
     pub by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // country, class -> entries
     pub by_organization: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // org, class -> entries
+    pub prefix_stats: HashMap<String, PrefixAnomalyStats>,
 }
 
 impl RollingWindows {
@@ -38,6 +115,9 @@ impl RollingWindows {
         now: i64,
         prefix: String,
     ) {
+        let stat = self.prefix_stats.entry(prefix.clone()).or_default();
+        stat.update(now);
+
         let lat_q = (lat * 10.0) as i32;
         let lon_q = (lon * 10.0) as i32;
         let entry = WindowEntry {

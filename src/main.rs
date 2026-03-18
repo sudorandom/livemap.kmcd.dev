@@ -991,6 +991,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut country_counts = std::collections::HashMap::new();
 
                     let mut count_recent = 0;
+                    let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         unique_asns.insert(e.asn);
                         if unique_prefixes.insert(e.prefix.clone())
@@ -1005,6 +1006,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if e.ts >= now_tick - 60 {
                             count_recent += 1;
+                            recent_prefixes.insert(e.prefix.clone());
                         }
                         if let Some(ref c) = e.city {
                             *city_counts.entry(c.clone()).or_insert(0) += 1;
@@ -1022,6 +1024,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else {
                         0.0
                     };
+                    let mut anomaly_score = 0.0;
+                    for p in &recent_prefixes {
+                        if let Some(ph) = rw.prefix_stats.get(p) {
+                            anomaly_score += ph.z_score(now_tick);
+                        }
+                    }
                     let top_city = city_counts
                         .into_iter()
                         .max_by_key(|&(_, c)| c)
@@ -1061,6 +1069,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             as_name: String::new(),
                             organization: String::new(),
                             asn_count: unique_asns.len() as u32,
+                            anomaly_score: anomaly_score as f32,
                         });
                     }
                 }
@@ -1076,6 +1085,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let (mut total_lat, mut total_lon, mut latlon_count) = (0.0, 0.0, 0);
 
                     let mut count_recent = 0;
+                    let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         if unique_prefixes.insert(e.prefix.clone())
                             && let Ok(net) = ipnet::IpNet::from_str(&e.prefix)
@@ -1089,6 +1099,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if e.ts >= now_tick - 60 {
                             count_recent += 1;
+                            recent_prefixes.insert(e.prefix.clone());
                         }
                         if !e.as_name.is_empty() {
                             as_name = e.as_name.clone();
@@ -1112,6 +1123,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else {
                         0.0
                     };
+                    let mut anomaly_score = 0.0;
+                    for p in &recent_prefixes {
+                        if let Some(ph) = rw.prefix_stats.get(p) {
+                            anomaly_score += ph.z_score(now_tick);
+                        }
+                    }
                     let top_city = city_counts
                         .into_iter()
                         .max_by_key(|&(_, c)| c)
@@ -1159,6 +1176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             as_name,
                             organization: String::new(),
                             asn_count: 1,
+                            anomaly_score: anomaly_score as f32,
                         });
                     }
                 }
@@ -1173,6 +1191,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let (mut total_lat, mut total_lon, mut latlon_count) = (0.0, 0.0, 0);
 
                     let mut count_recent = 0;
+                    let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         unique_asns.insert(e.asn);
                         if unique_prefixes.insert(e.prefix.clone())
@@ -1187,6 +1206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if e.ts >= now_tick - 60 {
                             count_recent += 1;
+                            recent_prefixes.insert(e.prefix.clone());
                         }
                         if let Some(ref c) = e.city {
                             *city_counts.entry(c.clone()).or_insert(0) += 1;
@@ -1204,6 +1224,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else {
                         0.0
                     };
+                    let mut anomaly_score = 0.0;
+                    for p in &recent_prefixes {
+                        if let Some(ph) = rw.prefix_stats.get(p) {
+                            anomaly_score += ph.z_score(now_tick);
+                        }
+                    }
                     let top_city = city_counts
                         .into_iter()
                         .max_by_key(|&(_, c)| c)
@@ -1246,6 +1272,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             as_name: String::new(),
                             organization: String::new(),
                             asn_count: unique_asns.len() as u32,
+                            anomaly_score: anomaly_score as f32,
                         });
                     }
                 }
@@ -1261,6 +1288,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let (mut total_lat, mut total_lon, mut latlon_count) = (0.0, 0.0, 0);
 
                     let mut count_recent = 0;
+                    let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         unique_asns.insert(e.asn);
                         if unique_prefixes.insert(e.prefix.clone())
@@ -1275,6 +1303,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if e.ts >= now_tick - 60 {
                             count_recent += 1;
+                            recent_prefixes.insert(e.prefix.clone());
                         }
                         if let Some(ref c) = e.city {
                             *city_counts.entry(c.clone()).or_insert(0) += 1;
@@ -1295,6 +1324,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else {
                         0.0
                     };
+                    let mut anomaly_score = 0.0;
+                    for p in &recent_prefixes {
+                        if let Some(ph) = rw.prefix_stats.get(p) {
+                            anomaly_score += ph.z_score(now_tick);
+                        }
+                    }
                     let top_city = city_counts
                         .into_iter()
                         .max_by_key(|&(_, c)| c)
@@ -1342,6 +1377,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             as_name: String::new(),
                             organization: org.clone(),
                             asn_count: unique_asns.len() as u32,
+                            anomaly_score: anomaly_score as f32,
                         });
                     }
                 }
@@ -1349,11 +1385,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             if !alerts.is_empty() {
                 alerts.sort_by(|a, b| {
-                    let impact_a =
-                        a.impacted_ipv4_ips as u128 + (a.impacted_ipv6_prefixes as u128 * 10000);
-                    let impact_b =
-                        b.impacted_ipv4_ips as u128 + (b.impacted_ipv6_prefixes as u128 * 10000);
-                    impact_b.cmp(&impact_a) // Descending
+                    b.anomaly_score
+                        .partial_cmp(&a.anomaly_score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
 
                 let mut loc_count = 0;

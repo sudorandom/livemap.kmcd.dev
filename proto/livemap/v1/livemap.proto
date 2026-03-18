@@ -146,6 +146,7 @@ message Alert {
     string as_name = 12;
     string organization = 13;
     uint32 asn_count = 14;
+    float anomaly_score = 15;
 }
 
 message StreamAlertsRequest {}

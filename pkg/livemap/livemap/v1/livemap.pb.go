@@ -1056,6 +1056,7 @@ type Alert struct {
 	AsName               string                 `protobuf:"bytes,12,opt,name=as_name,json=asName,proto3" json:"as_name,omitempty"`
 	Organization         string                 `protobuf:"bytes,13,opt,name=organization,proto3" json:"organization,omitempty"`
 	AsnCount             uint32                 `protobuf:"varint,14,opt,name=asn_count,json=asnCount,proto3" json:"asn_count,omitempty"`
+	AnomalyScore         float32                `protobuf:"fixed32,15,opt,name=anomaly_score,json=anomalyScore,proto3" json:"anomaly_score,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1184,6 +1185,13 @@ func (x *Alert) GetOrganization() string {
 func (x *Alert) GetAsnCount() uint32 {
 	if x != nil {
 		return x.AsnCount
+	}
+	return 0
+}
+
+func (x *Alert) GetAnomalyScore() float32 {
+	if x != nil {
+		return x.AnomalyScore
 	}
 	return 0
 }
@@ -1442,7 +1450,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\acountry\x18\x02 \x01(\tR\acountry\x12\x10\n" +
 	"\x03lat\x18\x03 \x01(\x02R\x03lat\x12\x10\n" +
 	"\x03lon\x18\x04 \x01(\x02R\x03lon\x12\x1b\n" +
-	"\tradius_km\x18\x05 \x01(\x02R\bradiusKm\"\xa8\x04\n" +
+	"\tradius_km\x18\x05 \x01(\x02R\bradiusKm\"\xcd\x04\n" +
 	"\x05Alert\x124\n" +
 	"\n" +
 	"alert_type\x18\x01 \x01(\x0e2\x15.livemap.v1.AlertTypeR\talertType\x125\n" +
@@ -1459,7 +1467,8 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x13percentage_increase\x18\v \x01(\x02R\x12percentageIncrease\x12\x17\n" +
 	"\aas_name\x18\f \x01(\tR\x06asName\x12\"\n" +
 	"\forganization\x18\r \x01(\tR\forganization\x12\x1b\n" +
-	"\tasn_count\x18\x0e \x01(\rR\basnCount\"\x15\n" +
+	"\tasn_count\x18\x0e \x01(\rR\basnCount\x12#\n" +
+	"\ranomaly_score\x18\x0f \x01(\x02R\fanomalyScore\"\x15\n" +
 	"\x13StreamAlertsRequest\"?\n" +
 	"\x14StreamAlertsResponse\x12'\n" +
 	"\x05alert\x18\x01 \x01(\v2\x11.livemap.v1.AlertR\x05alert\"`\n" +
