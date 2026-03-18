@@ -1045,6 +1045,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 5000 || ipv6_prefixes >= 20)
                         && percentage_increase > 0.0
+                        && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
                         emitted_alerts.insert(alert_key, now_tick);
@@ -1144,6 +1145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 5000 || ipv6_prefixes >= 20)
                         && percentage_increase > 0.0
+                        && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
                         emitted_alerts.insert(alert_key, now_tick);
@@ -1240,6 +1242,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 50000 || ipv6_prefixes >= 200)
                         && percentage_increase > 10.0
+                        && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
                         emitted_alerts.insert(alert_key, now_tick);
@@ -1345,6 +1348,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 10000 || ipv6_prefixes >= 40)
                         && percentage_increase > 0.0
+                        && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
                         emitted_alerts.insert(alert_key, now_tick);
