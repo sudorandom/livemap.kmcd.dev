@@ -160,9 +160,9 @@ jobs:
           if [ -f "README.md" ]; then INCLUDE_FILES="$INCLUDE_FILES README.md"; fi
 
           if [ "${{ runner.os }}" == "Windows" ]; then
-            7z a ../bgp-collector_${{ matrix.arch_name }}.zip $INCLUDE_FILES
+            7z a ../livemap_${{ matrix.arch_name }}.zip $INCLUDE_FILES
           else
-            tar -czvf ../bgp-collector_${{ matrix.arch_name }}.tar.gz $INCLUDE_FILES
+            tar -czvf ../livemap_${{ matrix.arch_name }}.tar.gz $INCLUDE_FILES
           fi
 
       - name: Upload Release Assets
