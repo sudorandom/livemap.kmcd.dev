@@ -91,7 +91,7 @@ pub struct WindowEntry {
     pub lon: f32,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RollingWindows {
     pub by_location: HashMap<(i32, i32, ClassificationType), Vec<WindowEntry>>, // lat_q, lon_q, class -> entries
     pub by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>, // asn, class -> entries
