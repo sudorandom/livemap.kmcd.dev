@@ -976,9 +976,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             interval.tick().await;
             let now_tick = Utc::now().timestamp();
             let mut alerts = Vec::new();
-            {
+            let rw_cloned = {
                 let mut rw = rw_alert.write().await;
                 rw.cleanup(now_tick, 300); // 5 minutes window
+                rw.clone()
+            };
+            {
+                let rw = rw_cloned;
                 emitted_alerts.retain(|_, v| now_tick - *v < 3600); // 1 hour window
 
                 // Check by Location
