@@ -39,13 +39,6 @@ jobs:
             arch_name: darwin_arm64
             ext: ""
             cgo_enabled: 1
-          - os: macos-13
-            rust_target: x86_64-apple-darwin
-            goos: darwin
-            goarch: amd64
-            arch_name: darwin_amd64
-            ext: ""
-            cgo_enabled: 1
           - os: windows-latest
             rust_target: x86_64-pc-windows-msvc
             goos: windows
