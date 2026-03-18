@@ -1371,9 +1371,9 @@ func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
 func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
 	// Attacker/Source line
 	if ce.Anom == bgp.NameHijack {
-		ce.CachedLeakerLabel = " Attacker"
+		ce.CachedLeakerLabel = "Attacker"
 	} else {
-		ce.CachedLeakerLabel = "   Source"
+		ce.CachedLeakerLabel = "Source"
 	}
 
 	if ce.LeakerASN > 0 {
@@ -1388,9 +1388,9 @@ func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
 
 	// Victim/Target line
 	if ce.Anom == bgp.NameHijack {
-		ce.CachedVictimLabel = "   Victim"
+		ce.CachedVictimLabel = "Victim"
 	} else {
-		ce.CachedVictimLabel = "   Target"
+		ce.CachedVictimLabel = "Target"
 	}
 
 	if ce.VictimASN > 0 {
@@ -1420,7 +1420,7 @@ func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
 		moreCount = len(networks) - maxShow
 	}
 
-	ce.CachedNetLabel = "  Networks: "
+	ce.CachedNetLabel = "Networks:"
 	netVal := strings.Join(displayNets, ", ")
 	if moreCount > 0 {
 		netVal += fmt.Sprintf(", (%d more)", moreCount)
@@ -1441,7 +1441,7 @@ func formatRPKI(status int32) string {
 
 func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
 	// Leaker line
-	ce.CachedLeakerLabel = "   Leaker"
+	ce.CachedLeakerLabel = "Leaker"
 	if ce.LeakerASN > 0 {
 		if ce.LeakerName != "" {
 			ce.CachedLeakerVal = fmt.Sprintf("AS%d (%s)", ce.LeakerASN, ce.LeakerName)
@@ -1453,7 +1453,7 @@ func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
 	}
 
 	// Impacted ASN line
-	ce.CachedVictimLabel = " Impacted"
+	ce.CachedVictimLabel = "Impacted"
 	if ce.VictimASN > 0 {
 		if ce.VictimName != "" {
 			ce.CachedVictimVal = fmt.Sprintf("AS%d (%s)", ce.VictimASN, ce.VictimName)
@@ -1485,7 +1485,7 @@ func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
 		moreCount = len(networks) - maxShow
 	}
 
-	ce.CachedNetLabel = "  Networks: "
+	ce.CachedNetLabel = "Networks:"
 	netVal := strings.Join(displayNets, ", ")
 	if moreCount > 0 {
 		netVal += fmt.Sprintf(", (%d more)", moreCount)
@@ -1517,7 +1517,7 @@ func (e *Engine) cacheOutageStrings(ce *CriticalEvent) {
 		moreCount = len(networks) - maxShow
 	}
 
-	ce.CachedNetLabel = "  Networks: "
+	ce.CachedNetLabel = "Networks:"
 	netVal := strings.Join(displayNets, ", ")
 	if moreCount > 0 {
 		netVal += fmt.Sprintf(", (%d more)", moreCount)
@@ -1586,7 +1586,7 @@ func (e *Engine) cacheImpactStrings(ce *CriticalEvent) {
 		}
 	}
 
-	ce.CachedImpactStr = fmt.Sprintf("  Impact(%s): %s", impactStr, pfxStr)
+	ce.CachedImpactStr = fmt.Sprintf("Impact(%s): %s", impactStr, pfxStr)
 }
 
 func (e *Engine) drawGlitchImage(screen, img *ebiten.Image, tx, ty, intensity float64, isGlitching bool) {
@@ -1960,7 +1960,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 
 	ct := bgp.ClassificationType(alert.Classification)
 	anomName := strings.ToUpper(ct.String())
-	cachedTypeLabel := fmt.Sprintf("[%s]", anomName)
+	cachedTypeLabel := fmt.Sprintf("[%s] [ANOMALY]", anomName)
 
 	uiCol := e.getClassificationUIColor(ct.String())
 	realCol, _, _ := e.getClassificationVisuals(ct)
@@ -1974,23 +1974,24 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		return fmt.Sprintf("%d", count)
 	}
 
+	var impactStr string
 	if alert.ImpactedIpv4Ips > 0 && alert.ImpactedIpv6Prefixes > 0 {
-		cachedTypeLabel = fmt.Sprintf("%s %s IPv4 IPs, %s IPv6 Prefixes", cachedTypeLabel, formatImpactCount(uint32(alert.ImpactedIpv4Ips)), formatImpactCount(alert.ImpactedIpv6Prefixes))
+		impactStr = fmt.Sprintf("%s IPv4 IPs, %s IPv6 Prefixes", formatImpactCount(uint32(alert.ImpactedIpv4Ips)), formatImpactCount(alert.ImpactedIpv6Prefixes))
 	} else if alert.ImpactedIpv4Ips > 0 {
-		cachedTypeLabel = fmt.Sprintf("%s %s IPv4 IPs", cachedTypeLabel, formatImpactCount(uint32(alert.ImpactedIpv4Ips)))
+		impactStr = fmt.Sprintf("%s IPv4 IPs", formatImpactCount(uint32(alert.ImpactedIpv4Ips)))
 	} else if alert.ImpactedIpv6Prefixes > 0 {
-		cachedTypeLabel = fmt.Sprintf("%s %s IPv6 Prefixes", cachedTypeLabel, formatImpactCount(alert.ImpactedIpv6Prefixes))
+		impactStr = fmt.Sprintf("%s IPv6 Prefixes", formatImpactCount(alert.ImpactedIpv6Prefixes))
 	} else {
-		cachedTypeLabel = fmt.Sprintf("%s %s Events", cachedTypeLabel, formatImpactCount(alert.EventsCount))
+		impactStr = fmt.Sprintf("%s Events", formatImpactCount(alert.EventsCount))
 	}
 
-	metricStr := fmt.Sprintf("%.0f%% Increase in last 5m", alert.PercentageIncrease)
+	metricStr := fmt.Sprintf("%s\n%.0f%% Increase in last 5m", impactStr, alert.PercentageIncrease)
 
 	var locLabel, locVal string
 
 	switch alert.AlertType {
 	case livemap.AlertType_ALERT_TYPE_BY_LOCATION:
-		locLabel = "  Location:"
+		locLabel = "Location:"
 		if alert.Location != nil && alert.Location.City != "" {
 			locVal = fmt.Sprintf("Around %s, %s", alert.Location.City, alert.Location.Country)
 		} else if alert.Location != nil {
@@ -1999,7 +2000,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 			locVal = "Unknown"
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_ASN:
-		locLabel = "   Network:"
+		locLabel = "Network:"
 		locVal = fmt.Sprintf("AS%d", alert.Asn)
 		if alert.AsName != "" {
 			locVal = fmt.Sprintf("AS%d - %s", alert.Asn, alert.AsName)
@@ -2008,19 +2009,19 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 			locVal = fmt.Sprintf("%s (%s, %s)", locVal, alert.Location.City, alert.Location.Country)
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_ORGANIZATION:
-		locLabel = "      Org.:"
+		locLabel = "Org.:"
 		locVal = alert.Organization
 		if alert.Location != nil && alert.Location.City != "" {
 			locVal = fmt.Sprintf("%s (%s, %s)", locVal, alert.Location.City, alert.Location.Country)
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
-		locLabel = "   Country:"
+		locLabel = "Country:"
 		locVal = alert.Country
-		if alert.Location != nil && alert.Location.City != "" {
-			locVal = fmt.Sprintf("%s (%s)", locVal, alert.Location.City)
+		if name, ok := countryIsoMap[alert.Country]; ok {
+			locVal = name
 		}
 	default:
-		locLabel = "   Context:"
+		locLabel = "Context:"
 		locVal = "Unknown"
 	}
 
