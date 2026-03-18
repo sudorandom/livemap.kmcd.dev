@@ -1200,8 +1200,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let alert_key = format!("loc:{}:{}:{}", lat_q, lon_q, top_country);
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                    if (ipv4_count >= 5000 || ipv6_prefixes >= 20)
-                        && percentage_increase > 0.0
+                    if (ipv4_count >= 5000 || ipv6_prefixes >= 200)
+                        && percentage_increase > 10.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {

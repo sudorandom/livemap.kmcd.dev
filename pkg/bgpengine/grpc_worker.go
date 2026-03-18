@@ -44,16 +44,8 @@ func (e *Engine) runGRPCClient(addr string) error {
 	ctx, cancel := context.WithCancel(e.ctx)
 	defer cancel()
 
-	// 1. Start Summary Polling
 	go e.pollSummary(ctx, client)
-
-	// 2. Start State Transition Stream
-	go e.consumeStateTransitions(ctx, client)
-
-	// 3. Start Alert Stream
 	go e.consumeAlertStream(ctx, client)
-
-	// 4. Start Event Stream
 	return e.consumeEventStream(ctx, client)
 }
 
@@ -274,34 +266,6 @@ func (e *Engine) consumeEventStream(ctx context.Context, client livemap.LiveMapS
 					"", 0, 0, nil, nil, // Other fields not needed for simple pulse
 				)
 			}
-		}
-	}
-}
-
-func (e *Engine) consumeStateTransitions(ctx context.Context, client livemap.LiveMapServiceClient) error {
-	stream, err := client.StreamStateTransitions(ctx, &livemap.StreamStateTransitionsRequest{
-		TargetStates: []livemap.Classification{
-			livemap.Classification_CLASSIFICATION_HIJACK,
-			livemap.Classification_CLASSIFICATION_ROUTE_LEAK,
-			livemap.Classification_CLASSIFICATION_OUTAGE,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	log.Println("[GRPC] Subscribed to state transitions")
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		if trans := resp.GetTransition(); trans != nil {
-			e.RecordStateTransition(trans)
 		}
 	}
 }

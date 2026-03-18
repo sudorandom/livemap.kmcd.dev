@@ -113,6 +113,13 @@ type Engine struct {
 	streamMu               sync.Mutex
 	impactDirty            bool
 	loadingHistorical      bool
+	topStatsFlappiestASN     string
+	topStatsFlappiestOrg     string
+	topStatsLargestOrg       string
+	topStatsRPKIValidIPv4    uint64
+	topStatsRPKIInvalidIPv4  uint64
+	topStatsRPKINotFoundIPv4 uint64
+	topStatsDirty            bool
 	criticalCooldown       map[string]time.Time
 
 	ctx       context.Context
@@ -1968,7 +1975,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 
 	ct := bgp.ClassificationType(alert.Classification)
 	anomName := strings.ToUpper(ct.String())
-	cachedTypeLabel := fmt.Sprintf("[%s] [ANOMALY]", anomName)
+	cachedTypeLabel := fmt.Sprintf("[%s]", anomName)
 
 	uiCol := e.getClassificationUIColor(ct.String())
 	realCol, _, _ := e.getClassificationVisuals(ct)
@@ -1993,13 +2000,11 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		impactStr = fmt.Sprintf("%s Events", formatImpactCount(alert.EventsCount))
 	}
 
-	metricStr := fmt.Sprintf("%s\n%.0f%% Increase in last 5m", impactStr, alert.PercentageIncrease)
-
 	var locLabel, locVal string
 
 	switch alert.AlertType {
 	case livemap.AlertType_ALERT_TYPE_BY_LOCATION:
-		locLabel = "Location:"
+		locLabel = "Location: "
 		if alert.Location != nil && alert.Location.City != "" {
 			locVal = fmt.Sprintf("Around %s, %s", alert.Location.City, alert.Location.Country)
 		} else if alert.Location != nil {
@@ -2008,7 +2013,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 			locVal = "Unknown"
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_ASN:
-		locLabel = "Network:"
+		locLabel = "Network: "
 		locVal = fmt.Sprintf("AS%d", alert.Asn)
 		if alert.AsName != "" {
 			locVal = fmt.Sprintf("AS%d - %s", alert.Asn, alert.AsName)
@@ -2017,19 +2022,19 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 			locVal = fmt.Sprintf("%s (%s, %s)", locVal, alert.Location.City, alert.Location.Country)
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_ORGANIZATION:
-		locLabel = "Org.:"
+		locLabel = "Org.: "
 		locVal = alert.Organization
 		if alert.Location != nil && alert.Location.City != "" {
 			locVal = fmt.Sprintf("%s (%s, %s)", locVal, alert.Location.City, alert.Location.Country)
 		}
 	case livemap.AlertType_ALERT_TYPE_BY_COUNTRY:
-		locLabel = "Country:"
+		locLabel = "Country: "
 		locVal = alert.Country
 		if r, err := language.ParseRegion(alert.Country); err == nil {
 			locVal = display.English.Regions().Name(r)
 		}
 	default:
-		locLabel = "Context:"
+		locLabel = "Context: "
 		locVal = "Unknown"
 	}
 
@@ -2047,7 +2052,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		Color:           realCol,
 		UIColor:         uiCol,
 		CachedTypeLabel: cachedTypeLabel,
-		CachedFirstLine: metricStr,
+		CachedFirstLine: impactStr,
 		CachedLocLabel:  locLabel,
 		CachedLocVal:    locVal,
 		ImpactedIPs:     alert.ImpactedIpv4Ips,
