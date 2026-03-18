@@ -668,8 +668,23 @@ async fn consume_routeviews(
     }
 }
 
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Paths to MMDB files for geolocation
+    #[arg(short, long, required = true)]
+    mmdb: Vec<String>,
+
+    /// Listen address for the gRPC server
+    #[arg(short, long, default_value = "[::1]:50051")]
+    listen: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
     let start_instant = Instant::now();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .format_timestamp_millis()
@@ -780,7 +795,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     });
     let (tx, mut rx) = mpsc::channel::<(PendingEvent, bool)>(200000);
-    let geo = Arc::new(Geolocation::new("assets/dbip-city-lite-2026-03.mmdb"));
+    let geo = Arc::new(Geolocation::new(args.mmdb));
     let mut class_stats = HashMap::new();
     for i in [1, 2, 3, 4, 5, 6, 8, 9] {
         class_stats.insert(ClassificationType::from_i32(i), CumulativeStats::default());
@@ -1710,7 +1725,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
-    let addr = "0.0.0.0:50051".parse().unwrap();
+    let addr = args.listen.parse().expect("Failed to parse listen address");
     info!("Starting gRPC server on {}", addr);
     info!("Startup took {}ms", start_instant.elapsed().as_millis());
     Server::builder()
