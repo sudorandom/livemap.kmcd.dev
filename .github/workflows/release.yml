@@ -82,6 +82,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             pkg-config \
+            cmake \
             gcc-aarch64-linux-gnu \
             g++-aarch64-linux-gnu \
             libgl1-mesa-dev:arm64 \
@@ -90,7 +91,9 @@ jobs:
             libxinerama-dev:arm64 \
             libxi-dev:arm64 \
             libxxf86vm-dev:arm64 \
-            libasound2-dev:arm64
+            libasound2-dev:arm64 \
+            libssl-dev:arm64 \
+            zlib1g-dev:arm64
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -126,6 +129,11 @@ jobs:
         run: |
           if [ "${{ matrix.cross }}" == "true" ]; then
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+            export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+            export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+            export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
+            export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+            export PKG_CONFIG_ALLOW_CROSS=1
           fi
           mise exec -- cargo build --release --target ${{ matrix.rust_target }}
           mkdir -p build
