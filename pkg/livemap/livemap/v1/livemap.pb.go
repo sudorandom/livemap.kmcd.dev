@@ -616,6 +616,7 @@ type GetSummaryResponse struct {
 	FlappiestAsnStr     string `protobuf:"bytes,15,opt,name=flappiest_asn_str,json=flappiestAsnStr,proto3" json:"flappiest_asn_str,omitempty"`
 	FlappiestNetwork    string `protobuf:"bytes,16,opt,name=flappiest_network,json=flappiestNetwork,proto3" json:"flappiest_network,omitempty"`
 	FlappyPrefixCount   uint32 `protobuf:"varint,17,opt,name=flappy_prefix_count,json=flappyPrefixCount,proto3" json:"flappy_prefix_count,omitempty"`
+	FlappiestPrefix     string `protobuf:"bytes,23,opt,name=flappiest_prefix,json=flappiestPrefix,proto3" json:"flappiest_prefix,omitempty"`
 	LargestOrgName      string `protobuf:"bytes,18,opt,name=largest_org_name,json=largestOrgName,proto3" json:"largest_org_name,omitempty"`
 	LargestOrgIpv4Count uint64 `protobuf:"varint,19,opt,name=largest_org_ipv4_count,json=largestOrgIpv4Count,proto3" json:"largest_org_ipv4_count,omitempty"`
 	RpkiValidIpv4       uint64 `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
@@ -765,6 +766,13 @@ func (x *GetSummaryResponse) GetFlappyPrefixCount() uint32 {
 		return x.FlappyPrefixCount
 	}
 	return 0
+}
+
+func (x *GetSummaryResponse) GetFlappiestPrefix() string {
+	if x != nil {
+		return x.FlappiestPrefix
+	}
+	return ""
 }
 
 func (x *GetSummaryResponse) GetLargestOrgName() string {
@@ -1465,7 +1473,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
 	"\n" +
 	"percentage\x18\x02 \x01(\x02R\n" +
-	"percentage\"\x82\b\n" +
+	"percentage\"\xad\b\n" +
 	"\x12GetSummaryResponse\x12.\n" +
 	"\x13messages_per_second\x18\x01 \x01(\x02R\x11messagesPerSecond\x12\x1b\n" +
 	"\tasn_count\x18\x02 \x01(\rR\basnCount\x12!\n" +
@@ -1484,7 +1492,8 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x10last_rpki_status\x18\x0e \x01(\x0e2\x16.livemap.v1.RPKIStatusR\x0elastRpkiStatus\x12*\n" +
 	"\x11flappiest_asn_str\x18\x0f \x01(\tR\x0fflappiestAsnStr\x12+\n" +
 	"\x11flappiest_network\x18\x10 \x01(\tR\x10flappiestNetwork\x12.\n" +
-	"\x13flappy_prefix_count\x18\x11 \x01(\rR\x11flappyPrefixCount\x12(\n" +
+	"\x13flappy_prefix_count\x18\x11 \x01(\rR\x11flappyPrefixCount\x12)\n" +
+	"\x10flappiest_prefix\x18\x17 \x01(\tR\x0fflappiestPrefix\x12(\n" +
 	"\x10largest_org_name\x18\x12 \x01(\tR\x0elargestOrgName\x123\n" +
 	"\x16largest_org_ipv4_count\x18\x13 \x01(\x04R\x13largestOrgIpv4Count\x12&\n" +
 	"\x0frpki_valid_ipv4\x18\x14 \x01(\x04R\rrpkiValidIpv4\x12*\n" +

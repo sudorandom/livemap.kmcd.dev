@@ -60,6 +60,12 @@ func (e *Engine) DrawBGPStatus(screen *ebiten.Image) {
 	// 4. Bottom Right: Legend, Anomaly Summary & Trendlines
 	e.drawLegendAndTrends(screen)
 
+	// 5. Left Bottom / Above Now Playing: Flappiest Network
+	e.drawFlappiestNetwork(screen, margin, boxW, fontSize)
+
+	// 6. RPKI Status Vertical Progress Bar
+	e.drawRPKIStatus(screen, margin, boxW, fontSize)
+
 	e.drawDisconnected(screen)
 }
 
@@ -525,6 +531,110 @@ func (e *Engine) drawNowPlaying(screen *ebiten.Image, margin, boxW, fontSize flo
 	}
 
 	e.drawGlitchImage(screen, e.nowPlayingBuffer, songX-10, songYBase-fontSize-15, intensity, isGlitching)
+}
+
+func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSize float64) {
+	if e.topStatsFlappiestASN == "" {
+		return
+	}
+
+	panelW := boxW * 1.0
+	panelH := fontSize * 2.5 + fontSize*1.2
+
+	// Calculate Now Playing height to position below it
+	boxHSong := fontSize * 2.5
+	if e.CurrentArtist != "" {
+		boxHSong += fontSize * 1.2
+	}
+	if e.CurrentExtra != "" {
+		boxHSong += fontSize * 1.2
+	}
+
+	panelX := float64(e.Width) - margin - (boxW * 1.0)
+	panelY := margin + boxHSong + 20 // Below Now Playing
+
+	localX, localY := 10.0, fontSize+15.0
+
+	// Draw Background
+	vector.FillRect(screen, float32(panelX-10), float32(panelY), float32(panelW), float32(panelH), color.RGBA{0, 0, 0, 100}, false)
+	vector.StrokeRect(screen, float32(panelX-10), float32(panelY), float32(panelW), float32(panelH), 1, color.RGBA{36, 42, 53, 255}, false)
+	vector.FillRect(screen, float32(panelX-10), float32(panelY), 4, float32(fontSize+10), ColorBad, false)
+
+	// Draw Title
+	textOp := &text.DrawOptions{}
+	textOp.GeoM.Translate(panelX-10+localX+5, panelY+localY-fontSize-5)
+	textOp.ColorScale.Scale(1, 1, 1, 0.5)
+	text.Draw(screen, "FLAPPIEST NETWORK", e.titleFace, textOp)
+
+	// Draw Content
+	asnOp := &text.DrawOptions{}
+	asnOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*0.2)
+	asnOp.ColorScale.Scale(1, 1, 1, 0.8)
+	text.Draw(screen, e.topStatsFlappiestPrefix + " (" + e.topStatsFlappiestASN + ")", e.face, asnOp)
+
+	orgOp := &text.DrawOptions{}
+	orgOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*1.3)
+	orgOp.ColorScale.Scale(1, 1, 1, 0.5)
+	text.Draw(screen, e.topStatsFlappiestOrg, e.artistFace, orgOp)
+}
+
+func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {
+	total := e.topStatsRPKIValidIPv4 + e.topStatsRPKIInvalidIPv4 + e.topStatsRPKINotFoundIPv4
+	if total == 0 {
+		return
+	}
+
+	validPct := float64(e.topStatsRPKIValidIPv4) / float64(total)
+	invalidPct := float64(e.topStatsRPKIInvalidIPv4) / float64(total)
+	notFoundPct := float64(e.topStatsRPKINotFoundIPv4) / float64(total)
+
+	// Position the vertical bar to the right edge
+	barW := 15.0
+	barH := float64(e.Height) * 0.4 // 40% of screen height
+	if e.Width > 2000 {
+		barW = 30.0
+	}
+
+	// Just above the summary/trendlines box
+	barX := float64(e.Width) - margin - barW
+	barY := float64(e.Height) - margin - 350 - barH - 20
+	if e.Width > 2000 {
+		barY = float64(e.Height) - margin - 700 - barH - 20
+	}
+
+	// Draw Background for the bar
+	vector.FillRect(screen, float32(barX), float32(barY), float32(barW), float32(barH), color.RGBA{0, 0, 0, 100}, false)
+	vector.StrokeRect(screen, float32(barX), float32(barY), float32(barW), float32(barH), 1, color.RGBA{36, 42, 53, 255}, false)
+
+	currY := float32(barY)
+
+	validH := float32(barH * validPct)
+	invalidH := float32(barH * invalidPct)
+	notFoundH := float32(barH * notFoundPct)
+
+	// Not Found (Grey)
+	if notFoundH > 0 {
+		vector.FillRect(screen, float32(barX), currY, float32(barW), notFoundH, color.RGBA{120, 120, 120, 200}, false)
+		currY += notFoundH
+	}
+	// Invalid (Red)
+	if invalidH > 0 {
+		vector.FillRect(screen, float32(barX), currY, float32(barW), invalidH, color.RGBA{220, 50, 50, 200}, false)
+		currY += invalidH
+	}
+	// Valid (Green)
+	if validH > 0 {
+		vector.FillRect(screen, float32(barX), currY, float32(barW), validH, color.RGBA{50, 220, 50, 200}, false)
+	}
+
+	// Add RPKI label below the bar
+	msg := "RPKI"
+	tw, _ := text.Measure(msg, e.subMonoFace, 0)
+
+	labelOp := &text.DrawOptions{}
+	labelOp.ColorScale.Scale(1, 1, 1, 0.8)
+	labelOp.GeoM.Translate(barX + (barW - tw)/2, barY + barH + 5)
+	text.Draw(screen, msg, e.subMonoFace, labelOp)
 }
 
 func (e *Engine) drawLegendAndTrends(screen *ebiten.Image) {
