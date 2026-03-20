@@ -113,6 +113,7 @@ type Engine struct {
 	streamMu               sync.Mutex
 	impactDirty            bool
 	loadingHistorical      bool
+	topStatsFlappiestPrefix  string
 	topStatsFlappiestASN     string
 	topStatsFlappiestOrg     string
 	topStatsLargestOrg       string

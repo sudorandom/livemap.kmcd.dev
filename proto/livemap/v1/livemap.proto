@@ -81,6 +81,7 @@ message GetSummaryResponse {
     string flappiest_asn_str = 15;
     string flappiest_network = 16;
     uint32 flappy_prefix_count = 17;
+    string flappiest_prefix = 23;
     string largest_org_name = 18;
     uint64 largest_org_ipv4_count = 19;
     uint64 rpki_valid_ipv4 = 20;
