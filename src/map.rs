@@ -30,7 +30,7 @@ impl Geolocation {
             if let Ok(result) = reader.lookup(ip) {
                 if let Ok(city_data) = result.decode::<maxminddb::geoip2::City>() {
                     let city_data = city_data?;
-                    
+
                     let lat = city_data.location.latitude? as f32;
                     let lon = city_data.location.longitude? as f32;
 
