@@ -681,7 +681,7 @@ struct Args {
     mmdb: Vec<String>,
 
     /// Listen address for the gRPC server
-    #[arg(short, long, default_value = "[::1]:50051")]
+    #[arg(short, long, default_value = "127.0.0.1:50051")]
     listen: String,
 }
 
@@ -1219,7 +1219,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let alert_key = format!("loc:{}:{}:{}", lat_q, lon_q, top_country);
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                    if (ipv4_count >= 5000 || ipv6_prefixes >= 200)
+                    if (ipv4_count >= 5000 || ipv6_prefixes >= 500)
                         && percentage_increase > 10.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
@@ -1319,7 +1319,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let alert_key = format!("asn:{}", asn);
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                    if (ipv4_count >= 5000 || ipv6_prefixes >= 20)
+                    if (ipv4_count >= 5000 || ipv6_prefixes >= 500)
                         && percentage_increase > 0.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
@@ -1416,7 +1416,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let alert_key = format!("country:{}", country);
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                    if (ipv4_count >= 50000 || ipv6_prefixes >= 200)
+                    if (ipv4_count >= 50000 || ipv6_prefixes >= 500)
                         && percentage_increase > 10.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
@@ -1522,7 +1522,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let alert_key = format!("org:{}", org);
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                    if (ipv4_count >= 10000 || ipv6_prefixes >= 40)
+                    if (ipv4_count >= 10000 || ipv6_prefixes >= 500)
                         && percentage_increase > 0.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300

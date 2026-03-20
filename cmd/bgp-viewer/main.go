@@ -33,6 +33,11 @@ func main() {
 	engine.HideUI = *hideUI
 	engine.MinimalUI = *minimalUI
 
+	// 1. Generate initial map background (MUST start before RunGame to avoid thread-safety issues)
+	if err := engine.GenerateInitialBackground(); err != nil {
+		log.Printf("Warning: Failed to generate background: %v", err)
+	}
+
 	// Start data loading and background tasks
 	startBackgroundTasks(engine)
 
@@ -43,11 +48,6 @@ func main() {
 func startBackgroundTasks(engine *bgpengine.Engine) {
 	// Start all data loading in the background
 	go func() {
-		// 1. Generate initial map background
-		if err := engine.GenerateInitialBackground(); err != nil {
-			log.Printf("Warning: Failed to generate background: %v", err)
-		}
-
 		// 2. Load the rest of the data (this now starts the gRPC worker)
 		if err := engine.LoadRemainingData(); err != nil {
 			log.Printf("Fatal: failed to load remaining data: %v", err)
@@ -65,6 +65,7 @@ func runWindowLoop(engine *bgpengine.Engine) {
 	ebiten.SetWindowTitle("BGP Real-Time Map Viewer")
 	ebiten.SetWindowDecorated(!*hideWindowControls)
 	ebiten.SetWindowFloating(*floating)
+	ebiten.SetRunnableOnUnfocused(true)
 
 	w, h := *windowWidth, *windowHeight
 	if w == 0 {

@@ -52,9 +52,10 @@ type Engine struct {
 
 	bgImage     *ebiten.Image
 	pulseImage  *ebiten.Image
-	flareImage  *ebiten.Image
-	squareImage *ebiten.Image
-	whitePixel  *ebiten.Image
+	flareImage    *ebiten.Image
+	squareImage   *ebiten.Image
+	triangleImage *ebiten.Image
+	whitePixel    *ebiten.Image
 	fadeMask    *ebiten.Image
 	fontSource  *text.GoTextFaceSource
 	monoSource  *text.GoTextFaceSource
@@ -89,6 +90,7 @@ type Engine struct {
 
 	lastMetricsUpdate time.Time
 	lastDrawTime      time.Time
+	lastUpdate        time.Time
 	droppedFrames     atomic.Uint64
 	grpcMsgCount      atomic.Uint64
 	hubUpdatedAt      time.Time
@@ -293,6 +295,7 @@ func NewEngine(width, height int, scale float64) *Engine {
 	e.InitPulseTexture()
 	e.InitFlareTexture()
 	e.InitSquareTexture()
+	e.InitTriangleTexture()
 
 	return e
 }
@@ -568,7 +571,7 @@ func (e *Engine) AddPulse(lat, lng float64, c color.RGBA, count int, shape ...Ev
 	if len(shape) > 0 {
 		s = shape[0]
 	} else if c == ColorLeak {
-		s = ShapeFlare
+		s = ShapeSquare
 	}
 
 	// De-emphasize Discovery pulses slightly
@@ -654,6 +657,16 @@ func (e *Engine) UpdatePerformanceMetrics() {
 }
 
 func (e *Engine) Update() error {
+	now := e.Now()
+	if !e.lastUpdate.IsZero() {
+		diff := now.Sub(e.lastUpdate)
+		if diff > 5*time.Second {
+			log.Printf("[ENGINE] Large time jump detected (%.2fs). Resetting timers to avoid catch-up freeze.", diff.Seconds())
+			e.nextPulseEmittedAt = now
+		}
+	}
+	e.lastUpdate = now
+
 	if e.VideoWriter != nil {
 		if e.virtualTime.IsZero() {
 			e.virtualTime = time.Now()
@@ -849,6 +862,9 @@ func (e *Engine) Draw(screen *ebiten.Image) {
 			imgW = float64(e.squareImage.Bounds().Dx())
 			imgToDraw = e.squareImage
 			// A square pulse can have similar radius expansion
+		case ShapeTriangle:
+			imgW = float64(e.triangleImage.Bounds().Dx())
+			imgToDraw = e.triangleImage
 		}
 
 		scale := (1 + progress*p.MaxRadius*maxRadiusMultiplier) / imgW * 2.0
@@ -1046,7 +1062,11 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 	if trans.Prefix != "" {
 		if _, ok := ce.ImpactedPrefixes[trans.Prefix]; !ok {
 			ce.ImpactedPrefixes[trans.Prefix] = struct{}{}
-			ce.ImpactedIPs += utils.GetPrefixSize(trans.Prefix)
+			if strings.Contains(trans.Prefix, ":") {
+				ce.ImpactedIPv6Prefixes++
+			} else {
+				ce.ImpactedIPs += utils.GetPrefixSize(trans.Prefix)
+			}
 		}
 		if trans.EndTime == 0 {
 			ce.ActivePrefixes[trans.Prefix] = struct{}{}
@@ -1249,22 +1269,16 @@ func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
 		return false
 	}
 
-	if ce.IsAggregate {
-		return true
-	}
-
+	// Must meet one of these criteria to be considered significant:
+	// - At least 5000 IPv4 addresses
+	// - At least 500 IPv6 prefixes
 	if ce.ImpactedIPs >= 5000 {
 		return true
 	}
-	v6Count := 0
-	for p := range ce.ImpactedPrefixes {
-		if strings.Contains(p, ":") {
-			v6Count++
-			if v6Count >= 20 {
-				return true
-			}
-		}
+	if ce.ImpactedIPv6Prefixes >= 500 {
+		return true
 	}
+
 	return false
 }
 
@@ -1667,7 +1681,9 @@ func (e *Engine) getClassificationVisuals(classificationType bgp.ClassificationT
 	case bgp.ClassificationOutage:
 		return ColorOutage, bgp.NameHardOutage, ShapeCircle
 	case bgp.ClassificationRouteLeak:
-		return ColorCritical, bgp.NameRouteLeak, ShapeCircle
+		return ColorCritical, bgp.NameRouteLeak, ShapeSquare
+	case bgp.ClassificationMinorRouteLeak:
+		return ColorCritical, bgp.NameMinorRouteLeak, ShapeSquare
 	case bgp.ClassificationHijack:
 		return ColorCritical, bgp.NameHijack, ShapeFlare
 	case bgp.ClassificationBogon:
@@ -1773,6 +1789,59 @@ func (e *Engine) InitSquareTexture() {
 		}
 	}
 	e.squareImage.WritePixels(pixels)
+}
+
+func (e *Engine) InitTriangleTexture() {
+	size := 256
+	e.triangleImage = ebiten.NewImage(size, size)
+	pixels := make([]byte, size*size*4)
+	center := float64(size) / 2.0
+	// For an equilateral triangle pointing up
+	// Height of triangle will be maxDist * 2
+	// maxDist is the distance from center to vertices
+	maxDist := float64(size) / 2.0
+
+	// Vertices of the triangle
+	v1x, v1y := center, center-maxDist
+	v2x, v2y := center-maxDist*math.Sqrt(3)/2.0, center+maxDist/2.0
+	v3x, v3y := center+maxDist*math.Sqrt(3)/2.0, center+maxDist/2.0
+
+	// Helper function for point-in-triangle test (Barycentric coordinates)
+	isInTriangle := func(px, py float64) (bool, float64) {
+		denom := (v2y-v3y)*(v1x-v3x) + (v3x-v2x)*(v1y-v3y)
+		a := ((v2y-v3y)*(px-v3x) + (v3x-v2x)*(py-v3y)) / denom
+		b := ((v3y-v1y)*(px-v3x) + (v1x-v3x)*(py-v3y)) / denom
+		c := 1 - a - b
+
+		if a >= 0 && b >= 0 && c >= 0 {
+			// Return distance to nearest edge for shading
+			// Or just use distance from center relative to triangle size
+			dx, dy := px-center, py-center
+			dist := math.Sqrt(dx*dx + dy*dy)
+			return true, dist
+		}
+		return false, 0
+	}
+
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			if ok, dist := isInTriangle(float64(x), float64(y)); ok {
+				val, outer, inner := 0.0, 0.9, 0.8
+				if e.Width > 2000 {
+					outer, inner = 0.94, 0.88
+				}
+				// maxDist is roughly the max distance from center in triangle
+				if dist > maxDist*outer {
+					val = math.Cos(((dist - maxDist*(outer+((1-outer)/2))) / (maxDist * ((1 - outer) / 2))) * (math.Pi / 2))
+				} else if dist > maxDist*inner {
+					val = math.Sin(((dist - maxDist*inner) / (maxDist * (outer - inner))) * (math.Pi / 2))
+				}
+				pixels[(y*size+x)*4+3] = uint8(val * 255)
+				pixels[(y*size+x)*4+0], pixels[(y*size+x)*4+1], pixels[(y*size+x)*4+2] = 255, 255, 255
+			}
+		}
+	}
+	e.triangleImage.WritePixels(pixels)
 }
 
 func (e *Engine) calculateFlareBrightness(rdx, rdy, maxDist, rayThickness float64) float64 {
@@ -1971,6 +2040,10 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		return
 	}
 
+	if alert.ImpactedIpv4Ips < 5000 && alert.ImpactedIpv6Prefixes < 500 {
+		return
+	}
+
 	e.streamMu.Lock()
 	defer e.streamMu.Unlock()
 
@@ -2057,6 +2130,7 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		CachedLocLabel:  locLabel,
 		CachedLocVal:    locVal,
 		ImpactedIPs:     alert.ImpactedIpv4Ips,
+		ImpactedIPv6Prefixes: alert.ImpactedIpv6Prefixes,
 		IsAggregate:     true,
 	}
 

@@ -13,6 +13,7 @@ const (
 	ShapeCircle EventShape = iota
 	ShapeFlare
 	ShapeSquare
+	ShapeTriangle
 )
 
 type Pulse struct {
@@ -68,6 +69,7 @@ type CriticalEvent struct {
 	IsAggregate bool
 
 	ImpactedIPs       uint64
+	ImpactedIPv6Prefixes uint32
 	ImpactedPrefixes  map[string]struct{}
 	ActivePrefixes    map[string]struct{}
 	ActiveIncidentIDs map[string]struct{}

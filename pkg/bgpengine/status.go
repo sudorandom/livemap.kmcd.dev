@@ -204,6 +204,8 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 			imgToDraw = e.flareImage
 		case ShapeSquare:
 			imgToDraw = e.squareImage
+		case ShapeTriangle:
+			imgToDraw = e.triangleImage
 		}
 
 		swatchSize := fontSize * 0.8
@@ -379,6 +381,7 @@ func (e *Engine) drawCriticalStream(screen *ebiten.Image, margin, yBase, boxW, b
 
 func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float64) float64 {
 	indent := 20.0
+	rightEdge := boxW - 15.0
 	// We are now drawing into streamClipBuffer which represents only the events area
 	textOp := &text.DrawOptions{}
 	// Draw Anomaly Type Label (e.g. [OUTAGE])
@@ -402,7 +405,7 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 	}
 
 	// Draw the Title (wrapped)
-	nextY := e.drawWrappedText(e.streamClipBuffer, title, e.subMonoFace, x, y, boxW-5, fontSize, textOp)
+	nextY := e.drawWrappedText(e.streamClipBuffer, title, e.subMonoFace, x, y, rightEdge-x, fontSize, textOp)
 	if nextY == y {
 		nextY = y + fontSize*1.1
 	}
@@ -419,7 +422,7 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 		} else {
 			textOp.ColorScale.Scale(cr, cg, cb, 0.7)
 		}
-		nextY = e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, x, nextY, boxW-5, fontSize, textOp)
+		nextY = e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, x, nextY, rightEdge-x, fontSize, textOp)
 	}
 
 	labelCol := color.RGBA{180, 180, 180, 255} // Light gray
@@ -430,29 +433,29 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 	case (ce.Anom == bgp.NameRouteLeak || ce.Anom == bgp.NameMinorRouteLeak || strings.Contains(strings.ToLower(ce.Anom), "route leak")) && !ce.IsAggregate:
 		if ce.LeakType != bgp.LeakUnknown {
 			// Leaker
-			nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+			nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 
 			// Impacted
-			nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+			nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 
 			// Networks line
-			nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+			nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 		}
 	case (ce.Anom == bgp.NameHardOutage || strings.Contains(strings.ToLower(ce.Anom), "outage")) && !ce.IsAggregate:
 		// ASN line
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedASNLabel, ce.CachedASNVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedASNLabel, ce.CachedASNVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 
 		// Networks line
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 	case (ce.Anom == bgp.NameDDoSMitigation || ce.Anom == bgp.NameHijack || strings.Contains(strings.ToLower(ce.Anom), "hijack") || strings.Contains(strings.ToLower(ce.Anom), "ddos")) && !ce.IsAggregate:
 		// Attacker / Source
-		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 
 		// Victim / Target
-		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 
 		// Networks line
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, boxW-indent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 	}
 
 	if ce.CachedLocVal != "" {
@@ -460,13 +463,13 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 		if ce.CachedLocLabel == "" {
 			curIndent = 0
 		}
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, x+curIndent, nextY, boxW-curIndent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, x+curIndent, nextY, rightEdge-(x+curIndent), fontSize, labelCol, valueCol)
 	} else if ce.Locations != "" {
 		curIndent := indent
 		if ce.CachedLocLabel == "" {
 			curIndent = 0
 		}
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.Locations, e.subMonoFace, x+curIndent, nextY, boxW-curIndent-5, fontSize, labelCol, valueCol)
+		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.Locations, e.subMonoFace, x+curIndent, nextY, rightEdge-(x+curIndent), fontSize, labelCol, valueCol)
 	}
 
 	return nextY
@@ -998,60 +1001,63 @@ func (e *Engine) labeledLineHeight(label, value string, face *text.GoTextFace, m
 }
 
 func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64) float64 {
+	x := 10.0 // Consistent with localX in drawCriticalStream
+	rightEdge := boxW - 15.0
 	title := ce.CachedTypeLabel
 	if ce.Resolved {
 		title = "[RESOLVED]" + title
 	}
-	h := e.wrapHeight(title, e.subMonoFace, boxW-5, fontSize)
+	h := e.wrapHeight(title, e.subMonoFace, rightEdge-x, fontSize)
 
 	if ce.CachedFirstLine != "" {
-		h += e.wrapHeight(ce.CachedFirstLine, e.subMonoFace, boxW-5, fontSize)
+		h += e.wrapHeight(ce.CachedFirstLine, e.subMonoFace, rightEdge-x, fontSize)
 	}
 
 	indent := 20.0
-	detailsW := boxW - indent - 5
+	detailsRightEdge := rightEdge
 
 	switch ce.Anom {
 	case bgp.NameRouteLeak, bgp.NameMinorRouteLeak:
 		if ce.LeakType != bgp.LeakUnknown {
 			// Leaker line height (Label + [RPKI]: + Value)
 			leakerLabelWithStatus := ce.CachedLeakerLabel + "[NO RPKI]: "
-			h += e.labeledLineHeight(leakerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsW, fontSize)
+			h += e.labeledLineHeight(leakerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
 			// Impacted line height
 			impactedLabelWithStatus := ce.CachedVictimLabel + "[NO RPKI]: "
-			h += e.labeledLineHeight(impactedLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsW, fontSize)
+			h += e.labeledLineHeight(impactedLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
-			h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsW, fontSize)
+			h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 		}
 	case bgp.NameHardOutage:
-		h += e.labeledLineHeight(ce.CachedASNLabel, ce.CachedASNVal, e.subMonoFace, detailsW, fontSize)
-		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsW, fontSize)
+		h += e.labeledLineHeight(ce.CachedASNLabel, ce.CachedASNVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
+		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 	case bgp.NameDDoSMitigation, bgp.NameHijack:
 		// Attacker/Source line height
 		attackerLabelWithStatus := ce.CachedLeakerLabel + "[NO RPKI]: "
-		h += e.labeledLineHeight(attackerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsW, fontSize)
+		h += e.labeledLineHeight(attackerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
 		// Victim/Target line height
 		victimLabelWithStatus := ce.CachedVictimLabel + "[NO RPKI]: "
-		h += e.labeledLineHeight(victimLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsW, fontSize)
+		h += e.labeledLineHeight(victimLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
-		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsW, fontSize)
+		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 	}
 
 	if ce.CachedLocVal != "" {
-		curDetailsW := detailsW
+		curIndent := indent
 		if ce.CachedLocLabel == "" {
-			curDetailsW = boxW - 5
+			curIndent = 0
 		}
-		h += e.labeledLineHeight(ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, curDetailsW, fontSize)
+		h += e.labeledLineHeight(ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, detailsRightEdge-(x+curIndent), fontSize)
 	} else if ce.Locations != "" {
-		curDetailsW := detailsW
+		curIndent := indent
 		if ce.CachedLocLabel == "" {
-			curDetailsW = boxW - 5
+			curIndent = 0
 		}
-		h += e.labeledLineHeight(ce.CachedLocLabel, ce.Locations, e.subMonoFace, curDetailsW, fontSize)
+		h += e.labeledLineHeight(ce.CachedLocLabel, ce.Locations, e.subMonoFace, detailsRightEdge-(x+curIndent), fontSize)
 	}
+
 	return h
 }
 
