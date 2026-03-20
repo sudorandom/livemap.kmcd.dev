@@ -129,9 +129,10 @@ struct AppState {
     cached_class_ipv4_counts: RwLock<HashMap<ClassificationType, u64>>,
     loading_historical: AtomicBool,
 
-    top_flappiest_asn: RwLock<String>,
+    top_flappiest_asn: RwLock<u32>,
     top_flappiest_network: RwLock<String>,
     top_flappy_prefix_count: AtomicU32,
+    top_flappy_event_rate: RwLock<f32>,
     top_largest_org_name: RwLock<String>,
     top_largest_org_ipv4_count: AtomicU64,
     top_rpki_valid_ipv4: AtomicU64,
@@ -248,10 +249,10 @@ impl LiveMap for LiveMapService {
                 total_count,
             });
         }
-        let flappiest_prefix = self.state.top_flappiest_prefix.read().await.clone();
-        let flappiest_asn = self.state.top_flappiest_asn.read().await.clone();
+        let flappiest_asn = *self.state.top_flappiest_asn.read().await;
         let flappiest_network = self.state.top_flappiest_network.read().await.clone();
         let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
+        let flappy_event_rate = *self.state.top_flappy_event_rate.read().await;
         let largest_org_name = self.state.top_largest_org_name.read().await.clone();
         let largest_org_ipv4_count = self
             .state
@@ -284,10 +285,12 @@ impl LiveMap for LiveMapService {
             loading_historical: self.state.loading_historical.load(Ordering::Relaxed),
             event_composition: Vec::new(),
             last_rpki_status: 0,
-            flappiest_prefix,
-            flappiest_asn_str: flappiest_asn,
-            flappiest_network,
-            flappy_prefix_count,
+            flappiest_network_stats: Some(livemap_proto::FlappiestNetworkStats {
+                asn: flappiest_asn,
+                network_name: flappiest_network,
+                event_rate: flappy_event_rate,
+                flap_count: flappy_prefix_count,
+            }),
             largest_org_name,
             largest_org_ipv4_count,
             rpki_valid_ipv4,
@@ -838,9 +841,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loading_historical: AtomicBool::new(true),
 
         top_flappiest_prefix: RwLock::new(String::new()),
-        top_flappiest_asn: RwLock::new(String::new()),
+        top_flappiest_asn: RwLock::new(0),
         top_flappiest_network: RwLock::new(String::new()),
         top_flappy_prefix_count: AtomicU32::new(0),
+        top_flappy_event_rate: RwLock::new(0.0),
         top_largest_org_name: RwLock::new(String::new()),
         top_largest_org_ipv4_count: AtomicU64::new(0),
         top_rpki_valid_ipv4: AtomicU64::new(0),
@@ -898,6 +902,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let s_stats = app_state.clone();
     let db_stats = db.clone();
+    let c_stats = classifier.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(30));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -931,17 +936,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     s_stats
                         .top_flappy_prefix_count
                         .store(ts.flappy_prefix_count, Ordering::Relaxed);
-                    let mut flappiest_asn = format!("AS{}", ts.flappiest_asn);
+
+                    *s_stats.top_flappy_event_rate.write().await = ts.flappy_event_rate;
                     let mut flappiest_org = String::new();
 
-                    let bgpkit = bgpkit_commons::BgpkitCommons::new();
-                    if let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
-                        if let Some(org) = info.as2org {
-                            flappiest_asn = format!("AS{}", ts.flappiest_asn);
-                            flappiest_org = org.org_name.clone();
+                    if let Some(bgpkit) = &*c_stats.bgpkit.read() {
+                        if let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
+                            if let Some(org) = info.as2org {
+                                flappiest_org = org.org_name.clone();
+                            }
                         }
                     }
-                    *s_stats.top_flappiest_asn.write().await = flappiest_asn;
+                    *s_stats.top_flappiest_asn.write().await = ts.flappiest_asn;
                     *s_stats.top_flappiest_network.write().await = flappiest_org;
                 }
             }
@@ -949,12 +955,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let s_heavy = app_state.clone();
     let db_heavy = db.clone();
+    let heavy_classifier = classifier.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(600));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
             interval.tick().await;
             let pool = db_heavy.get_pool();
+
+            let hc = heavy_classifier.clone();
             if let Ok(summary) = tokio::task::spawn_blocking(move || {
                 let mut class_v4: HashMap<ClassificationType, Vec<ipnet::Ipv4Net>> = HashMap::new();
                 let mut org_v4: HashMap<String, Vec<ipnet::Ipv4Net>> = HashMap::new();
@@ -965,7 +974,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut rpki_missing = Vec::new();
 
                 let mut count = 0;
-                let bgpkit = bgpkit_commons::BgpkitCommons::new();
+
+                let guard = hc.bgpkit.read();
+                let bgpkit_opt = guard.as_ref();
+
                 if let Ok(conn) = pool.get()
                     && let Ok(mut stmt) =
                         conn.prepare("SELECT prefix, classified_type, origin_asn FROM prefix_state")
@@ -984,25 +996,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             if o_asn > 0 {
                                 let mut o_name = format!("AS{}", o_asn);
-                                if let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
-                                    if let Some(org) = info.as2org {
-                                        o_name = org.org_name.clone();
+                                if let Some(bgpkit) = bgpkit_opt {
+                                    if let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
+                                        if let Some(org) = info.as2org {
+                                            o_name = org.org_name.clone();
+                                        }
                                     }
                                 }
                                 org_v4.entry(o_name).or_default().push(v4);
 
                                 // RPKI Check
-                                if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
-                                    match status {
-                                        bgpkit_commons::rpki::RpkiValidation::Valid => {
-                                            rpki_valid.push(v4)
+                                if let Some(bgpkit) = bgpkit_opt {
+                                    if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
+                                        match status {
+                                            bgpkit_commons::rpki::RpkiValidation::Valid => {
+                                                rpki_valid.push(v4)
+                                            }
+                                            bgpkit_commons::rpki::RpkiValidation::Invalid => {
+                                                rpki_invalid.push(v4)
+                                            }
+                                            bgpkit_commons::rpki::RpkiValidation::Unknown => {
+                                                rpki_missing.push(v4)
+                                            }
                                         }
-                                        bgpkit_commons::rpki::RpkiValidation::Invalid => {
-                                            rpki_invalid.push(v4)
-                                        }
-                                        bgpkit_commons::rpki::RpkiValidation::Unknown => {
-                                            rpki_missing.push(v4)
-                                        }
+                                    } else {
+                                        rpki_missing.push(v4);
                                     }
                                 } else {
                                     rpki_missing.push(v4);

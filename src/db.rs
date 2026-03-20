@@ -44,6 +44,7 @@ pub struct GlobalCounts {
 pub struct TopStats {
     pub flappiest_asn: u32,
     pub flappy_prefix_count: u32,
+    pub flappy_event_rate: f32,
 }
 
 impl Db {
@@ -163,6 +164,7 @@ impl Db {
         let mut stats = TopStats {
             flappiest_asn: 0,
             flappy_prefix_count: 0,
+            flappy_event_rate: 0.0,
         };
         if let Ok(conn) = self.pool.get() {
             // Find the origin ASN with the most prefixes in FLAP state (assuming FLAP is 6 or so, need to pass correct int or just query where classified_type = 6)
@@ -173,6 +175,20 @@ impl Db {
                     if let Ok(Some(row)) = rows.next() {
                         stats.flappiest_asn = row.get(0).unwrap_or(0);
                         stats.flappy_prefix_count = row.get(1).unwrap_or(0);
+
+                        // we'll try to calculate a naive update rate:
+                        // for now just fallback to something simple based on last_update_ts
+                        // let's do a fast count of how many recent updates there were for this ASN
+                        let now = chrono::Utc::now().timestamp();
+                        let window_start = now - 300; // last 5 minutes
+                        if let Ok(mut rate_stmt) = conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE origin_asn = ?1 AND last_update_ts >= ?2") {
+                            if let Ok(mut r_rows) = rate_stmt.query([stats.flappiest_asn as i64, window_start]) {
+                                if let Ok(Some(r_row)) = r_rows.next() {
+                                    let updates_in_5m: f32 = r_row.get(0).unwrap_or(0.0);
+                                    stats.flappy_event_rate = updates_in_5m / 300.0;
+                                }
+                            }
+                        }
                     }
                 }
             }

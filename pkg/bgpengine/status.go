@@ -1,6 +1,7 @@
 package bgpengine
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -537,12 +538,12 @@ func (e *Engine) drawNowPlaying(screen *ebiten.Image, margin, boxW, fontSize flo
 }
 
 func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSize float64) {
-	if e.topStatsFlappiestASN == "" {
+	if e.topStatsFlappiestASN == 0 {
 		return
 	}
 
 	panelW := boxW * 1.0
-	panelH := fontSize * 2.5 + fontSize*1.2
+	panelH := fontSize * 4.5
 
 	// Calculate Now Playing height to position below it
 	boxHSong := fontSize * 2.5
@@ -573,12 +574,22 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 	asnOp := &text.DrawOptions{}
 	asnOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*0.2)
 	asnOp.ColorScale.Scale(1, 1, 1, 0.8)
-	text.Draw(screen, e.topStatsFlappiestPrefix + " (" + e.topStatsFlappiestASN + ")", e.face, asnOp)
+	text.Draw(screen, fmt.Sprintf("AS%d", e.topStatsFlappiestASN), e.face, asnOp)
 
 	orgOp := &text.DrawOptions{}
 	orgOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*1.3)
 	orgOp.ColorScale.Scale(1, 1, 1, 0.5)
 	text.Draw(screen, e.topStatsFlappiestOrg, e.artistFace, orgOp)
+
+	rateOp := &text.DrawOptions{}
+	rateOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*2.4)
+	rateOp.ColorScale.Scale(1, 1, 1, 0.7)
+	text.Draw(screen, fmt.Sprintf("Events/sec: %.2f", e.topStatsFlappyEventRate), e.artistFace, rateOp)
+
+	flapOp := &text.DrawOptions{}
+	flapOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*3.5)
+	flapOp.ColorScale.Scale(1, 1, 1, 0.7)
+	text.Draw(screen, fmt.Sprintf("Flaps: %d", e.topStatsFlappiestFlapCount), e.artistFace, flapOp)
 }
 
 func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {

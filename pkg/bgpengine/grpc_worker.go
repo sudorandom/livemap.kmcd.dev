@@ -207,13 +207,27 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 		}
 	}
 
-	if e.topStatsFlappiestPrefix != resp.GetFlappiestPrefix() || e.topStatsFlappiestASN != resp.GetFlappiestAsnStr() || e.topStatsFlappiestOrg != resp.GetFlappiestNetwork() || e.topStatsLargestOrg != resp.GetLargestOrgName() || e.topStatsRPKIValidIPv4 != resp.GetRpkiValidIpv4() {
+	networkStats := resp.GetFlappiestNetworkStats()
+
+	dirty := false
+	if e.topStatsLargestOrg != resp.GetLargestOrgName() || e.topStatsRPKIValidIPv4 != resp.GetRpkiValidIpv4() {
+		dirty = true
+	}
+
+	if networkStats != nil {
+		if e.topStatsFlappiestASN != networkStats.GetAsn() || e.topStatsFlappiestOrg != networkStats.GetNetworkName() {
+			dirty = true
+		}
+		e.topStatsFlappiestASN = networkStats.GetAsn()
+		e.topStatsFlappiestOrg = networkStats.GetNetworkName()
+		e.topStatsFlappyEventRate = networkStats.GetEventRate()
+		e.topStatsFlappiestFlapCount = networkStats.GetFlapCount()
+	}
+
+	if dirty {
 		e.topStatsDirty = true
 	}
 
-	e.topStatsFlappiestPrefix = resp.GetFlappiestPrefix()
-	e.topStatsFlappiestASN = resp.GetFlappiestAsnStr()
-	e.topStatsFlappiestOrg = resp.GetFlappiestNetwork()
 	e.topStatsLargestOrg = resp.GetLargestOrgName()
 	e.topStatsRPKIValidIPv4 = resp.GetRpkiValidIpv4()
 	e.topStatsRPKIInvalidIPv4 = resp.GetRpkiInvalidIpv4()

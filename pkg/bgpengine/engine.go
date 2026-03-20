@@ -114,15 +114,16 @@ type Engine struct {
 	streamDirty            bool
 	streamMu               sync.Mutex
 	impactDirty            bool
-	loadingHistorical      bool
-	topStatsFlappiestPrefix  string
-	topStatsFlappiestASN     string
-	topStatsFlappiestOrg     string
-	topStatsLargestOrg       string
-	topStatsRPKIValidIPv4    uint64
-	topStatsRPKIInvalidIPv4  uint64
-	topStatsRPKINotFoundIPv4 uint64
-	topStatsDirty            bool
+	loadingHistorical          bool
+	topStatsFlappiestASN       uint32
+	topStatsFlappiestOrg       string
+	topStatsFlappyEventRate    float32
+	topStatsFlappiestFlapCount uint32
+	topStatsLargestOrg         string
+	topStatsRPKIValidIPv4      uint64
+	topStatsRPKIInvalidIPv4    uint64
+	topStatsRPKINotFoundIPv4   uint64
+	topStatsDirty              bool
 	criticalCooldown       map[string]time.Time
 
 	ctx       context.Context
