@@ -102,6 +102,7 @@ struct Checkpoint {
 
 #[allow(clippy::type_complexity)]
 struct AppState {
+    top_flappiest_prefix: RwLock<String>,
     subscribers: RwLock<Vec<mpsc::Sender<Result<SubscribeEventsResponse, Status>>>>,
     alert_subscribers: RwLock<Vec<mpsc::Sender<Result<StreamAlertsResponse, Status>>>>,
     transition_subscribers: RwLock<
@@ -247,6 +248,7 @@ impl LiveMap for LiveMapService {
                 total_count,
             });
         }
+        let flappiest_prefix = self.state.top_flappiest_prefix.read().await.clone();
         let flappiest_asn = self.state.top_flappiest_asn.read().await.clone();
         let flappiest_network = self.state.top_flappiest_network.read().await.clone();
         let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
@@ -282,6 +284,7 @@ impl LiveMap for LiveMapService {
             loading_historical: self.state.loading_historical.load(Ordering::Relaxed),
             event_composition: Vec::new(),
             last_rpki_status: 0,
+            flappiest_prefix,
             flappiest_asn_str: flappiest_asn,
             flappiest_network,
             flappy_prefix_count,
@@ -834,6 +837,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cached_class_ipv4_counts: RwLock::new(HashMap::new()),
         loading_historical: AtomicBool::new(true),
 
+        top_flappiest_prefix: RwLock::new(String::new()),
         top_flappiest_asn: RwLock::new(String::new()),
         top_flappiest_network: RwLock::new(String::new()),
         top_flappy_prefix_count: AtomicU32::new(0),

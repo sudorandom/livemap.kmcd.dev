@@ -1,0 +1,9 @@
+   Compiling livemap v0.1.0 (/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.17s
+     Running `target/debug/bgp-collector`
+error: the following required arguments were not provided:
+  --mmdb <MMDB>
+
+Usage: bgp-collector --mmdb <MMDB>
+
+For more information, try '--help'.
