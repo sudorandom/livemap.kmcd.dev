@@ -102,7 +102,6 @@ struct Checkpoint {
 
 #[allow(clippy::type_complexity)]
 struct AppState {
-    top_flappiest_prefix: RwLock<String>,
     subscribers: RwLock<Vec<mpsc::Sender<Result<SubscribeEventsResponse, Status>>>>,
     alert_subscribers: RwLock<Vec<mpsc::Sender<Result<StreamAlertsResponse, Status>>>>,
     transition_subscribers: RwLock<
@@ -840,7 +839,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cached_class_ipv4_counts: RwLock::new(HashMap::new()),
         loading_historical: AtomicBool::new(true),
 
-        top_flappiest_prefix: RwLock::new(String::new()),
         top_flappiest_asn: RwLock::new(0),
         top_flappiest_network: RwLock::new(String::new()),
         top_flappy_prefix_count: AtomicU32::new(0),
