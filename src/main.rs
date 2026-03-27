@@ -815,11 +815,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .await
                 .unwrap_or(None);
 
-                if let Some(fresh_bgpkit) = fresh_bgpkit_opt
-                    && let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
+                if let Some(fresh_bgpkit) = fresh_bgpkit_opt {
+                    if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
                         info!("Applying fresh BGPKIT AS info.");
                         *c_bg = Some(fresh_bgpkit);
                     }
+                }
             }
         });
     });
@@ -966,14 +967,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     *s_stats.top_flappy_event_rate.write().await = ts.flappy_event_rate;
                     let mut flappiest_org = String::new();
 
-                    if let Some(bgpkit) = &*c_stats.bgpkit.read()
-                        && let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
+                    if let Some(bgpkit) = &*c_stats.bgpkit.read() {
+                        if let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
                             if let Some(org) = info.as2org {
                                 flappiest_org = org.org_name.clone();
                             } else if !info.name.is_empty() {
                                 flappiest_org = info.name.clone();
                             }
                         }
+                    }
                     if flappiest_org.is_empty() {
                         flappiest_org = format!("AS{}", ts.flappiest_asn);
                     }
