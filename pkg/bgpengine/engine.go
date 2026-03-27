@@ -117,6 +117,7 @@ type Engine struct {
 	loadingHistorical          bool
 	topStatsFlappiestASN       uint32
 	topStatsFlappiestOrg       string
+	topStatsFlappiestPrefix    string
 	topStatsFlappyEventRate    float32
 	topStatsFlappiestFlapCount uint32
 	topStatsLargestOrg         string

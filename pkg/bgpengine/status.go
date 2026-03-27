@@ -12,6 +12,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/sudorandom/bgp-stream/pkg/bgp"
+	"github.com/sudorandom/bgp-stream/pkg/utils"
 )
 
 type legendRow struct {
@@ -543,19 +544,25 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 	}
 
 	panelW := boxW * 1.0
-	panelH := fontSize * 4.5
+	panelH := fontSize * 5.4
 
-	// Calculate Now Playing height to position below it
-	boxHSong := fontSize * 2.5
-	if e.CurrentArtist != "" {
-		boxHSong += fontSize * 1.2
+	// Align with the legend/summary box positioning
+	legendBoxW := 320.0
+	if e.Width > 2000 {
+		legendBoxW = 640.0
 	}
-	if e.CurrentExtra != "" {
-		boxHSong += fontSize * 1.2
+	summaryW := legendBoxW * 1.5
+	summaryX := float64(e.Width) - margin - summaryW - 40
+	legendH := 150.0
+	if e.Width > 2000 {
+		legendH = 300.0
 	}
+	trendBoxH := legendH - fontSize - 25
+	graphH := trendBoxH - 10
+	gy := float64(e.Height) - margin - graphH - 10 - 120
 
-	panelX := float64(e.Width) - margin - (boxW * 1.0)
-	panelY := margin + boxHSong + 20 // Below Now Playing
+	panelX := summaryX - panelW - 40
+	panelY := gy + 120 - (fontSize * 0.7) - 15
 
 	localX, localY := 10.0, fontSize+15.0
 
@@ -574,22 +581,17 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 	asnOp := &text.DrawOptions{}
 	asnOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*0.2)
 	asnOp.ColorScale.Scale(1, 1, 1, 0.8)
-	text.Draw(screen, fmt.Sprintf("AS%d", e.topStatsFlappiestASN), e.face, asnOp)
+	text.Draw(screen, fmt.Sprintf("%s (AS%d)", e.topStatsFlappiestPrefix, e.topStatsFlappiestASN), e.face, asnOp)
 
 	orgOp := &text.DrawOptions{}
 	orgOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*1.3)
 	orgOp.ColorScale.Scale(1, 1, 1, 0.5)
 	text.Draw(screen, e.topStatsFlappiestOrg, e.artistFace, orgOp)
 
-	rateOp := &text.DrawOptions{}
-	rateOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*2.4)
-	rateOp.ColorScale.Scale(1, 1, 1, 0.7)
-	text.Draw(screen, fmt.Sprintf("Events/sec: %.2f", e.topStatsFlappyEventRate), e.artistFace, rateOp)
-
 	flapOp := &text.DrawOptions{}
-	flapOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*3.5)
+	flapOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*2.4)
 	flapOp.ColorScale.Scale(1, 1, 1, 0.7)
-	text.Draw(screen, fmt.Sprintf("Flaps: %d", e.topStatsFlappiestFlapCount), e.artistFace, flapOp)
+	text.Draw(screen, fmt.Sprintf("Flaps (24h): %s", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount))), e.artistFace, flapOp)
 }
 
 func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {
@@ -609,12 +611,9 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 		barW = 30.0
 	}
 
-	// Just above the summary/trendlines box
+	// Position the bar higher up on the right edge
 	barX := float64(e.Width) - margin - barW
-	barY := float64(e.Height) - margin - 350 - barH - 20
-	if e.Width > 2000 {
-		barY = float64(e.Height) - margin - 700 - barH - 20
-	}
+	barY := float64(e.Height) * 0.05
 
 	// Draw Background for the bar
 	vector.FillRect(screen, float32(barX), float32(barY), float32(barW), float32(barH), color.RGBA{0, 0, 0, 100}, false)
@@ -647,7 +646,7 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 
 	labelOp := &text.DrawOptions{}
 	labelOp.ColorScale.Scale(1, 1, 1, 0.8)
-	labelOp.GeoM.Translate(barX + (barW - tw)/2, barY + barH + 5)
+	labelOp.GeoM.Translate(barX+(barW-tw)/2, barY+barH+5)
 	text.Draw(screen, msg, e.subMonoFace, labelOp)
 }
 

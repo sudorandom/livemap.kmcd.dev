@@ -791,7 +791,8 @@ type FlappiestNetworkStats struct {
 	Asn           uint32                 `protobuf:"varint,1,opt,name=asn,proto3" json:"asn,omitempty"`
 	NetworkName   string                 `protobuf:"bytes,2,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`
 	EventRate     float32                `protobuf:"fixed32,3,opt,name=event_rate,json=eventRate,proto3" json:"event_rate,omitempty"`
-	FlapCount     uint32                 `protobuf:"varint,4,opt,name=flap_count,json=flapCount,proto3" json:"flap_count,omitempty"`
+	FlapCount     uint32                 `protobuf:"varint,4,opt,name=flap_count,json=flapCount,proto3" json:"flap_count,omitempty"` // cumulative count in the last 24 hours
+	Prefix        string                 `protobuf:"bytes,5,opt,name=prefix,proto3" json:"prefix,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -852,6 +853,13 @@ func (x *FlappiestNetworkStats) GetFlapCount() uint32 {
 		return x.FlapCount
 	}
 	return 0
+}
+
+func (x *FlappiestNetworkStats) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
 }
 
 // LeakDetail contains information specific to route leaks.
@@ -1539,14 +1547,15 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x16largest_org_ipv4_count\x18\x13 \x01(\x04R\x13largestOrgIpv4Count\x12&\n" +
 	"\x0frpki_valid_ipv4\x18\x14 \x01(\x04R\rrpkiValidIpv4\x12*\n" +
 	"\x11rpki_invalid_ipv4\x18\x15 \x01(\x04R\x0frpkiInvalidIpv4\x12-\n" +
-	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\"\x8a\x01\n" +
+	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\"\xa2\x01\n" +
 	"\x15FlappiestNetworkStats\x12\x10\n" +
 	"\x03asn\x18\x01 \x01(\rR\x03asn\x12!\n" +
 	"\fnetwork_name\x18\x02 \x01(\tR\vnetworkName\x12\x1d\n" +
 	"\n" +
 	"event_rate\x18\x03 \x01(\x02R\teventRate\x12\x1d\n" +
 	"\n" +
-	"flap_count\x18\x04 \x01(\rR\tflapCount\"\xbf\x02\n" +
+	"flap_count\x18\x04 \x01(\rR\tflapCount\x12\x16\n" +
+	"\x06prefix\x18\x05 \x01(\tR\x06prefix\"\xbf\x02\n" +
 	"\n" +
 	"LeakDetail\x12\x1b\n" +
 	"\tleak_type\x18\x01 \x01(\rR\bleakType\x12\x1d\n" +

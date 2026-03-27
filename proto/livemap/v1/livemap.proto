@@ -90,7 +90,8 @@ message FlappiestNetworkStats {
     uint32 asn = 1;
     string network_name = 2;
     float event_rate = 3;
-    uint32 flap_count = 4;
+    uint32 flap_count = 4; // cumulative count in the last 24 hours
+    string prefix = 5;
 }
 
 // RPKIStatus defines the validation status of a prefix.

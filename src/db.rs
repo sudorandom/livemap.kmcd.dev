@@ -20,6 +20,12 @@ pub enum DbWriteOp {
         prefix: IpNet,
         asn: u32,
     },
+    RecordEvent {
+        prefix: String,
+        asn: u32,
+        event_type: i32,
+        ts: i64,
+    },
 }
 
 pub struct ClassificationStats {
@@ -43,6 +49,7 @@ pub struct GlobalCounts {
 
 pub struct TopStats {
     pub flappiest_asn: u32,
+    pub flappiest_prefix: String,
     pub flappy_prefix_count: u32,
     pub flappy_event_rate: f32,
 }
@@ -63,6 +70,21 @@ impl Db {
                      classified_type INTEGER,
                      origin_asn INTEGER DEFAULT 0
                  );
+                 CREATE TABLE IF NOT EXISTS events (
+                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     prefix TEXT,
+                     asn INTEGER,
+                     event_type INTEGER,
+                     ts INTEGER
+                 );
+                 CREATE TABLE IF NOT EXISTS rpki_stats (
+                     id INTEGER PRIMARY KEY,
+                     valid_ipv4 INTEGER,
+                     invalid_ipv4 INTEGER,
+                     not_found_ipv4 INTEGER
+                 );
+                 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+                 CREATE INDEX IF NOT EXISTS idx_events_asn_ts ON events(asn, ts);
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_type ON prefix_state(classified_type);
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_asn ON prefix_state(origin_asn);
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_stats ON prefix_state(classified_type, origin_asn, prefix);
@@ -128,6 +150,17 @@ impl Db {
                             let _ = s.insert(prefix, &asn.to_be_bytes());
                         }
                     }
+                    DbWriteOp::RecordEvent {
+                        prefix,
+                        asn,
+                        event_type,
+                        ts,
+                    } => {
+                        let _ = tx.execute(
+                            "INSERT INTO events (prefix, asn, event_type, ts) VALUES (?1, ?2, ?3, ?4)",
+                            params![prefix, asn, event_type, ts],
+                        );
+                    }
                 }
             }
             let _ = tx.commit();
@@ -136,6 +169,32 @@ impl Db {
 
     pub fn get_pool(&self) -> Pool<SqliteConnectionManager> {
         self.pool.clone()
+    }
+
+    pub fn get_cached_rpki_stats(&self) -> Option<(u64, u64, u64)> {
+        if let Ok(conn) = self.pool.get() {
+            if let Ok(mut stmt) = conn.prepare("SELECT valid_ipv4, invalid_ipv4, not_found_ipv4 FROM rpki_stats WHERE id = 1") {
+                if let Ok(mut rows) = stmt.query([]) {
+                    if let Ok(Some(row)) = rows.next() {
+                        let valid: i64 = row.get(0).unwrap_or(0);
+                        let invalid: i64 = row.get(1).unwrap_or(0);
+                        let not_found: i64 = row.get(2).unwrap_or(0);
+                        return Some((valid as u64, invalid as u64, not_found as u64));
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    pub fn set_cached_rpki_stats(&self, valid: u64, invalid: u64, not_found: u64) {
+        if let Ok(conn) = self.pool.get() {
+            let _ = conn.execute(
+                "INSERT INTO rpki_stats (id, valid_ipv4, invalid_ipv4, not_found_ipv4) VALUES (1, ?1, ?2, ?3)
+                 ON CONFLICT(id) DO UPDATE SET valid_ipv4=excluded.valid_ipv4, invalid_ipv4=excluded.invalid_ipv4, not_found_ipv4=excluded.not_found_ipv4",
+                params![valid as i64, invalid as i64, not_found as i64],
+            );
+        }
     }
 
     pub fn get_global_counts(&self) -> GlobalCounts {
@@ -163,29 +222,32 @@ impl Db {
     pub fn get_top_stats(&self) -> TopStats {
         let mut stats = TopStats {
             flappiest_asn: 0,
+            flappiest_prefix: String::new(),
             flappy_prefix_count: 0,
             flappy_event_rate: 0.0,
         };
         if let Ok(conn) = self.pool.get() {
-            // Find the origin ASN with the most prefixes in FLAP state (assuming FLAP is 6 or so, need to pass correct int or just query where classified_type = 6)
+            let now = chrono::Utc::now().timestamp();
+            let day_ago = now - 86400;
+
+            // Find the origin ASN with the most flap events in the last 24 hours
             // ClassificationType::Flap == 6
-            let query = "SELECT origin_asn, count(*) as c FROM prefix_state WHERE classified_type = 6 AND origin_asn != 0 GROUP BY origin_asn ORDER BY c DESC LIMIT 1";
+            let query = "SELECT asn, prefix, count(*) as c FROM events WHERE event_type = 6 AND ts >= ?1 GROUP BY prefix, asn ORDER BY c DESC LIMIT 1";
             if let Ok(mut stmt) = conn.prepare_cached(query) {
-                if let Ok(mut rows) = stmt.query([]) {
+                if let Ok(mut rows) = stmt.query([day_ago]) {
                     if let Ok(Some(row)) = rows.next() {
                         stats.flappiest_asn = row.get(0).unwrap_or(0);
-                        stats.flappy_prefix_count = row.get(1).unwrap_or(0);
+                        stats.flappiest_prefix = row.get(1).unwrap_or_default();
+                        stats.flappy_prefix_count = row.get(2).unwrap_or(0);
 
                         // we'll try to calculate a naive update rate:
-                        // for now just fallback to something simple based on last_update_ts
-                        // let's do a fast count of how many recent updates there were for this ASN
-                        let now = chrono::Utc::now().timestamp();
-                        let window_start = now - 300; // last 5 minutes
+                        // last 5 minutes
+                        let window_start = now - 300;
                         if let Ok(mut rate_stmt) = conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE origin_asn = ?1 AND last_update_ts >= ?2") {
                             if let Ok(mut r_rows) = rate_stmt.query([stats.flappiest_asn as i64, window_start]) {
                                 if let Ok(Some(r_row)) = r_rows.next() {
-                                    let updates_in_5m: f32 = r_row.get(0).unwrap_or(0.0);
-                                    stats.flappy_event_rate = updates_in_5m / 300.0;
+                                    let updates_in_5m: i64 = r_row.get(0).unwrap_or(0);
+                                    stats.flappy_event_rate = (updates_in_5m as f32) / 300.0;
                                 }
                             }
                         }
@@ -258,6 +320,15 @@ impl Db {
 
     pub fn record_seen(&self, prefix: IpNet, asn: u32) {
         let _ = self.write_tx.try_send(DbWriteOp::Seen { prefix, asn });
+    }
+
+    pub fn record_event(&self, prefix: &str, asn: u32, event_type: i32, ts: i64) {
+        let _ = self.write_tx.try_send(DbWriteOp::RecordEvent {
+            prefix: prefix.to_string(),
+            asn,
+            event_type,
+            ts,
+        });
     }
 
     pub fn get_stale_prefixes(&self, stale_threshold: i64) -> Vec<(String, String)> {

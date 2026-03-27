@@ -130,6 +130,7 @@ struct AppState {
 
     top_flappiest_asn: RwLock<u32>,
     top_flappiest_network: RwLock<String>,
+    top_flappiest_prefix: RwLock<String>,
     top_flappy_prefix_count: AtomicU32,
     top_flappy_event_rate: RwLock<f32>,
     top_largest_org_name: RwLock<String>,
@@ -250,6 +251,7 @@ impl LiveMap for LiveMapService {
         }
         let flappiest_asn = *self.state.top_flappiest_asn.read().await;
         let flappiest_network = self.state.top_flappiest_network.read().await.clone();
+        let flappiest_prefix = self.state.top_flappiest_prefix.read().await.clone();
         let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
         let flappy_event_rate = *self.state.top_flappy_event_rate.read().await;
         let largest_org_name = self.state.top_largest_org_name.read().await.clone();
@@ -289,6 +291,7 @@ impl LiveMap for LiveMapService {
                 network_name: flappiest_network,
                 event_rate: flappy_event_rate,
                 flap_count: flappy_prefix_count,
+                prefix: flappiest_prefix,
             }),
             largest_org_name,
             largest_org_ipv4_count,
@@ -757,10 +760,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::task::spawn_blocking(move || {
         info!("Loading BGPKIT RPKI data and AS2REL in background...");
         let start = Instant::now();
-        let mut bgpkit = classifier_bg.bgpkit.write().take().unwrap_or_default();
 
+        let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
+        if let Err(e) = bgpkit.load_asinfo_cached() {
+            warn!("Failed to load BGPKIT AS info from cache in background: {}", e);
+            let _ = bgpkit.load_asinfo(true, true, true, true);
+        }
+        let _ = bgpkit.load_bogons();
+        let _ = bgpkit.load_mrt_collectors();
+
+        info!("Downloading and parsing RPKI data from Cloudflare... (This may take several minutes in debug mode without --release)");
         if let Err(e) = bgpkit.load_rpki(None) {
             warn!("Failed to load BGPKIT RPKI data: {}", e);
+        } else {
+            info!("BGPKIT RPKI data loaded successfully.");
         }
         if let Err(e) = bgpkit.load_as2rel() {
             warn!("Failed to load as2rel: {}", e);
@@ -776,21 +789,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Background worker to keep asinfo fresh
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(86400)); // Every 24 hours
-            interval.tick().await; // skip first
             loop {
                 interval.tick().await;
                 info!("Refreshing BGPKIT AS info in background...");
-                let mut fresh_bgpkit = bgpkit_commons::BgpkitCommons::new();
+                
+                let fresh_bgpkit_opt = tokio::task::spawn_blocking(|| {
+                    let mut fresh_bgpkit = bgpkit_commons::BgpkitCommons::new();
+                    // Attempt fresh download for reload
+                    if let Err(e) = fresh_bgpkit.load_asinfo(true, true, true, true) {
+                        warn!("Background refresh of BGPKIT AS info failed: {}", e);
+                        None
+                    } else {
+                        let _ = fresh_bgpkit.load_bogons();
+                        let _ = fresh_bgpkit.load_as2rel();
+                        let _ = fresh_bgpkit.load_mrt_collectors();
+                        let _ = fresh_bgpkit.load_rpki(None);
+                        Some(fresh_bgpkit)
+                    }
+                }).await.unwrap_or(None);
 
-                // Attempt fresh download for reload
-                if let Err(e) = fresh_bgpkit.load_asinfo(true, true, true, true) {
-                    warn!("Background refresh of BGPKIT AS info failed: {}", e);
-                } else {
-                    let _ = fresh_bgpkit.load_bogons();
-                    let _ = fresh_bgpkit.load_as2rel();
-                    let _ = fresh_bgpkit.load_mrt_collectors();
-                    let _ = fresh_bgpkit.load_rpki(None);
-
+                if let Some(fresh_bgpkit) = fresh_bgpkit_opt {
                     if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
                         info!("Applying fresh BGPKIT AS info.");
                         *c_bg = Some(fresh_bgpkit);
@@ -817,6 +835,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+    let (initial_valid, initial_invalid, initial_not_found) =
+        db.get_cached_rpki_stats().unwrap_or((0, 0, 0));
+
     let app_state = Arc::new(AppState {
         subscribers: RwLock::new(Vec::new()),
         alert_subscribers: RwLock::new(Vec::new()),
@@ -841,13 +862,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         top_flappiest_asn: RwLock::new(0),
         top_flappiest_network: RwLock::new(String::new()),
+        top_flappiest_prefix: RwLock::new(String::new()),
         top_flappy_prefix_count: AtomicU32::new(0),
         top_flappy_event_rate: RwLock::new(0.0),
         top_largest_org_name: RwLock::new(String::new()),
         top_largest_org_ipv4_count: AtomicU64::new(0),
-        top_rpki_valid_ipv4: AtomicU64::new(0),
-        top_rpki_invalid_ipv4: AtomicU64::new(0),
-        top_rpki_not_found_ipv4: AtomicU64::new(0),
+        top_rpki_valid_ipv4: AtomicU64::new(initial_valid),
+        top_rpki_invalid_ipv4: AtomicU64::new(initial_invalid),
+        top_rpki_not_found_ipv4: AtomicU64::new(initial_not_found),
     });
     let c1 = classifier.clone();
     let g1 = geo.clone();
@@ -942,11 +964,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
                             if let Some(org) = info.as2org {
                                 flappiest_org = org.org_name.clone();
+                            } else if !info.name.is_empty() {
+                                flappiest_org = info.name.clone();
                             }
                         }
                     }
+                    if flappiest_org.is_empty() {
+                        flappiest_org = format!("AS{}", ts.flappiest_asn);
+                    }
                     *s_stats.top_flappiest_asn.write().await = ts.flappiest_asn;
                     *s_stats.top_flappiest_network.write().await = flappiest_org;
+                    *s_stats.top_flappiest_prefix.write().await = ts.flappiest_prefix;
                 }
             }
         }
@@ -957,9 +985,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(600));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+        // Initial delay to let RPKI data finish loading in the background
+        tokio::time::sleep(Duration::from_secs(60)).await;
+
         loop {
-            interval.tick().await;
             let pool = db_heavy.get_pool();
+            info!("[STATS] Starting heavy IP aggregation...");
 
             let hc = heavy_classifier.clone();
             if let Ok(summary) = tokio::task::spawn_blocking(move || {
@@ -975,6 +1007,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let guard = hc.bgpkit.read();
                 let bgpkit_opt = guard.as_ref();
+                let rpki_loaded = bgpkit_opt.map_or(false, |b| b.rpki_validate(0, "0.0.0.0/0").is_ok());
+
+                if !rpki_loaded {
+                    info!("[STATS] RPKI data is still loading... skipping RPKI aggregation for this cycle.");
+                }
 
                 if let Ok(conn) = pool.get()
                     && let Ok(mut stmt) =
@@ -998,32 +1035,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     if let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
                                         if let Some(org) = info.as2org {
                                             o_name = org.org_name.clone();
+                                        } else if !info.name.is_empty() {
+                                            o_name = info.name.clone();
                                         }
                                     }
                                 }
                                 org_v4.entry(o_name).or_default().push(v4);
 
                                 // RPKI Check
-                                if let Some(bgpkit) = bgpkit_opt {
-                                    if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
-                                        match status {
-                                            bgpkit_commons::rpki::RpkiValidation::Valid => {
-                                                rpki_valid.push(v4)
+                                if rpki_loaded {
+                                    if let Some(bgpkit) = bgpkit_opt {
+                                        if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
+                                            match status {
+                                                bgpkit_commons::rpki::RpkiValidation::Valid => {
+                                                    rpki_valid.push(v4)
+                                                }
+                                                bgpkit_commons::rpki::RpkiValidation::Invalid => {
+                                                    rpki_invalid.push(v4)
+                                                }
+                                                bgpkit_commons::rpki::RpkiValidation::Unknown => {
+                                                    rpki_missing.push(v4)
+                                                }
                                             }
-                                            bgpkit_commons::rpki::RpkiValidation::Invalid => {
-                                                rpki_invalid.push(v4)
-                                            }
-                                            bgpkit_commons::rpki::RpkiValidation::Unknown => {
-                                                rpki_missing.push(v4)
-                                            }
+                                        } else {
+                                            // Either malformed prefix string or something else, but since
+                                            // we already checked rpki_loaded, we assume it's just unknown/invalid
+                                            rpki_missing.push(v4);
                                         }
-                                    } else {
-                                        rpki_missing.push(v4);
                                     }
-                                } else {
-                                    rpki_missing.push(v4);
                                 }
-                            } else {
+                            } else if rpki_loaded {
                                 rpki_missing.push(v4);
                             }
 
@@ -1126,8 +1167,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .top_rpki_not_found_ipv4
                     .store(summary.6, Ordering::Relaxed);
 
+                db_heavy.set_cached_rpki_stats(summary.4, summary.5, summary.6);
+
                 info!("[STATS] Refreshed heavy IP aggregation.");
             }
+            interval.tick().await;
         }
     });
     let s_cp = app_state.clone();
@@ -1538,7 +1582,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let alert_key = format!("org:{}", org);
                     let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
-                    if (ipv4_count >= 10000 || ipv6_prefixes >= 500)
+                    if (ipv4_count >= 20000 || ipv6_prefixes >= 500)
                         && percentage_increase > 0.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
@@ -1642,6 +1686,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter_map(|s| ipnet::IpNet::from_str(s).ok())
         .collect();
     let research_set: HashSet<u32> = EXCLUDED_ASNS.iter().cloned().collect();
+    let db_ingest = db.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
@@ -1657,6 +1702,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         s_ingest.global_stats.add_event(now);
                         if pending.source == "ris" { s_ingest.ris_live_stats.add_event(now); } else if pending.source == "routeviews" { s_ingest.routeviews_stats.add_event(now); }
                         if let Some(cs) = s_ingest.class_stats.get(&pending.classification_type) { cs.add_event(now); }
+
+                        if pending.classification_type == ClassificationType::Flap {
+                            db_ingest.record_event(&pending.prefix, pending.asn, ClassificationType::Flap as i32, now);
+                        }
+
                                                                         let mut is_beacon = false;
                         if let Ok(net) = ipnet::IpNet::from_str(&pending.prefix) {
                             for bnet in &beacon_nets {
