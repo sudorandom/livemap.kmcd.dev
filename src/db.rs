@@ -173,7 +173,9 @@ impl Db {
 
     pub fn get_cached_rpki_stats(&self) -> Option<(u64, u64, u64)> {
         if let Ok(conn) = self.pool.get() {
-            if let Ok(mut stmt) = conn.prepare("SELECT valid_ipv4, invalid_ipv4, not_found_ipv4 FROM rpki_stats WHERE id = 1") {
+            if let Ok(mut stmt) = conn.prepare(
+                "SELECT valid_ipv4, invalid_ipv4, not_found_ipv4 FROM rpki_stats WHERE id = 1",
+            ) {
                 if let Ok(mut rows) = stmt.query([]) {
                     if let Ok(Some(row)) = rows.next() {
                         let valid: i64 = row.get(0).unwrap_or(0);

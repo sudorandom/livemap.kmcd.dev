@@ -763,13 +763,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
         if let Err(e) = bgpkit.load_asinfo_cached() {
-            warn!("Failed to load BGPKIT AS info from cache in background: {}", e);
+            warn!(
+                "Failed to load BGPKIT AS info from cache in background: {}",
+                e
+            );
             let _ = bgpkit.load_asinfo(true, true, true, true);
         }
         let _ = bgpkit.load_bogons();
         let _ = bgpkit.load_mrt_collectors();
 
-        info!("Downloading and parsing RPKI data from Cloudflare... (This may take several minutes in debug mode without --release)");
+        info!(
+            "Downloading and parsing RPKI data from Cloudflare... (This may take several minutes in debug mode without --release)"
+        );
         if let Err(e) = bgpkit.load_rpki(None) {
             warn!("Failed to load BGPKIT RPKI data: {}", e);
         } else {
@@ -792,7 +797,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             loop {
                 interval.tick().await;
                 info!("Refreshing BGPKIT AS info in background...");
-                
+
                 let fresh_bgpkit_opt = tokio::task::spawn_blocking(|| {
                     let mut fresh_bgpkit = bgpkit_commons::BgpkitCommons::new();
                     // Attempt fresh download for reload
@@ -806,7 +811,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let _ = fresh_bgpkit.load_rpki(None);
                         Some(fresh_bgpkit)
                     }
-                }).await.unwrap_or(None);
+                })
+                .await
+                .unwrap_or(None);
 
                 if let Some(fresh_bgpkit) = fresh_bgpkit_opt {
                     if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
@@ -1007,7 +1014,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let guard = hc.bgpkit.read();
                 let bgpkit_opt = guard.as_ref();
-                let rpki_loaded = bgpkit_opt.map_or(false, |b| b.rpki_validate(0, "0.0.0.0/0").is_ok());
+                let rpki_loaded = bgpkit_opt.is_some_and(|b| b.rpki_validate(0, "0.0.0.0/0").is_ok());
 
                 if !rpki_loaded {
                     info!("[STATS] RPKI data is still loading... skipping RPKI aggregation for this cycle.");
@@ -1031,20 +1038,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             if o_asn > 0 {
                                 let mut o_name = format!("AS{}", o_asn);
-                                if let Some(bgpkit) = bgpkit_opt {
-                                    if let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
+                                if let Some(bgpkit) = bgpkit_opt
+                                    && let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
                                         if let Some(org) = info.as2org {
                                             o_name = org.org_name.clone();
                                         } else if !info.name.is_empty() {
                                             o_name = info.name.clone();
                                         }
                                     }
-                                }
                                 org_v4.entry(o_name).or_default().push(v4);
 
                                 // RPKI Check
-                                if rpki_loaded {
-                                    if let Some(bgpkit) = bgpkit_opt {
+                                if rpki_loaded
+                                    && let Some(bgpkit) = bgpkit_opt {
                                         if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
                                             match status {
                                                 bgpkit_commons::rpki::RpkiValidation::Valid => {
@@ -1063,7 +1069,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             rpki_missing.push(v4);
                                         }
                                     }
-                                }
                             } else if rpki_loaded {
                                 rpki_missing.push(v4);
                             }
@@ -1143,7 +1148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let ri = sum_ips(&rpki_invalid);
                 let rm = sum_ips(&rpki_missing);
 
-                (g_ipv4, c_ipv4, largest_org, largest_org_ips, rv, ri, rm)
+                (g_ipv4, c_ipv4, largest_org, largest_org_ips, rv, ri, rm, rpki_loaded)
             })
             .await
             {
@@ -1157,17 +1162,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 s_heavy
                     .top_largest_org_ipv4_count
                     .store(summary.3, Ordering::Relaxed);
-                s_heavy
-                    .top_rpki_valid_ipv4
-                    .store(summary.4, Ordering::Relaxed);
-                s_heavy
-                    .top_rpki_invalid_ipv4
-                    .store(summary.5, Ordering::Relaxed);
-                s_heavy
-                    .top_rpki_not_found_ipv4
-                    .store(summary.6, Ordering::Relaxed);
 
-                db_heavy.set_cached_rpki_stats(summary.4, summary.5, summary.6);
+                let rpki_loaded = summary.7;
+                if rpki_loaded {
+                    s_heavy
+                        .top_rpki_valid_ipv4
+                        .store(summary.4, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_invalid_ipv4
+                        .store(summary.5, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_not_found_ipv4
+                        .store(summary.6, Ordering::Relaxed);
+
+                    db_heavy.set_cached_rpki_stats(summary.4, summary.5, summary.6);
+                }
 
                 info!("[STATS] Refreshed heavy IP aggregation.");
             }
@@ -1207,15 +1216,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             interval.tick().await;
             let now_tick = Utc::now().timestamp();
-            let mut alerts = Vec::new();
+            let mut alerts;
+
+            // To avoid holding the lock for a long time we yield frequently during cleanup,
+            // or we clone just the parts we need, but for now we'll do the cleanup and clone
+            // very quickly. But wait, if rolling windows is large, clone might be slow.
+            // Let's spawn a blocking task to do the processing so it doesn't block the async executor thread.
+            // Actually, we can just spawn blocking for the entire alert calculation block to not block the executor.
+
             let rw_cloned = {
                 let mut rw = rw_alert.write().await;
                 rw.cleanup(now_tick, 300); // 5 minutes window
                 rw.clone()
             };
-            {
+            let emitted_alerts_val = emitted_alerts.clone();
+            alerts = match tokio::task::spawn_blocking(move || {
+                let mut emitted_alerts_clone = emitted_alerts_val;
+                let mut alerts = Vec::new();
                 let rw = rw_cloned;
-                emitted_alerts.retain(|_, v| now_tick - *v < 3600); // 1 hour window
+                emitted_alerts_clone.retain(|_, v| now_tick - *v < 3600); // 1 hour window
 
                 // Check by Location
                 for (&(lat_q, lon_q, class), v) in &rw.by_location {
@@ -1278,13 +1297,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .unwrap_or_default();
 
                     let alert_key = format!("loc:{}:{}:{}", lat_q, lon_q, top_country);
-                    let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                    let last_emitted = emitted_alerts_clone.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 5000 || ipv6_prefixes >= 500)
                         && percentage_increase > 10.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
-                        emitted_alerts.insert(alert_key, now_tick);
+                        emitted_alerts_clone.insert(alert_key, now_tick);
                         alerts.push(Alert {
                             alert_type: AlertType::ByLocation.into(),
                             location: Some(livemap_proto::AlertLocation {
@@ -1378,13 +1397,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .unwrap_or_default();
 
                     let alert_key = format!("asn:{}", asn);
-                    let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                    let last_emitted = emitted_alerts_clone.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 5000 || ipv6_prefixes >= 500)
                         && percentage_increase > 0.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
-                        emitted_alerts.insert(alert_key, now_tick);
+                        emitted_alerts_clone.insert(alert_key, now_tick);
                         alerts.push(Alert {
                             alert_type: AlertType::ByAsn.into(),
                             location: Some(livemap_proto::AlertLocation {
@@ -1475,13 +1494,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .unwrap_or_default();
 
                     let alert_key = format!("country:{}", country);
-                    let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                    let last_emitted = emitted_alerts_clone.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 50000 || ipv6_prefixes >= 500)
                         && percentage_increase > 10.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
-                        emitted_alerts.insert(alert_key, now_tick);
+                        emitted_alerts_clone.insert(alert_key, now_tick);
                         alerts.push(Alert {
                             alert_type: AlertType::ByCountry.into(),
                             location: Some(livemap_proto::AlertLocation {
@@ -1581,13 +1600,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .unwrap_or_default();
 
                     let alert_key = format!("org:{}", org);
-                    let last_emitted = emitted_alerts.get(&alert_key).copied().unwrap_or(0);
+                    let last_emitted = emitted_alerts_clone.get(&alert_key).copied().unwrap_or(0);
                     if (ipv4_count >= 20000 || ipv6_prefixes >= 500)
                         && percentage_increase > 0.0
                         && anomaly_score >= 2.0
                         && now_tick - last_emitted >= 300
                     {
-                        emitted_alerts.insert(alert_key, now_tick);
+                        emitted_alerts_clone.insert(alert_key, now_tick);
                         alerts.push(Alert {
                             alert_type: AlertType::ByOrganization.into(),
                             location: Some(livemap_proto::AlertLocation {
@@ -1621,7 +1640,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         });
                     }
                 }
-            }
+
+                (alerts, emitted_alerts_clone)
+            })
+            .await
+            {
+                Ok((res_alerts, new_emitted)) => {
+                    emitted_alerts = new_emitted;
+                    res_alerts
+                }
+                Err(_) => Vec::new(),
+            };
 
             if !alerts.is_empty() {
                 alerts.sort_by(|a, b| {
