@@ -78,15 +78,20 @@ message GetSummaryResponse {
     RPKIStatus last_rpki_status = 14;
 
     // Top stats
-    string flappiest_asn_str = 15;
-    string flappiest_network = 16;
-    uint32 flappy_prefix_count = 17;
-    string flappiest_prefix = 23;
+    FlappiestNetworkStats flappiest_network_stats = 23;
     string largest_org_name = 18;
     uint64 largest_org_ipv4_count = 19;
     uint64 rpki_valid_ipv4 = 20;
     uint64 rpki_invalid_ipv4 = 21;
     uint64 rpki_not_found_ipv4 = 22;
+}
+
+message FlappiestNetworkStats {
+    uint32 asn = 1;
+    string network_name = 2;
+    float event_rate = 3;
+    uint32 flap_count = 4; // cumulative count in the last 24 hours
+    string prefix = 5;
 }
 
 // RPKIStatus defines the validation status of a prefix.

@@ -1,11 +1,13 @@
 use bgpkit_commons::BgpkitCommons;
 
-fn main() {
-    let mut bgpkit = BgpkitCommons::new();
-    bgpkit.load_asinfo(true, false, true, false).unwrap();
-    let asn = 917;
-    println!("{:?}", bgpkit.asinfo_get(asn).unwrap());
+#[tokio::main]
+async fn main() {
+    let handle = tokio::spawn(async move {
+        let mut bgpkit = BgpkitCommons::new();
+        bgpkit.load_rpki(None).unwrap();
+        let status = bgpkit.rpki_validate(13335, "1.1.1.0/24").unwrap();
+        println!("Status inside tokio::spawn: {:?}", status);
+    });
 
-    let asn = 57695;
-    println!("{:?}", bgpkit.asinfo_get(asn).unwrap());
+    handle.await.unwrap();
 }

@@ -46,6 +46,9 @@ tonic-prost-build = "0.14.5"
 [dev-dependencies]
 tempfile = "3.27.0"
 
+[profile.dev.package."*"]
+opt-level = 3
+
 [[bin]]
 name = "test_bin"
 path = "src/bin_test.rs"

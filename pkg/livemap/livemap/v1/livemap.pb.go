@@ -613,17 +613,14 @@ type GetSummaryResponse struct {
 	EventComposition     []*CompositionEntry    `protobuf:"bytes,13,rep,name=event_composition,json=eventComposition,proto3" json:"event_composition,omitempty"`
 	LastRpkiStatus       RPKIStatus             `protobuf:"varint,14,opt,name=last_rpki_status,json=lastRpkiStatus,proto3,enum=livemap.v1.RPKIStatus" json:"last_rpki_status,omitempty"`
 	// Top stats
-	FlappiestAsnStr     string `protobuf:"bytes,15,opt,name=flappiest_asn_str,json=flappiestAsnStr,proto3" json:"flappiest_asn_str,omitempty"`
-	FlappiestNetwork    string `protobuf:"bytes,16,opt,name=flappiest_network,json=flappiestNetwork,proto3" json:"flappiest_network,omitempty"`
-	FlappyPrefixCount   uint32 `protobuf:"varint,17,opt,name=flappy_prefix_count,json=flappyPrefixCount,proto3" json:"flappy_prefix_count,omitempty"`
-	FlappiestPrefix     string `protobuf:"bytes,23,opt,name=flappiest_prefix,json=flappiestPrefix,proto3" json:"flappiest_prefix,omitempty"`
-	LargestOrgName      string `protobuf:"bytes,18,opt,name=largest_org_name,json=largestOrgName,proto3" json:"largest_org_name,omitempty"`
-	LargestOrgIpv4Count uint64 `protobuf:"varint,19,opt,name=largest_org_ipv4_count,json=largestOrgIpv4Count,proto3" json:"largest_org_ipv4_count,omitempty"`
-	RpkiValidIpv4       uint64 `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
-	RpkiInvalidIpv4     uint64 `protobuf:"varint,21,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
-	RpkiNotFoundIpv4    uint64 `protobuf:"varint,22,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	FlappiestNetworkStats *FlappiestNetworkStats `protobuf:"bytes,23,opt,name=flappiest_network_stats,json=flappiestNetworkStats,proto3" json:"flappiest_network_stats,omitempty"`
+	LargestOrgName        string                 `protobuf:"bytes,18,opt,name=largest_org_name,json=largestOrgName,proto3" json:"largest_org_name,omitempty"`
+	LargestOrgIpv4Count   uint64                 `protobuf:"varint,19,opt,name=largest_org_ipv4_count,json=largestOrgIpv4Count,proto3" json:"largest_org_ipv4_count,omitempty"`
+	RpkiValidIpv4         uint64                 `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
+	RpkiInvalidIpv4       uint64                 `protobuf:"varint,21,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
+	RpkiNotFoundIpv4      uint64                 `protobuf:"varint,22,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *GetSummaryResponse) Reset() {
@@ -747,32 +744,11 @@ func (x *GetSummaryResponse) GetLastRpkiStatus() RPKIStatus {
 	return RPKIStatus_RPKI_STATUS_UNSPECIFIED
 }
 
-func (x *GetSummaryResponse) GetFlappiestAsnStr() string {
+func (x *GetSummaryResponse) GetFlappiestNetworkStats() *FlappiestNetworkStats {
 	if x != nil {
-		return x.FlappiestAsnStr
+		return x.FlappiestNetworkStats
 	}
-	return ""
-}
-
-func (x *GetSummaryResponse) GetFlappiestNetwork() string {
-	if x != nil {
-		return x.FlappiestNetwork
-	}
-	return ""
-}
-
-func (x *GetSummaryResponse) GetFlappyPrefixCount() uint32 {
-	if x != nil {
-		return x.FlappyPrefixCount
-	}
-	return 0
-}
-
-func (x *GetSummaryResponse) GetFlappiestPrefix() string {
-	if x != nil {
-		return x.FlappiestPrefix
-	}
-	return ""
+	return nil
 }
 
 func (x *GetSummaryResponse) GetLargestOrgName() string {
@@ -810,6 +786,82 @@ func (x *GetSummaryResponse) GetRpkiNotFoundIpv4() uint64 {
 	return 0
 }
 
+type FlappiestNetworkStats struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Asn           uint32                 `protobuf:"varint,1,opt,name=asn,proto3" json:"asn,omitempty"`
+	NetworkName   string                 `protobuf:"bytes,2,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`
+	EventRate     float32                `protobuf:"fixed32,3,opt,name=event_rate,json=eventRate,proto3" json:"event_rate,omitempty"`
+	FlapCount     uint32                 `protobuf:"varint,4,opt,name=flap_count,json=flapCount,proto3" json:"flap_count,omitempty"` // cumulative count in the last 24 hours
+	Prefix        string                 `protobuf:"bytes,5,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FlappiestNetworkStats) Reset() {
+	*x = FlappiestNetworkStats{}
+	mi := &file_livemap_v1_livemap_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FlappiestNetworkStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FlappiestNetworkStats) ProtoMessage() {}
+
+func (x *FlappiestNetworkStats) ProtoReflect() protoreflect.Message {
+	mi := &file_livemap_v1_livemap_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FlappiestNetworkStats.ProtoReflect.Descriptor instead.
+func (*FlappiestNetworkStats) Descriptor() ([]byte, []int) {
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *FlappiestNetworkStats) GetAsn() uint32 {
+	if x != nil {
+		return x.Asn
+	}
+	return 0
+}
+
+func (x *FlappiestNetworkStats) GetNetworkName() string {
+	if x != nil {
+		return x.NetworkName
+	}
+	return ""
+}
+
+func (x *FlappiestNetworkStats) GetEventRate() float32 {
+	if x != nil {
+		return x.EventRate
+	}
+	return 0
+}
+
+func (x *FlappiestNetworkStats) GetFlapCount() uint32 {
+	if x != nil {
+		return x.FlapCount
+	}
+	return 0
+}
+
+func (x *FlappiestNetworkStats) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
 // LeakDetail contains information specific to route leaks.
 type LeakDetail struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
@@ -826,7 +878,7 @@ type LeakDetail struct {
 
 func (x *LeakDetail) Reset() {
 	*x = LeakDetail{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[8]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -838,7 +890,7 @@ func (x *LeakDetail) String() string {
 func (*LeakDetail) ProtoMessage() {}
 
 func (x *LeakDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[8]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +903,7 @@ func (x *LeakDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeakDetail.ProtoReflect.Descriptor instead.
 func (*LeakDetail) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{8}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *LeakDetail) GetLeakType() uint32 {
@@ -924,7 +976,7 @@ type StateTransition struct {
 
 func (x *StateTransition) Reset() {
 	*x = StateTransition{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[9]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -936,7 +988,7 @@ func (x *StateTransition) String() string {
 func (*StateTransition) ProtoMessage() {}
 
 func (x *StateTransition) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[9]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -949,7 +1001,7 @@ func (x *StateTransition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateTransition.ProtoReflect.Descriptor instead.
 func (*StateTransition) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{9}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StateTransition) GetIncidentId() string {
@@ -1049,7 +1101,7 @@ type AlertLocation struct {
 
 func (x *AlertLocation) Reset() {
 	*x = AlertLocation{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[10]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +1113,7 @@ func (x *AlertLocation) String() string {
 func (*AlertLocation) ProtoMessage() {}
 
 func (x *AlertLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[10]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +1126,7 @@ func (x *AlertLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AlertLocation.ProtoReflect.Descriptor instead.
 func (*AlertLocation) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{10}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AlertLocation) GetCity() string {
@@ -1136,7 +1188,7 @@ type Alert struct {
 
 func (x *Alert) Reset() {
 	*x = Alert{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[11]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1148,7 +1200,7 @@ func (x *Alert) String() string {
 func (*Alert) ProtoMessage() {}
 
 func (x *Alert) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[11]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1161,7 +1213,7 @@ func (x *Alert) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Alert.ProtoReflect.Descriptor instead.
 func (*Alert) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{11}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Alert) GetAlertType() AlertType {
@@ -1277,7 +1329,7 @@ type StreamAlertsRequest struct {
 
 func (x *StreamAlertsRequest) Reset() {
 	*x = StreamAlertsRequest{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[12]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1289,7 +1341,7 @@ func (x *StreamAlertsRequest) String() string {
 func (*StreamAlertsRequest) ProtoMessage() {}
 
 func (x *StreamAlertsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[12]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1302,7 +1354,7 @@ func (x *StreamAlertsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamAlertsRequest.ProtoReflect.Descriptor instead.
 func (*StreamAlertsRequest) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{12}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{13}
 }
 
 type StreamAlertsResponse struct {
@@ -1314,7 +1366,7 @@ type StreamAlertsResponse struct {
 
 func (x *StreamAlertsResponse) Reset() {
 	*x = StreamAlertsResponse{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[13]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1326,7 +1378,7 @@ func (x *StreamAlertsResponse) String() string {
 func (*StreamAlertsResponse) ProtoMessage() {}
 
 func (x *StreamAlertsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[13]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1339,7 +1391,7 @@ func (x *StreamAlertsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamAlertsResponse.ProtoReflect.Descriptor instead.
 func (*StreamAlertsResponse) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{13}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StreamAlertsResponse) GetAlert() *Alert {
@@ -1359,7 +1411,7 @@ type StreamStateTransitionsRequest struct {
 
 func (x *StreamStateTransitionsRequest) Reset() {
 	*x = StreamStateTransitionsRequest{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[14]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1371,7 +1423,7 @@ func (x *StreamStateTransitionsRequest) String() string {
 func (*StreamStateTransitionsRequest) ProtoMessage() {}
 
 func (x *StreamStateTransitionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[14]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1384,7 +1436,7 @@ func (x *StreamStateTransitionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamStateTransitionsRequest.ProtoReflect.Descriptor instead.
 func (*StreamStateTransitionsRequest) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{14}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *StreamStateTransitionsRequest) GetTargetStates() []Classification {
@@ -1404,7 +1456,7 @@ type StreamStateTransitionsResponse struct {
 
 func (x *StreamStateTransitionsResponse) Reset() {
 	*x = StreamStateTransitionsResponse{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[15]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1416,7 +1468,7 @@ func (x *StreamStateTransitionsResponse) String() string {
 func (*StreamStateTransitionsResponse) ProtoMessage() {}
 
 func (x *StreamStateTransitionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[15]
+	mi := &file_livemap_v1_livemap_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1429,7 +1481,7 @@ func (x *StreamStateTransitionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamStateTransitionsResponse.ProtoReflect.Descriptor instead.
 func (*StreamStateTransitionsResponse) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{15}
+	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *StreamStateTransitionsResponse) GetTransition() *StateTransition {
@@ -1473,7 +1525,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
 	"\n" +
 	"percentage\x18\x02 \x01(\x02R\n" +
-	"percentage\"\xad\b\n" +
+	"percentage\"\xd4\a\n" +
 	"\x12GetSummaryResponse\x12.\n" +
 	"\x13messages_per_second\x18\x01 \x01(\x02R\x11messagesPerSecond\x12\x1b\n" +
 	"\tasn_count\x18\x02 \x01(\rR\basnCount\x12!\n" +
@@ -1489,16 +1541,21 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x0fmax_lag_seconds\x18\v \x01(\rR\rmaxLagSeconds\x12-\n" +
 	"\x12loading_historical\x18\f \x01(\bR\x11loadingHistorical\x12I\n" +
 	"\x11event_composition\x18\r \x03(\v2\x1c.livemap.v1.CompositionEntryR\x10eventComposition\x12@\n" +
-	"\x10last_rpki_status\x18\x0e \x01(\x0e2\x16.livemap.v1.RPKIStatusR\x0elastRpkiStatus\x12*\n" +
-	"\x11flappiest_asn_str\x18\x0f \x01(\tR\x0fflappiestAsnStr\x12+\n" +
-	"\x11flappiest_network\x18\x10 \x01(\tR\x10flappiestNetwork\x12.\n" +
-	"\x13flappy_prefix_count\x18\x11 \x01(\rR\x11flappyPrefixCount\x12)\n" +
-	"\x10flappiest_prefix\x18\x17 \x01(\tR\x0fflappiestPrefix\x12(\n" +
+	"\x10last_rpki_status\x18\x0e \x01(\x0e2\x16.livemap.v1.RPKIStatusR\x0elastRpkiStatus\x12Y\n" +
+	"\x17flappiest_network_stats\x18\x17 \x01(\v2!.livemap.v1.FlappiestNetworkStatsR\x15flappiestNetworkStats\x12(\n" +
 	"\x10largest_org_name\x18\x12 \x01(\tR\x0elargestOrgName\x123\n" +
 	"\x16largest_org_ipv4_count\x18\x13 \x01(\x04R\x13largestOrgIpv4Count\x12&\n" +
 	"\x0frpki_valid_ipv4\x18\x14 \x01(\x04R\rrpkiValidIpv4\x12*\n" +
 	"\x11rpki_invalid_ipv4\x18\x15 \x01(\x04R\x0frpkiInvalidIpv4\x12-\n" +
-	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\"\xbf\x02\n" +
+	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\"\xa2\x01\n" +
+	"\x15FlappiestNetworkStats\x12\x10\n" +
+	"\x03asn\x18\x01 \x01(\rR\x03asn\x12!\n" +
+	"\fnetwork_name\x18\x02 \x01(\tR\vnetworkName\x12\x1d\n" +
+	"\n" +
+	"event_rate\x18\x03 \x01(\x02R\teventRate\x12\x1d\n" +
+	"\n" +
+	"flap_count\x18\x04 \x01(\rR\tflapCount\x12\x16\n" +
+	"\x06prefix\x18\x05 \x01(\tR\x06prefix\"\xbf\x02\n" +
 	"\n" +
 	"LeakDetail\x12\x1b\n" +
 	"\tleak_type\x18\x01 \x01(\rR\bleakType\x12\x1d\n" +
@@ -1607,7 +1664,7 @@ func file_livemap_v1_livemap_proto_rawDescGZIP() []byte {
 }
 
 var file_livemap_v1_livemap_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_livemap_v1_livemap_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_livemap_v1_livemap_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_livemap_v1_livemap_proto_goTypes = []any{
 	(Classification)(0),                    // 0: livemap.v1.Classification
 	(RPKIStatus)(0),                        // 1: livemap.v1.RPKIStatus
@@ -1620,14 +1677,15 @@ var file_livemap_v1_livemap_proto_goTypes = []any{
 	(*ClassificationCount)(nil),            // 8: livemap.v1.ClassificationCount
 	(*CompositionEntry)(nil),               // 9: livemap.v1.CompositionEntry
 	(*GetSummaryResponse)(nil),             // 10: livemap.v1.GetSummaryResponse
-	(*LeakDetail)(nil),                     // 11: livemap.v1.LeakDetail
-	(*StateTransition)(nil),                // 12: livemap.v1.StateTransition
-	(*AlertLocation)(nil),                  // 13: livemap.v1.AlertLocation
-	(*Alert)(nil),                          // 14: livemap.v1.Alert
-	(*StreamAlertsRequest)(nil),            // 15: livemap.v1.StreamAlertsRequest
-	(*StreamAlertsResponse)(nil),           // 16: livemap.v1.StreamAlertsResponse
-	(*StreamStateTransitionsRequest)(nil),  // 17: livemap.v1.StreamStateTransitionsRequest
-	(*StreamStateTransitionsResponse)(nil), // 18: livemap.v1.StreamStateTransitionsResponse
+	(*FlappiestNetworkStats)(nil),          // 11: livemap.v1.FlappiestNetworkStats
+	(*LeakDetail)(nil),                     // 12: livemap.v1.LeakDetail
+	(*StateTransition)(nil),                // 13: livemap.v1.StateTransition
+	(*AlertLocation)(nil),                  // 14: livemap.v1.AlertLocation
+	(*Alert)(nil),                          // 15: livemap.v1.Alert
+	(*StreamAlertsRequest)(nil),            // 16: livemap.v1.StreamAlertsRequest
+	(*StreamAlertsResponse)(nil),           // 17: livemap.v1.StreamAlertsResponse
+	(*StreamStateTransitionsRequest)(nil),  // 18: livemap.v1.StreamStateTransitionsRequest
+	(*StreamStateTransitionsResponse)(nil), // 19: livemap.v1.StreamStateTransitionsResponse
 }
 var file_livemap_v1_livemap_proto_depIdxs = []int32{
 	3,  // 0: livemap.v1.AggregatedEvent.geo:type_name -> livemap.v1.GeoData
@@ -1637,31 +1695,32 @@ var file_livemap_v1_livemap_proto_depIdxs = []int32{
 	8,  // 4: livemap.v1.GetSummaryResponse.classification_counts:type_name -> livemap.v1.ClassificationCount
 	9,  // 5: livemap.v1.GetSummaryResponse.event_composition:type_name -> livemap.v1.CompositionEntry
 	1,  // 6: livemap.v1.GetSummaryResponse.last_rpki_status:type_name -> livemap.v1.RPKIStatus
-	1,  // 7: livemap.v1.LeakDetail.leaker_rpki_status:type_name -> livemap.v1.RPKIStatus
-	1,  // 8: livemap.v1.LeakDetail.victim_rpki_status:type_name -> livemap.v1.RPKIStatus
-	3,  // 9: livemap.v1.StateTransition.geo:type_name -> livemap.v1.GeoData
-	0,  // 10: livemap.v1.StateTransition.new_state:type_name -> livemap.v1.Classification
-	0,  // 11: livemap.v1.StateTransition.old_state:type_name -> livemap.v1.Classification
-	11, // 12: livemap.v1.StateTransition.leak_detail:type_name -> livemap.v1.LeakDetail
-	2,  // 13: livemap.v1.Alert.alert_type:type_name -> livemap.v1.AlertType
-	13, // 14: livemap.v1.Alert.location:type_name -> livemap.v1.AlertLocation
-	0,  // 15: livemap.v1.Alert.classification:type_name -> livemap.v1.Classification
-	14, // 16: livemap.v1.StreamAlertsResponse.alert:type_name -> livemap.v1.Alert
-	0,  // 17: livemap.v1.StreamStateTransitionsRequest.target_states:type_name -> livemap.v1.Classification
-	12, // 18: livemap.v1.StreamStateTransitionsResponse.transition:type_name -> livemap.v1.StateTransition
-	6,  // 19: livemap.v1.LiveMapService.SubscribeEvents:input_type -> livemap.v1.SubscribeEventsRequest
-	7,  // 20: livemap.v1.LiveMapService.GetSummary:input_type -> livemap.v1.GetSummaryRequest
-	17, // 21: livemap.v1.LiveMapService.StreamStateTransitions:input_type -> livemap.v1.StreamStateTransitionsRequest
-	15, // 22: livemap.v1.LiveMapService.StreamAlerts:input_type -> livemap.v1.StreamAlertsRequest
-	5,  // 23: livemap.v1.LiveMapService.SubscribeEvents:output_type -> livemap.v1.SubscribeEventsResponse
-	10, // 24: livemap.v1.LiveMapService.GetSummary:output_type -> livemap.v1.GetSummaryResponse
-	18, // 25: livemap.v1.LiveMapService.StreamStateTransitions:output_type -> livemap.v1.StreamStateTransitionsResponse
-	16, // 26: livemap.v1.LiveMapService.StreamAlerts:output_type -> livemap.v1.StreamAlertsResponse
-	23, // [23:27] is the sub-list for method output_type
-	19, // [19:23] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	11, // 7: livemap.v1.GetSummaryResponse.flappiest_network_stats:type_name -> livemap.v1.FlappiestNetworkStats
+	1,  // 8: livemap.v1.LeakDetail.leaker_rpki_status:type_name -> livemap.v1.RPKIStatus
+	1,  // 9: livemap.v1.LeakDetail.victim_rpki_status:type_name -> livemap.v1.RPKIStatus
+	3,  // 10: livemap.v1.StateTransition.geo:type_name -> livemap.v1.GeoData
+	0,  // 11: livemap.v1.StateTransition.new_state:type_name -> livemap.v1.Classification
+	0,  // 12: livemap.v1.StateTransition.old_state:type_name -> livemap.v1.Classification
+	12, // 13: livemap.v1.StateTransition.leak_detail:type_name -> livemap.v1.LeakDetail
+	2,  // 14: livemap.v1.Alert.alert_type:type_name -> livemap.v1.AlertType
+	14, // 15: livemap.v1.Alert.location:type_name -> livemap.v1.AlertLocation
+	0,  // 16: livemap.v1.Alert.classification:type_name -> livemap.v1.Classification
+	15, // 17: livemap.v1.StreamAlertsResponse.alert:type_name -> livemap.v1.Alert
+	0,  // 18: livemap.v1.StreamStateTransitionsRequest.target_states:type_name -> livemap.v1.Classification
+	13, // 19: livemap.v1.StreamStateTransitionsResponse.transition:type_name -> livemap.v1.StateTransition
+	6,  // 20: livemap.v1.LiveMapService.SubscribeEvents:input_type -> livemap.v1.SubscribeEventsRequest
+	7,  // 21: livemap.v1.LiveMapService.GetSummary:input_type -> livemap.v1.GetSummaryRequest
+	18, // 22: livemap.v1.LiveMapService.StreamStateTransitions:input_type -> livemap.v1.StreamStateTransitionsRequest
+	16, // 23: livemap.v1.LiveMapService.StreamAlerts:input_type -> livemap.v1.StreamAlertsRequest
+	5,  // 24: livemap.v1.LiveMapService.SubscribeEvents:output_type -> livemap.v1.SubscribeEventsResponse
+	10, // 25: livemap.v1.LiveMapService.GetSummary:output_type -> livemap.v1.GetSummaryResponse
+	19, // 26: livemap.v1.LiveMapService.StreamStateTransitions:output_type -> livemap.v1.StreamStateTransitionsResponse
+	17, // 27: livemap.v1.LiveMapService.StreamAlerts:output_type -> livemap.v1.StreamAlertsResponse
+	24, // [24:28] is the sub-list for method output_type
+	20, // [20:24] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_livemap_v1_livemap_proto_init() }
@@ -1675,7 +1734,7 @@ func file_livemap_v1_livemap_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_livemap_v1_livemap_proto_rawDesc), len(file_livemap_v1_livemap_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
