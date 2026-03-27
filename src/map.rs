@@ -27,8 +27,8 @@ impl Geolocation {
 
     pub fn lookup(&self, ip: IpAddr) -> Option<GeoData> {
         for reader in &self.readers {
-            if let Ok(result) = reader.lookup(ip) {
-                if let Ok(city_data) = result.decode::<maxminddb::geoip2::City>() {
+            if let Ok(result) = reader.lookup(ip)
+                && let Ok(city_data) = result.decode::<maxminddb::geoip2::City>() {
                     let city_data = city_data?;
 
                     let lat = city_data.location.latitude? as f32;
@@ -45,7 +45,6 @@ impl Geolocation {
                         country,
                     });
                 }
-            }
         }
         None
     }

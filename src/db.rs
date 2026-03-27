@@ -172,18 +172,17 @@ impl Db {
     }
 
     pub fn get_cached_rpki_stats(&self) -> Option<(u64, u64, u64)> {
-        if let Ok(conn) = self.pool.get() {
-            if let Ok(mut stmt) = conn.prepare("SELECT valid_ipv4, invalid_ipv4, not_found_ipv4 FROM rpki_stats WHERE id = 1") {
-                if let Ok(mut rows) = stmt.query([]) {
-                    if let Ok(Some(row)) = rows.next() {
+        if let Ok(conn) = self.pool.get()
+            && let Ok(mut stmt) = conn.prepare(
+                "SELECT valid_ipv4, invalid_ipv4, not_found_ipv4 FROM rpki_stats WHERE id = 1",
+            )
+                && let Ok(mut rows) = stmt.query([])
+                    && let Ok(Some(row)) = rows.next() {
                         let valid: i64 = row.get(0).unwrap_or(0);
                         let invalid: i64 = row.get(1).unwrap_or(0);
                         let not_found: i64 = row.get(2).unwrap_or(0);
                         return Some((valid as u64, invalid as u64, not_found as u64));
                     }
-                }
-            }
-        }
         None
     }
 
@@ -233,9 +232,9 @@ impl Db {
             // Find the origin ASN with the most flap events in the last 24 hours
             // ClassificationType::Flap == 6
             let query = "SELECT asn, prefix, count(*) as c FROM events WHERE event_type = 6 AND ts >= ?1 GROUP BY prefix, asn ORDER BY c DESC LIMIT 1";
-            if let Ok(mut stmt) = conn.prepare_cached(query) {
-                if let Ok(mut rows) = stmt.query([day_ago]) {
-                    if let Ok(Some(row)) = rows.next() {
+            if let Ok(mut stmt) = conn.prepare_cached(query)
+                && let Ok(mut rows) = stmt.query([day_ago])
+                    && let Ok(Some(row)) = rows.next() {
                         stats.flappiest_asn = row.get(0).unwrap_or(0);
                         stats.flappiest_prefix = row.get(1).unwrap_or_default();
                         stats.flappy_prefix_count = row.get(2).unwrap_or(0);
@@ -243,17 +242,13 @@ impl Db {
                         // we'll try to calculate a naive update rate:
                         // last 5 minutes
                         let window_start = now - 300;
-                        if let Ok(mut rate_stmt) = conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE origin_asn = ?1 AND last_update_ts >= ?2") {
-                            if let Ok(mut r_rows) = rate_stmt.query([stats.flappiest_asn as i64, window_start]) {
-                                if let Ok(Some(r_row)) = r_rows.next() {
+                        if let Ok(mut rate_stmt) = conn.prepare_cached("SELECT count(*) FROM prefix_state WHERE origin_asn = ?1 AND last_update_ts >= ?2")
+                            && let Ok(mut r_rows) = rate_stmt.query([stats.flappiest_asn as i64, window_start])
+                                && let Ok(Some(r_row)) = r_rows.next() {
                                     let updates_in_5m: i64 = r_row.get(0).unwrap_or(0);
                                     stats.flappy_event_rate = (updates_in_5m as f32) / 300.0;
                                 }
-                            }
-                        }
                     }
-                }
-            }
         }
         stats
     }
