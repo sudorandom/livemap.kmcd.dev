@@ -1,5 +1,6 @@
 use crate::classifier::ClassificationType;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct PrefixAnomalyStats {
@@ -93,10 +94,10 @@ pub struct WindowEntry {
 
 #[derive(Default, Clone)]
 pub struct RollingWindows {
-    pub by_location: HashMap<(i32, i32, ClassificationType), Vec<WindowEntry>>, // lat_q, lon_q, class -> entries
-    pub by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>, // asn, class -> entries
-    pub by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // country, class -> entries
-    pub by_organization: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // org, class -> entries
+    pub by_location: HashMap<(i32, i32, ClassificationType), Vec<Arc<WindowEntry>>>, // lat_q, lon_q, class -> entries
+    pub by_asn: HashMap<(u32, ClassificationType), Vec<Arc<WindowEntry>>>, // asn, class -> entries
+    pub by_country: HashMap<(String, ClassificationType), Vec<Arc<WindowEntry>>>, // country, class -> entries
+    pub by_organization: HashMap<(String, ClassificationType), Vec<Arc<WindowEntry>>>, // org, class -> entries
     pub prefix_stats: HashMap<String, PrefixAnomalyStats>,
 }
 
@@ -120,7 +121,7 @@ impl RollingWindows {
 
         let lat_q = (lat * 10.0) as i32;
         let lon_q = (lon * 10.0) as i32;
-        let entry = WindowEntry {
+        let entry = Arc::new(WindowEntry {
             ts: now,
             prefix: prefix.clone(),
             city: city_opt.clone(),
@@ -130,7 +131,7 @@ impl RollingWindows {
             org_name: org_name.clone(),
             lat,
             lon,
-        };
+        });
         self.by_location
             .entry((lat_q, lon_q, class))
             .or_default()
@@ -139,21 +140,21 @@ impl RollingWindows {
             .entry((asn, class))
             .or_default()
             .push(entry.clone());
-        if let Some(country) = country_opt
-            && !country.is_empty()
-        {
-            self.by_country
-                .entry((country, class))
-                .or_default()
-                .push(entry.clone());
+        if let Some(country) = country_opt {
+            if !country.is_empty() {
+                self.by_country
+                    .entry((country, class))
+                    .or_default()
+                    .push(entry.clone());
+            }
         }
-        if let Some(org) = org_name
-            && !org.is_empty()
-        {
-            self.by_organization
-                .entry((org, class))
-                .or_default()
-                .push(entry);
+        if let Some(org) = org_name {
+            if !org.is_empty() {
+                self.by_organization
+                    .entry((org, class))
+                    .or_default()
+                    .push(entry);
+            }
         }
     }
 
