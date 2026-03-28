@@ -127,6 +127,12 @@ type Engine struct {
 	topStatsDirty              bool
 	criticalCooldown       map[string]time.Time
 
+	flappyImage        *ebiten.Image
+	flappiestChangedAt time.Time
+	flappyY            float64
+	flappyVelocity     float64
+	flappiestBuffer    *ebiten.Image
+
 	ctx       context.Context
 	cancelCtx context.CancelFunc
 	bgWg      sync.WaitGroup
@@ -298,6 +304,7 @@ func NewEngine(width, height int, scale float64) *Engine {
 	e.InitFlareTexture()
 	e.InitSquareTexture()
 	e.InitTriangleTexture()
+	e.InitFlappyTexture()
 
 	return e
 }
@@ -1846,6 +1853,16 @@ func (e *Engine) InitTriangleTexture() {
 	e.triangleImage.WritePixels(pixels)
 }
 
+func (e *Engine) InitFlappyTexture() {
+	img, _, err := image.Decode(bytes.NewReader(flappyBirdPNG))
+	if err != nil {
+		log.Printf("Warning: failed to parse flappy bird PNG: %v", err)
+		return
+	}
+
+	e.flappyImage = ebiten.NewImageFromImage(img)
+}
+
 func (e *Engine) calculateFlareBrightness(rdx, rdy, maxDist, rayThickness float64) float64 {
 	dist := math.Sqrt(rdx*rdx + rdy*rdy)
 	brightness := 0.0
@@ -2148,4 +2165,15 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	e.lastCriticalAddedAt = time.Now()
 	e.streamDirty = true
 	e.streamUpdatedAt = time.Now()
+}
+
+func (e *Engine) TestSetFlappiest(asn uint32, org string, pfx string) {
+    if e.topStatsFlappiestASN != asn {
+        e.flappiestChangedAt = e.Now()
+        e.flappyY = 0
+        e.flappyVelocity = 0
+    }
+    e.topStatsFlappiestASN = asn
+    e.topStatsFlappiestOrg = org
+    e.topStatsFlappiestPrefix = pfx
 }
