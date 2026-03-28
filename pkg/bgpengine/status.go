@@ -606,7 +606,7 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 
 			// Basic physics update using a more stable fixed step if needed, but dt is fine here
 			// if we restrict it.
-			dt := 0.033 // Fixed dt for stability (approx 30fps)
+			dt := 0.033      // Fixed dt for stability (approx 30fps)
 			gravity := 500.0 // gravity constant
 			e.flappyVelocity += gravity * dt
 			e.flappyY += e.flappyVelocity * dt
@@ -654,10 +654,10 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 	if isAnimating {
 		if timeSinceChanged <= 0.2 {
 			isGlitching = true
-			glitchIntensity = 1.0 - (timeSinceChanged / 0.2)
+			glitchIntensity = 1.0 - (timeSinceChanged / 0.1)
 		} else if timeSinceChanged >= 2.8 {
 			isGlitching = true
-			glitchIntensity = (timeSinceChanged - 2.8) / 0.2
+			glitchIntensity = (timeSinceChanged - 2.8) / 0.1
 		}
 	}
 

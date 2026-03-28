@@ -220,7 +220,7 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	if networkStats != nil {
 		if e.topStatsFlappiestASN != networkStats.GetAsn() || e.topStatsFlappiestOrg != networkStats.GetNetworkName() || e.topStatsFlappiestPrefix != networkStats.GetPrefix() {
 			dirty = true
-			if e.topStatsFlappiestASN != 0 && networkStats.GetAsn() != 0 && e.topStatsFlappiestASN != networkStats.GetAsn() {
+			if networkStats.GetAsn() != 0 && e.topStatsFlappiestASN != networkStats.GetAsn() {
 				e.flappiestChangedAt = e.Now()
 				e.flappyY = 0
 				e.flappyVelocity = 0 // Initial jump

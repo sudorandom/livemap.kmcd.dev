@@ -50,15 +50,15 @@ type Engine struct {
 	queueMu            sync.Mutex
 	nextPulseEmittedAt time.Time
 
-	bgImage     *ebiten.Image
-	pulseImage  *ebiten.Image
+	bgImage       *ebiten.Image
+	pulseImage    *ebiten.Image
 	flareImage    *ebiten.Image
 	squareImage   *ebiten.Image
 	triangleImage *ebiten.Image
 	whitePixel    *ebiten.Image
-	fadeMask    *ebiten.Image
-	fontSource  *text.GoTextFaceSource
-	monoSource  *text.GoTextFaceSource
+	fadeMask      *ebiten.Image
+	fontSource    *text.GoTextFaceSource
+	monoSource    *text.GoTextFaceSource
 
 	displayBeaconPercent float64
 
@@ -101,19 +101,19 @@ type Engine struct {
 	VisualHubs map[string]*VisualHub
 	ActiveHubs []*VisualHub
 
-	prefixImpactHistory    []map[string]int
-	prefixToClassification map[string]bgp.ClassificationType
-	currentAnomalies       map[bgp.ClassificationType]map[string]int
-	VisualImpact           map[string]*VisualImpact
-	ActiveImpacts          []*VisualImpact
-	ActiveASNImpacts       []*ASNImpact
-	CriticalStream         []*CriticalEvent
-	criticalQueue          []*CriticalEvent
-	lastCriticalAddedAt    time.Time
-	streamOffset           float64
-	streamDirty            bool
-	streamMu               sync.Mutex
-	impactDirty            bool
+	prefixImpactHistory        []map[string]int
+	prefixToClassification     map[string]bgp.ClassificationType
+	currentAnomalies           map[bgp.ClassificationType]map[string]int
+	VisualImpact               map[string]*VisualImpact
+	ActiveImpacts              []*VisualImpact
+	ActiveASNImpacts           []*ASNImpact
+	CriticalStream             []*CriticalEvent
+	criticalQueue              []*CriticalEvent
+	lastCriticalAddedAt        time.Time
+	streamOffset               float64
+	streamDirty                bool
+	streamMu                   sync.Mutex
+	impactDirty                bool
 	loadingHistorical          bool
 	topStatsFlappiestASN       uint32
 	topStatsFlappiestOrg       string
@@ -125,7 +125,7 @@ type Engine struct {
 	topStatsRPKIInvalidIPv4    uint64
 	topStatsRPKINotFoundIPv4   uint64
 	topStatsDirty              bool
-	criticalCooldown       map[string]time.Time
+	criticalCooldown           map[string]time.Time
 
 	flappyImage        *ebiten.Image
 	flappiestChangedAt time.Time
@@ -798,7 +798,7 @@ func (e *Engine) updateMetrics() {
 	if removedAny {
 		e.CriticalStream = activeStream
 		e.streamDirty = true
-	e.streamUpdatedAt = time.Now()
+		e.streamUpdatedAt = time.Now()
 	}
 	e.streamMu.Unlock()
 }
@@ -1010,7 +1010,7 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	// 2. We only care about tracking and displaying these specific critical events
 	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack {
 		e.streamDirty = true
-	e.streamUpdatedAt = time.Now()
+		e.streamUpdatedAt = time.Now()
 		return
 	}
 
@@ -1299,11 +1299,11 @@ func (e *Engine) updateCriticalStream() {
 	if math.Abs(e.streamOffset) > 0.1 {
 		e.streamOffset *= 0.85
 		e.streamDirty = true
-	e.streamUpdatedAt = time.Now()
+		e.streamUpdatedAt = time.Now()
 	} else if e.streamOffset != 0 {
 		e.streamOffset = 0
 		e.streamDirty = true
-	e.streamUpdatedAt = time.Now()
+		e.streamUpdatedAt = time.Now()
 	}
 
 	// Clean up resolved events from queue first
@@ -1341,7 +1341,7 @@ func (e *Engine) updateCriticalStream() {
 			// Push the stream down visually
 			e.streamOffset += 1.0
 			e.streamDirty = true
-	e.streamUpdatedAt = time.Now()
+			e.streamUpdatedAt = time.Now()
 			e.lastCriticalAddedAt = time.Now()
 		}
 	}
@@ -2136,21 +2136,21 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 	}
 
 	ce := &CriticalEvent{
-		Timestamp:       time.Unix(alert.Timestamp, 0),
-		Anom:            ct.String(),
-		ASN:             alert.Asn,
-		ASNStr:          fmt.Sprintf("AS%d", alert.Asn),
-		OrgID:           alert.AsName,
-		Locations:       locVal,
-		Color:           realCol,
-		UIColor:         uiCol,
-		CachedTypeLabel: cachedTypeLabel,
-		CachedFirstLine: impactStr,
-		CachedLocLabel:  locLabel,
-		CachedLocVal:    locVal,
-		ImpactedIPs:     alert.ImpactedIpv4Ips,
+		Timestamp:            time.Unix(alert.Timestamp, 0),
+		Anom:                 ct.String(),
+		ASN:                  alert.Asn,
+		ASNStr:               fmt.Sprintf("AS%d", alert.Asn),
+		OrgID:                alert.AsName,
+		Locations:            locVal,
+		Color:                realCol,
+		UIColor:              uiCol,
+		CachedTypeLabel:      cachedTypeLabel,
+		CachedFirstLine:      impactStr,
+		CachedLocLabel:       locLabel,
+		CachedLocVal:         locVal,
+		ImpactedIPs:          alert.ImpactedIpv4Ips,
 		ImpactedIPv6Prefixes: alert.ImpactedIpv6Prefixes,
-		IsAggregate:     true,
+		IsAggregate:          true,
 	}
 
 	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
@@ -2168,12 +2168,12 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 }
 
 func (e *Engine) TestSetFlappiest(asn uint32, org string, pfx string) {
-    if e.topStatsFlappiestASN != asn {
-        e.flappiestChangedAt = e.Now()
-        e.flappyY = 0
-        e.flappyVelocity = 0
-    }
-    e.topStatsFlappiestASN = asn
-    e.topStatsFlappiestOrg = org
-    e.topStatsFlappiestPrefix = pfx
+	if e.topStatsFlappiestASN != asn {
+		e.flappiestChangedAt = e.Now()
+		e.flappyY = 0
+		e.flappyVelocity = 0
+	}
+	e.topStatsFlappiestASN = asn
+	e.topStatsFlappiestOrg = org
+	e.topStatsFlappiestPrefix = pfx
 }
