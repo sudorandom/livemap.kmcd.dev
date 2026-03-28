@@ -11,3 +11,6 @@ var fontInter []byte
 
 //go:embed fonts/Roboto_Mono/static/RobotoMono-Medium.ttf
 var fontMono []byte
+
+//go:embed data/flappy.png
+var flappyBirdPNG []byte

@@ -564,34 +564,104 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 	panelX := summaryX - panelW - 40
 	panelY := gy + 120 - (fontSize * 0.7) - 15
 
+	now := e.Now()
+	timeSinceChanged := now.Sub(e.flappiestChangedAt).Seconds()
+	isAnimating := timeSinceChanged >= 0 && timeSinceChanged <= 3.0
+
+	// We use an off-screen buffer to easily apply glitch effects to the entire panel
+	if e.flappiestBuffer == nil || e.flappiestBuffer.Bounds().Dx() != int(panelW) || e.flappiestBuffer.Bounds().Dy() != int(panelH) {
+		e.flappiestBuffer = ebiten.NewImage(int(panelW), int(panelH))
+	}
+	e.flappiestBuffer.Clear()
+
 	localX, localY := 10.0, fontSize+15.0
 
-	// Draw Background
-	vector.FillRect(screen, float32(panelX-10), float32(panelY), float32(panelW), float32(panelH), color.RGBA{0, 0, 0, 100}, false)
-	vector.StrokeRect(screen, float32(panelX-10), float32(panelY), float32(panelW), float32(panelH), 1, color.RGBA{36, 42, 53, 255}, false)
-	vector.FillRect(screen, float32(panelX-10), float32(panelY), 4, float32(fontSize+10), ColorBad, false)
+	// Draw Background to buffer
+	vector.FillRect(e.flappiestBuffer, 0, 0, float32(panelW), float32(panelH), color.RGBA{0, 0, 0, 100}, false)
+	vector.StrokeRect(e.flappiestBuffer, 0, 0, float32(panelW), float32(panelH), 1, color.RGBA{36, 42, 53, 255}, false)
+	vector.FillRect(e.flappiestBuffer, 0, 0, 4, float32(fontSize+10), ColorBad, false)
 
-	// Draw Title
+	// Draw Title to buffer
 	textOp := &text.DrawOptions{}
-	textOp.GeoM.Translate(panelX-10+localX+5, panelY+localY-fontSize-5)
+	textOp.GeoM.Translate(localX+5, localY-fontSize-5)
 	textOp.ColorScale.Scale(1, 1, 1, 0.5)
-	text.Draw(screen, "FLAPPIEST NETWORK", e.titleFace, textOp)
+	text.Draw(e.flappiestBuffer, "FLAPPIEST NETWORK", e.titleFace, textOp)
 
-	// Draw Content
-	asnOp := &text.DrawOptions{}
-	asnOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*0.2)
-	asnOp.ColorScale.Scale(1, 1, 1, 0.8)
-	text.Draw(screen, fmt.Sprintf("%s (AS%d)", e.topStatsFlappiestPrefix, e.topStatsFlappiestASN), e.face, asnOp)
+	if isAnimating && timeSinceChanged > 0.2 && timeSinceChanged < 2.8 {
+		// Draw Flappy Bird
+		if e.flappyImage != nil {
+			// Get actual scaled bounds for bird
+			imgW := float64(e.flappyImage.Bounds().Dx())
+			imgH := float64(e.flappyImage.Bounds().Dy())
+			birdScale := (fontSize * 2.0) / imgW
+			scaledBirdH := imgH * birdScale
 
-	orgOp := &text.DrawOptions{}
-	orgOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*1.3)
-	orgOp.ColorScale.Scale(1, 1, 1, 0.5)
-	text.Draw(screen, e.topStatsFlappiestOrg, e.artistFace, orgOp)
+			// Center the bird horizontally
+			birdX := (panelW - imgW*birdScale) / 2.0
 
-	flapOp := &text.DrawOptions{}
-	flapOp.GeoM.Translate(panelX-10+localX, panelY+localY+fontSize*2.4)
-	flapOp.ColorScale.Scale(1, 1, 1, 0.7)
-	text.Draw(screen, fmt.Sprintf("Flaps (24h): %s", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount))), e.artistFace, flapOp)
+			// Set initial starting point right below ceiling
+			if e.flappyY == 0 {
+				e.flappyY = fontSize + 6.0
+			}
+
+			// Basic physics update using a more stable fixed step if needed, but dt is fine here
+			// if we restrict it.
+			dt := 0.033      // Fixed dt for stability (approx 30fps)
+			gravity := 500.0 // gravity constant
+			e.flappyVelocity += gravity * dt
+			e.flappyY += e.flappyVelocity * dt
+
+			// Bounce off bottom
+			maxBirdY := panelH - scaledBirdH - 10.0
+			if e.flappyY > maxBirdY {
+				e.flappyY = maxBirdY
+				e.flappyVelocity = -200.0 // flap up
+			}
+
+			// Ceiling check
+			minBirdY := fontSize + 5.0
+			if e.flappyY < minBirdY {
+				e.flappyY = minBirdY
+				e.flappyVelocity = 0
+			}
+
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Scale(birdScale, birdScale)
+			op.GeoM.Translate(birdX, e.flappyY)
+			e.flappiestBuffer.DrawImage(e.flappyImage, op)
+		}
+	} else {
+		// Draw normal content
+		asnOp := &text.DrawOptions{}
+		asnOp.GeoM.Translate(localX, localY+fontSize*0.2)
+		asnOp.ColorScale.Scale(1, 1, 1, 0.8)
+		text.Draw(e.flappiestBuffer, fmt.Sprintf("%s (AS%d)", e.topStatsFlappiestPrefix, e.topStatsFlappiestASN), e.face, asnOp)
+
+		orgOp := &text.DrawOptions{}
+		orgOp.GeoM.Translate(localX, localY+fontSize*1.3)
+		orgOp.ColorScale.Scale(1, 1, 1, 0.5)
+		text.Draw(e.flappiestBuffer, e.topStatsFlappiestOrg, e.artistFace, orgOp)
+
+		flapOp := &text.DrawOptions{}
+		flapOp.GeoM.Translate(localX, localY+fontSize*2.4)
+		flapOp.ColorScale.Scale(1, 1, 1, 0.7)
+		text.Draw(e.flappiestBuffer, fmt.Sprintf("Flaps (24h): %s", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount))), e.artistFace, flapOp)
+	}
+
+	// Calculate glitch intensity
+	glitchIntensity := 0.0
+	isGlitching := false
+	if isAnimating {
+		if timeSinceChanged <= 0.2 {
+			isGlitching = true
+			glitchIntensity = 1.0 - (timeSinceChanged / 0.1)
+		} else if timeSinceChanged >= 2.8 {
+			isGlitching = true
+			glitchIntensity = (timeSinceChanged - 2.8) / 0.1
+		}
+	}
+
+	e.drawGlitchImage(screen, e.flappiestBuffer, panelX-10, panelY, glitchIntensity, isGlitching)
 }
 
 func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {
