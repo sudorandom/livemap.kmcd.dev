@@ -14,6 +14,7 @@ import (
 	"github.com/sudorandom/bgp-stream/pkg/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 func (e *Engine) StartGRPCWorker(addr string) {
@@ -28,7 +29,15 @@ func (e *Engine) StartGRPCWorker(addr string) {
 }
 
 func (e *Engine) runGRPCClient(addr string) error {
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	kpc := keepalive.ClientParameters{
+		Time:                10 * time.Second,
+		Timeout:             5 * time.Second,
+		PermitWithoutStream: true,
+	}
+	conn, err := grpc.Dial(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(kpc),
+	)
 	if err != nil {
 		e.IsConnected.Store(false)
 		return err

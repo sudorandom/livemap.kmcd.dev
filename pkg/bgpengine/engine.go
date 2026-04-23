@@ -670,8 +670,28 @@ func (e *Engine) Update() error {
 	if !e.lastUpdate.IsZero() {
 		diff := now.Sub(e.lastUpdate)
 		if diff > 5*time.Second {
-			log.Printf("[ENGINE] Large time jump detected (%.2fs). Resetting timers to avoid catch-up freeze.", diff.Seconds())
+			log.Printf("[ENGINE] Large time jump detected (%.2fs). Resetting timers and clearing queues to avoid catch-up freeze.", diff.Seconds())
 			e.nextPulseEmittedAt = now
+
+			// Clear pulses and visual queue to avoid massive catch-up processing
+			e.pulsesMu.Lock()
+			e.pulses = e.pulses[:0]
+			e.pulsesMu.Unlock()
+
+			e.queueMu.Lock()
+			e.visualQueue = e.visualQueue[:0]
+			e.queueMu.Unlock()
+
+			e.lastDrawTime = now
+			e.lastMetricsUpdate = now
+			e.lastPerfLog = now
+			e.hubUpdatedAt = now
+			e.impactUpdatedAt = now
+			e.streamUpdatedAt = now
+			e.flappiestChangedAt = now
+			e.lastTourStateChange = now
+			e.lastFrameCapturedAt = now
+			e.songChangedAt = now
 		}
 	}
 	e.lastUpdate = now
@@ -773,8 +793,6 @@ func (e *Engine) handleTourSkip() {
 
 func (e *Engine) updateMetrics() {
 	e.metricsMu.Lock()
-	defer e.metricsMu.Unlock()
-
 	for cc, vh := range e.VisualHubs {
 		vh.DisplayY = vh.TargetY
 		vh.Alpha += (vh.TargetAlpha - vh.Alpha) * 0.2
@@ -782,6 +800,7 @@ func (e *Engine) updateMetrics() {
 			delete(e.VisualHubs, cc)
 		}
 	}
+	e.metricsMu.Unlock()
 
 	// Cleanup Critical Event Stream (remove entries older than 10 mins)
 	now := e.Now()

@@ -3,6 +3,12 @@ check:
 	cargo clippy -- -D warnings -A clippy::collapsible_if
 	cargo test
 
+viewer:
+	go run ./cmd/bgp-viewer/
+
+collector:
+	RUST_BACKTRACE=1 cargo run --bin bgp-collector -- --mmdb ./assets/dbip-city-lite-2026-03.mmdb
+
 fauxrpc:
     fauxrpc run \
         --schema=proto \
