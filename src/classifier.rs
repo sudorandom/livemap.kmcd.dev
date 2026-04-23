@@ -1,6 +1,5 @@
 use crate::db::Db;
 use ipnet::IpNet;
-use log::debug;
 use lru::LruCache;
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
@@ -1376,18 +1375,12 @@ impl Classifier {
             let name = bgpkit.asinfo_get(asn).ok().flatten().and_then(|i| {
                 if !i.name.is_empty() {
                     Some(i.name)
-                } else if let Some(org) = i.as2org {
-                    Some(org.org_name)
                 } else {
-                    None
+                    i.as2org.map(|o| o.org_name)
                 }
             });
 
-            if name.is_none() {
-                debug!("AS name not found for AS{}", asn);
-            }
-
-            if name.is_some() {
+            {
                 let mut cache = self.bgpkit_cache.lock();
                 cache.as2name.insert(asn, name.clone());
             }
@@ -1397,6 +1390,9 @@ impl Classifier {
     }
 
     pub fn get_as_org(&self, asn: u32) -> Option<String> {
+        if asn == 0 {
+            return None;
+        }
         {
             let cache = self.bgpkit_cache.lock();
             if let Some(res) = cache.as2org.get(&asn) {
@@ -1409,8 +1405,9 @@ impl Classifier {
                 .asinfo_get(asn)
                 .ok()
                 .flatten()
-                .and_then(|i| i.as2org.clone().map(|o| o.org_name));
-            if org.is_some() {
+                .and_then(|i| i.as2org.map(|o| o.org_name));
+
+            {
                 let mut cache = self.bgpkit_cache.lock();
                 cache.as2org.insert(asn, org.clone());
             }

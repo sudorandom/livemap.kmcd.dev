@@ -58,6 +58,7 @@ type Engine struct {
 	whitePixel    *ebiten.Image
 	fadeMask      *ebiten.Image
 	fontSource    *text.GoTextFaceSource
+	boldSource    *text.GoTextFaceSource
 	monoSource    *text.GoTextFaceSource
 
 	displayBeaconPercent float64
@@ -175,8 +176,8 @@ type Engine struct {
 	mapImage             *ebiten.Image
 
 	// Reusable rendering resources
-	face, monoFace, titleFace, titleMonoFace    *text.GoTextFace
-	subFace, subMonoFace, extraFace, artistFace *text.GoTextFace
+	face, boldFace, monoFace, titleFace, titleMonoFace *text.GoTextFace
+	subFace, subBoldFace, subMonoFace, extraFace, artistFace  *text.GoTextFace
 	titleFace09, titleFace05                    *text.GoTextFace
 	drawOp                                      *ebiten.DrawImageOptions
 	legendRows                                  []legendRow
@@ -204,6 +205,10 @@ func NewEngine(width, height int, scale float64) *Engine {
 	if err != nil {
 		log.Printf("Fatal: failed to load Inter font: %v", err)
 	}
+	sb, err := text.NewGoTextFaceSource(bytes.NewReader(fontInterBold))
+	if err != nil {
+		log.Printf("Fatal: failed to load Inter Bold font: %v", err)
+	}
 	m, err := text.NewGoTextFaceSource(bytes.NewReader(fontMono))
 	if err != nil {
 		log.Printf("Fatal: failed to load Mono font: %v", err)
@@ -227,6 +232,7 @@ func NewEngine(width, height int, scale float64) *Engine {
 		},
 		nextPulseEmittedAt:     time.Now(),
 		fontSource:             s,
+		boldSource:             sb,
 		monoSource:             m,
 		countryActivity:        make(map[string]int),
 		history:                make([]MetricSnapshot, 120),
@@ -274,10 +280,12 @@ func NewEngine(width, height int, scale float64) *Engine {
 		fontSize = 36.0
 	}
 	e.face = &text.GoTextFace{Source: s, Size: fontSize}
+	e.boldFace = &text.GoTextFace{Source: sb, Size: fontSize}
 	e.monoFace = &text.GoTextFace{Source: m, Size: fontSize}
 	e.titleFace = &text.GoTextFace{Source: s, Size: fontSize * 0.8}
 	e.titleMonoFace = &text.GoTextFace{Source: m, Size: fontSize * 0.8}
 	e.subFace = &text.GoTextFace{Source: s, Size: fontSize * 0.8}
+	e.subBoldFace = &text.GoTextFace{Source: sb, Size: fontSize * 0.8}
 	e.subMonoFace = &text.GoTextFace{Source: m, Size: fontSize * 0.8}
 	e.extraFace = &text.GoTextFace{Source: s, Size: fontSize * 0.8}
 	e.artistFace = &text.GoTextFace{Source: s, Size: fontSize * 0.7}
@@ -1165,7 +1173,7 @@ func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *liv
 			ce.Locations += " | " + loc
 		}
 	}
-	e.updateCriticalEventCacheStrs(ce)
+	ce.Dirty = true
 }
 
 func (e *Engine) cullResolvedEvents() {
@@ -1244,7 +1252,7 @@ func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransitio
 		}
 	}
 
-	e.updateCriticalEventCacheStrs(ce)
+	ce.Dirty = true
 	return ce
 }
 
@@ -1276,7 +1284,7 @@ func (e *Engine) removeFromCriticalSlice(slice *[]*CriticalEvent, prefix, curren
 func (e *Engine) removePrefixFromEvent(ce *CriticalEvent, prefix string) {
 	delete(ce.ActivePrefixes, prefix)
 	ce.Resolved = len(ce.ActivePrefixes) == 0
-	e.updateCriticalEventCacheStrs(ce)
+	ce.Dirty = true
 }
 
 func (e *Engine) isSameEvent(ce *CriticalEvent, ev *bgpEvent, name string) bool {
@@ -1328,11 +1336,21 @@ func (e *Engine) updateCriticalStream() {
 	// Clean up resolved events from queue first
 	activeQueue := e.criticalQueue[:0]
 	for _, ce := range e.criticalQueue {
+		if ce.Dirty {
+			e.updateCriticalEventCacheStrs(ce)
+		}
 		if !ce.Resolved {
 			activeQueue = append(activeQueue, ce)
 		}
 	}
 	e.criticalQueue = activeQueue
+
+	// Update cached strings for displayed stream
+	for _, ce := range e.CriticalStream {
+		if ce.Dirty {
+			e.updateCriticalEventCacheStrs(ce)
+		}
+	}
 
 	// 2. Promote from queue if enough time has passed
 	if len(e.criticalQueue) > 0 && time.Since(e.lastCriticalAddedAt) > 100*time.Millisecond {
@@ -1424,6 +1442,7 @@ func (e *Engine) updateCriticalEventCacheStrs(ce *CriticalEvent) {
 	} else {
 		ce.CachedLocVal = ""
 	}
+	ce.Dirty = false
 }
 
 func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
@@ -2170,14 +2189,11 @@ func (e *Engine) RecordAlert(alert *livemap.Alert) {
 		ImpactedIPs:          alert.ImpactedIpv4Ips,
 		ImpactedIPv6Prefixes: alert.ImpactedIpv6Prefixes,
 		IsAggregate:          true,
+		Dirty:                true,
 	}
 
 	if ce.Anom != bgp.NameHardOutage && ce.Anom != bgp.NameRouteLeak && ce.Anom != bgp.NameMinorRouteLeak && ce.Anom != bgp.NameHijack {
 		ce.Anom = bgp.NameHardOutage
-	}
-
-	if e.subMonoFace != nil {
-		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
 	}
 
 	e.criticalQueue = append(e.criticalQueue, ce)

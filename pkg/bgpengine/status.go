@@ -327,7 +327,7 @@ func (e *Engine) drawCriticalStream(screen *ebiten.Image, margin, yBase, boxW, b
 		vector.FillRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), color.RGBA{0, 0, 0, 100}, false)
 		vector.StrokeRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), 1, color.RGBA{36, 42, 53, 255}, false)
 
-		streamTitle := "MAJOR ANOMALY STREAM"
+		streamTitle := "RECENT MAJOR ANOMALIES"
 		vector.FillRect(e.streamBuffer, 0, 0, 4, float32(fontSize+10), color.RGBA{255, 50, 50, 255}, false)
 
 		textOp := &text.DrawOptions{}
@@ -544,7 +544,7 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 	}
 
 	panelW := boxW * 1.0
-	panelH := fontSize * 5.4
+	panelH := fontSize * 7.0
 
 	// Align with the legend/summary box positioning
 	legendBoxW := 320.0
@@ -632,20 +632,30 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 		}
 	} else {
 		// Draw normal content
-		asnOp := &text.DrawOptions{}
-		asnOp.GeoM.Translate(localX, localY+fontSize*0.2)
-		asnOp.ColorScale.Scale(1, 1, 1, 0.8)
-		text.Draw(e.flappiestBuffer, fmt.Sprintf("%s (AS%d)", e.topStatsFlappiestPrefix, e.topStatsFlappiestASN), e.face, asnOp)
+		// 1. Prefix - Top line, prominent and BOLD
+		prefixOp := &text.DrawOptions{}
+		prefixOp.GeoM.Translate(localX, localY+fontSize*0.1)
+		prefixOp.ColorScale.Scale(1, 1, 1, 0.9)
+		text.Draw(e.flappiestBuffer, e.topStatsFlappiestPrefix, e.boldFace, prefixOp)
 
-		orgOp := &text.DrawOptions{}
-		orgOp.GeoM.Translate(localX, localY+fontSize*1.3)
-		orgOp.ColorScale.Scale(1, 1, 1, 0.5)
-		text.Draw(e.flappiestBuffer, e.topStatsFlappiestOrg, e.artistFace, orgOp)
+		// Add space between Prefix and the rest
+		networkY := localY + fontSize*1.4
 
+		// 2. Network: Organization (ASnnnn) - Wrapped below prefix
+		networkStr := fmt.Sprintf("Network: %s (AS%d)", e.topStatsFlappiestOrg, e.topStatsFlappiestASN)
+		networkOp := &text.DrawOptions{}
+		networkOp.ColorScale.Scale(1, 1, 1, 0.6)
+		
+		// Use subFace and its size for correct wrapping and line spacing
+		nextY := e.drawWrappedText(e.flappiestBuffer, networkStr, e.subFace, localX, networkY, panelW-20.0, e.subFace.Size, networkOp)
+
+		// 3. X Flaps in the last 24 hours - Bottom of the group, BOLD and wrapped
+		flapStr := fmt.Sprintf("%s Flaps in the last 24 hours", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount)))
 		flapOp := &text.DrawOptions{}
-		flapOp.GeoM.Translate(localX, localY+fontSize*2.4)
-		flapOp.ColorScale.Scale(1, 1, 1, 0.7)
-		text.Draw(e.flappiestBuffer, fmt.Sprintf("Flaps (24h): %s", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount))), e.artistFace, flapOp)
+		flapOp.ColorScale.Scale(1, 1, 1, 0.8)
+		
+		// Use subBoldFace to ensure the count is bolded and the line wraps correctly
+		_ = e.drawWrappedText(e.flappiestBuffer, flapStr, e.subBoldFace, localX, nextY, panelW-20.0, e.subBoldFace.Size, flapOp)
 	}
 
 	// Calculate glitch intensity

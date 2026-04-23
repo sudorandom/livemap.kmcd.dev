@@ -17,7 +17,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
+use parking_lot::RwLock;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
 
@@ -156,7 +156,7 @@ impl LiveMap for LiveMapService {
         _req: Request<StreamAlertsRequest>,
     ) -> Result<Response<Self::StreamAlertsStream>, Status> {
         let (tx, rx) = mpsc::channel(100);
-        self.state.alert_subscribers.write().await.push(tx);
+        self.state.alert_subscribers.write().push(tx);
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 
@@ -165,7 +165,7 @@ impl LiveMap for LiveMapService {
         _req: Request<SubscribeEventsRequest>,
     ) -> Result<Response<Self::SubscribeEventsStream>, Status> {
         let (tx, rx) = mpsc::channel(100);
-        self.state.subscribers.write().await.push(tx);
+        self.state.subscribers.write().push(tx);
         Ok(Response::new(ReceiverStream::new(rx)))
     }
     async fn stream_state_transitions(
@@ -190,7 +190,6 @@ impl LiveMap for LiveMapService {
         self.state
             .transition_subscribers
             .write()
-            .await
             .push((tx, target_states));
         Ok(Response::new(ReceiverStream::new(rx)))
     }
@@ -200,8 +199,8 @@ impl LiveMap for LiveMapService {
     ) -> Result<Response<GetSummaryResponse>, Status> {
         let now = Utc::now().timestamp();
         let start_ts = self.state.ingestion_start_ts;
-        let db_stats = self.state.cached_class_db_stats.read().await;
-        let ipv4_counts = self.state.cached_class_ipv4_counts.read().await;
+        let db_stats = self.state.cached_class_db_stats.read();
+        let ipv4_counts = self.state.cached_class_ipv4_counts.read();
         let mut classification_counts = Vec::new();
         let indices = [1, 2, 3, 4, 5, 6, 8, 9];
         for i in indices {
@@ -249,12 +248,12 @@ impl LiveMap for LiveMapService {
                 total_count,
             });
         }
-        let flappiest_asn = *self.state.top_flappiest_asn.read().await;
-        let flappiest_network = self.state.top_flappiest_network.read().await.clone();
-        let flappiest_prefix = self.state.top_flappiest_prefix.read().await.clone();
+        let flappiest_asn = *self.state.top_flappiest_asn.read();
+        let flappiest_network = self.state.top_flappiest_network.read().clone();
+        let flappiest_prefix = self.state.top_flappiest_prefix.read().clone();
         let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
-        let flappy_event_rate = *self.state.top_flappy_event_rate.read().await;
-        let largest_org_name = self.state.top_largest_org_name.read().await.clone();
+        let flappy_event_rate = *self.state.top_flappy_event_rate.read();
+        let largest_org_name = self.state.top_largest_org_name.read().clone();
         let largest_org_ipv4_count = self
             .state
             .top_largest_org_ipv4_count
@@ -957,14 +956,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 s_stats
                     .cached_global_ipv6_prefix_count
                     .store(g.ipv6_prefix_count as u64, Ordering::Relaxed);
-                *s_stats.cached_class_db_stats.write().await = c;
+                *s_stats.cached_class_db_stats.write() = c;
 
                 if ts.flappiest_asn > 0 {
                     s_stats
                         .top_flappy_prefix_count
                         .store(ts.flappy_prefix_count, Ordering::Relaxed);
 
-                    *s_stats.top_flappy_event_rate.write().await = ts.flappy_event_rate;
+                    *s_stats.top_flappy_event_rate.write() = ts.flappy_event_rate;
                     let mut flappiest_org = String::new();
 
                     if let Some(bgpkit) = &*c_stats.bgpkit.read() {
@@ -979,9 +978,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if flappiest_org.is_empty() {
                         flappiest_org = format!("AS{}", ts.flappiest_asn);
                     }
-                    *s_stats.top_flappiest_asn.write().await = ts.flappiest_asn;
-                    *s_stats.top_flappiest_network.write().await = flappiest_org;
-                    *s_stats.top_flappiest_prefix.write().await = ts.flappiest_prefix;
+                    *s_stats.top_flappiest_asn.write() = ts.flappiest_asn;
+                    *s_stats.top_flappiest_network.write() = flappiest_org;
+                    *s_stats.top_flappiest_prefix.write() = ts.flappiest_prefix;
                 }
             }
         }
@@ -1155,10 +1154,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 s_heavy
                     .cached_global_ipv4_count
                     .store(summary.0, Ordering::Relaxed);
-                *s_heavy.cached_class_ipv4_counts.write().await = summary.1;
+                *s_heavy.cached_class_ipv4_counts.write() = summary.1;
                 s_heavy.loading_historical.store(false, Ordering::Relaxed);
 
-                *s_heavy.top_largest_org_name.write().await = summary.2;
+                *s_heavy.top_largest_org_name.write() = summary.2;
                 s_heavy
                     .top_largest_org_ipv4_count
                     .store(summary.3, Ordering::Relaxed);
@@ -1225,7 +1224,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Actually, we can just spawn blocking for the entire alert calculation block to not block the executor.
 
             let rw_cloned = {
-                let mut rw = rw_alert.write().await;
+                let mut rw = rw_alert.write();
                 rw.cleanup(now_tick, 300); // 5 minutes window
                 rw.clone()
             };
@@ -1696,7 +1695,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 if !filtered_alerts.is_empty() {
-                    let mut alert_subs = s_alert.alert_subscribers.write().await;
+                    let mut alert_subs = s_alert.alert_subscribers.write();
                     for alert in filtered_alerts {
                         alert_subs.retain(|sub| {
                             sub.try_send(Ok(StreamAlertsResponse {
@@ -1725,18 +1724,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some(first_msg) = rx.recv() => {
                     let now = Utc::now().timestamp(); let mut batched = vec![first_msg];
                     while let Ok(msg) = rx.try_recv() { batched.push(msg); if batched.len() >= 5000 { break; } }
-                    let mut max_lag = 0; let mut transitions = Vec::new();
-                    for (pending, _) in batched {
-                        let lag = now - pending.timestamp; if lag > max_lag { max_lag = lag; }
-                        s_ingest.global_stats.add_event(now);
-                        if pending.source == "ris" { s_ingest.ris_live_stats.add_event(now); } else if pending.source == "routeviews" { s_ingest.routeviews_stats.add_event(now); }
-                        if let Some(cs) = s_ingest.class_stats.get(&pending.classification_type) { cs.add_event(now); }
+                    let mut max_lag = 0;
+                    let mut transitions = Vec::new();
+                    let mut rw_updates = Vec::new();
 
-                        if pending.classification_type == ClassificationType::Flap {
-                            db_ingest.record_event(&pending.prefix, pending.asn, ClassificationType::Flap as i32, now);
+                    // Per-batch local cache to avoid redundant lookups and Mutex contention
+                    let mut local_as_names: HashMap<u32, String> = HashMap::new();
+                    let mut local_as_orgs: HashMap<u32, Option<String>> = HashMap::new();
+
+                    for (pending, _) in batched {
+                        let lag = now - pending.timestamp;
+                        if lag > max_lag {
+                            max_lag = lag;
+                        }
+                        s_ingest.global_stats.add_event(now);
+                        if pending.source == "ris" {
+                            s_ingest.ris_live_stats.add_event(now);
+                        } else if pending.source == "routeviews" {
+                            s_ingest.routeviews_stats.add_event(now);
+                        }
+                        if let Some(cs) = s_ingest.class_stats.get(&pending.classification_type) {
+                            cs.add_event(now);
                         }
 
-                                                                        let mut is_beacon = false;
+                        if pending.classification_type == ClassificationType::Flap {
+                            db_ingest.record_event(
+                                &pending.prefix,
+                                pending.asn,
+                                ClassificationType::Flap as i32,
+                                now,
+                            );
+                        }
+
+                        let mut is_beacon = false;
                         if let Ok(net) = ipnet::IpNet::from_str(&pending.prefix) {
                             for bnet in &beacon_nets {
                                 if bnet.contains(&net.network()) || net.contains(&bnet.network()) {
@@ -1753,48 +1773,116 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let key = AggregationKey {
                             lat_q: (pending.lat * 10.0) as i32,
                             lon_q: (pending.lon * 10.0) as i32,
-                            classification: pending.classification_type
+                            classification: pending.classification_type,
                         };
                         *aggregate_buffer.entry(key).or_insert(0) += 1;
 
-                        if matches!(pending.classification_type, ClassificationType::RouteLeak | ClassificationType::MinorRouteLeak | ClassificationType::Hijack | ClassificationType::Outage) {
-                            rw_ingest.write().await.add_event(pending.lat, pending.lon, pending.asn, pending.as_name.clone(), c_ingest.get_as_org(pending.asn), pending.country.clone(), pending.city.clone(), pending.classification_type, now, pending.prefix.clone());
+                        if matches!(
+                            pending.classification_type,
+                            ClassificationType::RouteLeak
+                                | ClassificationType::MinorRouteLeak
+                                | ClassificationType::Hijack
+                                | ClassificationType::Outage
+                        ) {
+                            let org = local_as_orgs
+                                .entry(pending.asn)
+                                .or_insert_with(|| c_ingest.get_as_org(pending.asn))
+                                .clone();
+                            rw_updates.push((
+                                pending.lat,
+                                pending.lon,
+                                pending.asn,
+                                pending.as_name.clone(),
+                                org,
+                                pending.country.clone(),
+                                pending.city.clone(),
+                                pending.classification_type,
+                                now,
+                                pending.prefix.clone(),
+                            ));
                         }
                         if pending.classification_type != pending.old_classification
-                            && let Some(id) = &pending.incident_id {
-                                let transition_key = format!("{}:{}", pending.prefix, pending.asn);
-                                let last_emitted = last_emitted_transitions.get(&transition_key).copied().unwrap_or(0);
-                                if now - last_emitted >= 300 {
-                                    last_emitted_transitions.insert(transition_key, now);
-                                    let cur_as_name = c_ingest.get_as_name(pending.asn).unwrap_or_default();
-                                    transitions.push(StateTransition {
-                                        incident_id: id.clone(),
-                                        prefix: pending.prefix.clone(),
-                                        asn: pending.asn,
-                                        as_name: cur_as_name,
-                                        geo: Some(ProtoGeoData { lat: pending.lat, lon: pending.lon }),
-                                        city: pending.city.clone().unwrap_or_default(),
-                                        country: pending.country.clone().unwrap_or_default(),
-                                        new_state: map_classification(pending.classification_type).into(),
-                                        old_state: map_classification(pending.old_classification).into(),
-                                        start_time: pending.incident_start_time,
-                                        end_time: if pending.classification_type == ClassificationType::None { now } else { 0 },
-                                        leak_detail: pending.leak_detail.as_ref().map(|ld| livemap_proto::LeakDetail {
+                            && let Some(id) = &pending.incident_id
+                        {
+                            let transition_key = format!("{}:{}", pending.prefix, pending.asn);
+                            let last_emitted = last_emitted_transitions
+                                .get(&transition_key)
+                                .copied()
+                                .unwrap_or(0);
+                            if now - last_emitted >= 300 {
+                                last_emitted_transitions.insert(transition_key, now);
+                                let cur_as_name = local_as_names
+                                    .entry(pending.asn)
+                                    .or_insert_with(|| {
+                                        c_ingest.get_as_name(pending.asn).unwrap_or_default()
+                                    })
+                                    .clone();
+                                transitions.push(StateTransition {
+                                    incident_id: id.clone(),
+                                    prefix: pending.prefix.clone(),
+                                    asn: pending.asn,
+                                    as_name: cur_as_name,
+                                    geo: Some(ProtoGeoData {
+                                        lat: pending.lat,
+                                        lon: pending.lon,
+                                    }),
+                                    city: pending.city.clone().unwrap_or_default(),
+                                    country: pending.country.clone().unwrap_or_default(),
+                                    new_state: map_classification(pending.classification_type)
+                                        .into(),
+                                    old_state: map_classification(pending.old_classification)
+                                        .into(),
+                                    start_time: pending.incident_start_time,
+                                    end_time: if pending.classification_type
+                                        == ClassificationType::None
+                                    {
+                                        now
+                                    } else {
+                                        0
+                                    },
+                                    leak_detail: pending.leak_detail.as_ref().map(|ld| {
+                                        let leaker_name = local_as_names
+                                            .entry(ld.leaker_asn)
+                                            .or_insert_with(|| {
+                                                c_ingest
+                                                    .get_as_name(ld.leaker_asn)
+                                                    .unwrap_or_default()
+                                            })
+                                            .clone();
+                                        let victim_name = local_as_names
+                                            .entry(ld.victim_asn)
+                                            .or_insert_with(|| {
+                                                c_ingest
+                                                    .get_as_name(ld.victim_asn)
+                                                    .unwrap_or_default()
+                                            })
+                                            .clone();
+                                        livemap_proto::LeakDetail {
                                             leak_type: ld.leak_type as u32,
                                             leaker_asn: ld.leaker_asn,
                                             victim_asn: ld.victim_asn,
-                                            leaker_as_name: c_ingest.get_as_name(ld.leaker_asn).unwrap_or_default(),
-                                            victim_as_name: c_ingest.get_as_name(ld.victim_asn).unwrap_or_default(),
+                                            leaker_as_name: leaker_name,
+                                            victim_as_name: victim_name,
                                             leaker_rpki_status: ld.leaker_rpki_status,
-                                            victim_rpki_status: ld.victim_rpki_status
-                                        })
-                                    });
-                                }
+                                            victim_rpki_status: ld.victim_rpki_status,
+                                        }
+                                    }),
+                                });
                             }
+                        }
+                    }
+
+                    if !rw_updates.is_empty() {
+                        let mut rw = rw_ingest.write();
+                        for u in rw_updates {
+                            rw.add_event(
+                                u.0, u.1, u.2, u.3, u.4, u.5, u.6, u.7, u.8, u.9,
+                            );
+                        }
                     }
                     s_ingest.max_lag.store(max_lag as u64, Ordering::Relaxed);
                     if !transitions.is_empty() {
-                        let mut subs = s_ingest.transition_subscribers.write().await;
+                        let mut subs = s_ingest.transition_subscribers.write();
                         subs.retain(|(sub, target)| {
                             for t in &transitions {
                                 let (c, old) = (ClassificationType::from_i32(t.new_state), ClassificationType::from_i32(t.old_state));
@@ -1817,7 +1905,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             classification: map_classification(k.classification).into(),
                             count
                         }).collect();
-                        let resp = SubscribeEventsResponse { events }; let mut subs = s_ingest.subscribers.write().await;
+                        let resp = SubscribeEventsResponse { events }; let mut subs = s_ingest.subscribers.write();
                         subs.retain(|sub| sub.try_send(Ok(resp.clone())).is_ok());
                     }
                 }

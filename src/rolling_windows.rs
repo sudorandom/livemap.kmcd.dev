@@ -175,6 +175,10 @@ impl RollingWindows {
             v.retain(|e| e.ts >= cutoff);
             !v.is_empty()
         });
+
+        // Cleanup prefix_stats - remove if not seen for 1 hour
+        let stats_cutoff = now - 3600;
+        self.prefix_stats.retain(|_, v| v.last_window_ts >= stats_cutoff);
     }
 }
 

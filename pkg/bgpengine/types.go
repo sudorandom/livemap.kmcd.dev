@@ -92,6 +92,7 @@ type CriticalEvent struct {
 	CachedLocVal      string
 
 	CachedImpactStr string
+	Dirty           bool
 }
 
 type statsEvent struct {
