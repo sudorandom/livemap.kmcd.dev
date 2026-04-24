@@ -7,6 +7,7 @@ use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 use ipnet::IpNet;
 use log::{debug, info, warn};
+use parking_lot::RwLock;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::message::Message;
@@ -17,7 +18,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use parking_lot::RwLock;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
 
@@ -809,11 +809,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             let configs = vec![
-                DatasetConfig { name: "as_info", refresh_interval: 7 * 86400, retry_interval: 86400 }, // 7 days / 1 day retry
-                DatasetConfig { name: "rpki", refresh_interval: 86400, retry_interval: 3600 },        // 1 day / 1 hour retry
-                DatasetConfig { name: "bogons", refresh_interval: 7 * 86400, retry_interval: 86400 },
-                DatasetConfig { name: "as2rel", refresh_interval: 7 * 86400, retry_interval: 86400 },
-                DatasetConfig { name: "mrt", refresh_interval: 30 * 86400, retry_interval: 7 * 86400 },
+                DatasetConfig {
+                    name: "as_info",
+                    refresh_interval: 7 * 86400,
+                    retry_interval: 86400,
+                }, // 7 days / 1 day retry
+                DatasetConfig {
+                    name: "rpki",
+                    refresh_interval: 86400,
+                    retry_interval: 3600,
+                }, // 1 day / 1 hour retry
+                DatasetConfig {
+                    name: "bogons",
+                    refresh_interval: 7 * 86400,
+                    retry_interval: 86400,
+                },
+                DatasetConfig {
+                    name: "as2rel",
+                    refresh_interval: 7 * 86400,
+                    retry_interval: 86400,
+                },
+                DatasetConfig {
+                    name: "mrt",
+                    refresh_interval: 30 * 86400,
+                    retry_interval: 7 * 86400,
+                },
             ];
 
             loop {
@@ -822,8 +842,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 // Load current global state for incremental updates
                 // We maintain our own master copy in this thread to accumulate updates.
-                static MASTER_BGPKIT: parking_lot::Mutex<Option<bgpkit_commons::BgpkitCommons>> = parking_lot::Mutex::new(None);
-                
+                static MASTER_BGPKIT: parking_lot::Mutex<Option<bgpkit_commons::BgpkitCommons>> =
+                    parking_lot::Mutex::new(None);
+
                 {
                     let mut master = MASTER_BGPKIT.lock();
                     if master.is_none() {
@@ -836,27 +857,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let last_attempt = db_refresh.get_refresh_timestamp(config.name, "attempt");
 
                     let due_for_refresh = now_ts >= (last_success + config.refresh_interval);
-                    let due_for_retry = (last_attempt > last_success) && (now_ts >= (last_attempt + config.retry_interval));
+                    let due_for_retry = (last_attempt > last_success)
+                        && (now_ts >= (last_attempt + config.retry_interval));
 
                     if due_for_refresh || due_for_retry {
-                        info!("[REFRESH] Dataset '{}' is due. Refresh={}, Retry={}", config.name, due_for_refresh, due_for_retry);
+                        info!(
+                            "[REFRESH] Dataset '{}' is due. Refresh={}, Retry={}",
+                            config.name, due_for_refresh, due_for_retry
+                        );
                         db_refresh.set_refresh_timestamp(config.name, "attempt", now_ts);
-                        
+
                         let name = config.name;
                         // Move the master instance into the blocking task to update it
                         let mut bgpkit_to_update = MASTER_BGPKIT.lock().take().unwrap();
-                        
-                        let refresh_op = tokio::task::spawn_blocking(move || -> anyhow::Result<bgpkit_commons::BgpkitCommons> {
-                            match name {
-                                "as_info" => bgpkit_to_update.load_asinfo(true, true, true, true)?,
-                                "rpki" => bgpkit_to_update.load_rpki(None)?,
-                                "bogons" => bgpkit_to_update.load_bogons()?,
-                                "as2rel" => bgpkit_to_update.load_as2rel()?,
-                                "mrt" => bgpkit_to_update.load_mrt_collectors()?,
-                                _ => return Err(anyhow::anyhow!("Unknown dataset")),
-                            }
-                            Ok(bgpkit_to_update)
-                        }).await;
+
+                        let refresh_op = tokio::task::spawn_blocking(
+                            move || -> anyhow::Result<bgpkit_commons::BgpkitCommons> {
+                                match name {
+                                    "as_info" => {
+                                        bgpkit_to_update.load_asinfo(true, true, true, true)?
+                                    }
+                                    "rpki" => bgpkit_to_update.load_rpki(None)?,
+                                    "bogons" => bgpkit_to_update.load_bogons()?,
+                                    "as2rel" => bgpkit_to_update.load_as2rel()?,
+                                    "mrt" => bgpkit_to_update.load_mrt_collectors()?,
+                                    _ => return Err(anyhow::anyhow!("Unknown dataset")),
+                                }
+                                Ok(bgpkit_to_update)
+                            },
+                        )
+                        .await;
 
                         match refresh_op {
                             Ok(Ok(updated_bgpkit)) => {
@@ -866,17 +896,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 anything_changed = true;
                             }
                             Ok(Err(e)) => {
-                                warn!("[REFRESH] Failed to update dataset '{}': {}. Will retry in {} seconds.", config.name, e, config.retry_interval);
+                                warn!(
+                                    "[REFRESH] Failed to update dataset '{}': {}. Will retry in {} seconds.",
+                                    config.name, e, config.retry_interval
+                                );
                                 // Put it back even on failure so we don't lose the other data
                                 // We have to move it back, but wait, the closure consumed it.
                                 // In the Err case, we don't have bgpkit_to_update anymore unless we return it.
-                                // Actually, I'll just re-initialize it for now if it fails, or better, 
+                                // Actually, I'll just re-initialize it for now if it fails, or better,
                                 // change the closure to return (BgpkitCommons, Result).
                                 // For now, creating a new one is safe but lose some cached info.
                                 *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
                             }
                             Err(e) => {
-                                warn!("[REFRESH] Background task panicked for dataset '{}': {}", config.name, e);
+                                warn!(
+                                    "[REFRESH] Background task panicked for dataset '{}': {}",
+                                    config.name, e
+                                );
                                 *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
                             }
                         }
@@ -884,14 +920,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 if anything_changed {
-                    // We need to give a copy to the global state. 
+                    // We need to give a copy to the global state.
                     // Since it's not Clone, we'll move it in and create a new one for the background.
                     if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
                         info!("Applying granular BGPKIT updates and clearing caches.");
                         let current_master = MASTER_BGPKIT.lock().take().unwrap();
                         *c_bg = Some(current_master);
                         classifier_bg.clear_cache();
-                        
+
                         // Background worker starts fresh for next cycle
                         *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
                     }
