@@ -15,17 +15,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-- name: Install system dependencies
-  run: |
-    sudo apt-get update
-    sudo apt-get install -y cmake pkg-config libz-dev curl libcurl4-openssl-dev protobuf-compiler \
-      libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libasound2-dev libgl1-mesa-dev libxxf86vm-dev xvfb
 
-- name: Install mise
-...
-- name: Run just check
-  run: xvfb-run -a just check
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake pkg-config libz-dev curl libcurl4-openssl-dev protobuf-compiler \
+          libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libasound2-dev libgl1-mesa-dev libxxf86vm-dev \
+          xvfb
 
+    - name: Install mise
+      uses: jdx/mise-action@v2
+      with:
         install: true
 
     - name: Cache Go modules
@@ -51,4 +51,4 @@ jobs:
       run: just check
 
     - name: Run just test
-      run: just test
+      run: xvfb-run -a just test
