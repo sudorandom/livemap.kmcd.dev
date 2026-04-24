@@ -646,7 +646,7 @@ func (e *Engine) AddPulse(lat, lng float64, c color.RGBA, count int, shape ...Ev
 func (e *Engine) UpdatePerformanceMetrics() {
 	now := e.Now()
 	elapsed := now.Sub(e.lastPerfLog)
-	if elapsed < 5*time.Second {
+	if elapsed < 10*time.Second {
 		return
 	}
 	e.lastPerfLog = now
@@ -685,7 +685,7 @@ func (e *Engine) Update() error {
 	now := e.Now()
 	if !e.lastUpdate.IsZero() {
 		diff := now.Sub(e.lastUpdate)
-		if diff > 5*time.Second {
+		if diff > 10*time.Second {
 			log.Printf("[ENGINE] Large time jump detected (%.2fs). Resetting timers and clearing queues to avoid catch-up freeze.", diff.Seconds())
 			e.nextPulseEmittedAt = now
 
@@ -764,8 +764,8 @@ func (e *Engine) updateVisualQueue() {
 		p := e.visualQueue[0]
 		e.visualQueue = e.visualQueue[1:]
 		added++
-		// Allow up to 5 seconds of delay during massive spikes before dropping pulses
-		if now.Sub(p.ScheduledTime) < 5*time.Second {
+		// Allow up to 10 seconds of delay during massive spikes before dropping pulses
+		if now.Sub(p.ScheduledTime) < 10*time.Second {
 			e.AddPulse(p.Lat, p.Lng, p.Color, p.Count, p.Shape)
 		} else {
 			e.droppedStale.Add(1)
@@ -2037,7 +2037,7 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 	rand.Shuffle(len(nextBatch), func(i, j int) { nextBatch[i], nextBatch[j] = nextBatch[j], nextBatch[i] })
 
 	// The smoothing window: how far ahead we schedule pulses to absorb stalls.
-	smoothingWindow := 5 * time.Second
+	smoothingWindow := 10 * time.Second
 	now := e.Now()
 
 	// Batch window: the period over which we spread this batch. 
@@ -2060,11 +2060,26 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 	// We use the arrival 'now' + smoothingWindow to ensure every batch is offset consistently.
 	batchStartTime := now.Add(smoothingWindow)
 
+	// To prevent gaps when batches arrive irregularly, we ensure they always start
+	// after the last scheduled pulse.
+	if batchStartTime.Before(e.nextPulseEmittedAt) {
+		batchStartTime = e.nextPulseEmittedAt
+	}
+
+	// If the current batch is more than 1 second behind our target window, 
+	// reset it to now + smoothingWindow to avoid massive backlogs after deep stalls.
+	if batchStartTime.Sub(now) > smoothingWindow+time.Second {
+		batchStartTime = now.Add(smoothingWindow)
+	}
+
 	for i, p := range nextBatch {
 		// Distribute pulses evenly throughout the 100ms window
 		p.ScheduledTime = batchStartTime.Add(time.Duration(i) * spacing)
 		e.visualQueue = append(e.visualQueue, p)
 	}
+
+	// Record when this entire batch will be finished
+	e.nextPulseEmittedAt = batchStartTime.Add(batchWindow)
 }
 
 func (e *Engine) Stop() {

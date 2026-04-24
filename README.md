@@ -16,7 +16,7 @@ This project uses a hybrid architecture to achieve maximum performance and stabi
 - **Real-Time Visualization:** Every BGP announcement or withdrawal is rendered as a pulse of light on a global map.
 - **Advanced Classification:** Detects Hijacks, Route Leaks, Outages, Bogons, and DDoS Mitigation events in near real-time.
 - **Dual-Protocol RPKI:** A dedicated dashboard visualizing the cryptographic health of both IPv4 and IPv6 routing.
-- **Jitter Smoothing:** A 5-second desynchronized smoothing buffer ensures a fluid visual flow even during network stalls.
+- **Jitter Smoothing:** A 10-second desynchronized smoothing buffer ensures a fluid visual flow even during network stalls.
 - **Resilient Recovery:** Intelligent "time-jump" detection allows the application to recover instantly from system sleep or hibernation.
 
 ## Data Sources

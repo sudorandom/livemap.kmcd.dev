@@ -30,9 +30,9 @@ fn test_cumulative_stats_get_rate() {
         stats.add_event(i);
     }
 
-    // window is 5 secs, so total 5 events, rate 1.0
-    let rate = stats.get_rate_for_window(104, 5);
-    assert_eq!(rate, 1.0);
+    // window is 10 secs, so total 5 events, rate 0.5
+    let rate = stats.get_rate_for_window(104, 10);
+    assert_eq!(rate, 0.5);
 }
 
 #[test]

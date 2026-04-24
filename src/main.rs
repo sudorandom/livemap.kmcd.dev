@@ -1029,16 +1029,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let s_log = app_state.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(5));
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
             interval.tick().await;
             let now = Utc::now().timestamp();
             info!(
                 "[INGEST] Total: {:.1} msg/s (RIS: {:.1}, RV: {:.1}) | Total: {} | Lag: {}s",
-                s_log.global_stats.get_rate_for_window(now, 5),
-                s_log.ris_live_stats.get_rate_for_window(now, 5),
-                s_log.routeviews_stats.get_rate_for_window(now, 5),
+                s_log.global_stats.get_rate_for_window(now, 10),
+                s_log.ris_live_stats.get_rate_for_window(now, 10),
+                s_log.routeviews_stats.get_rate_for_window(now, 10),
                 s_log.global_stats.msg_count.load(Ordering::Relaxed),
                 s_log.max_lag.load(Ordering::Relaxed)
             );
