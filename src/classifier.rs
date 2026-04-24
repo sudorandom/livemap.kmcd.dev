@@ -274,6 +274,7 @@ pub struct PendingEvent {
 pub struct BgpkitCache {
     pub as2org: HashMap<u32, Option<String>>,
     pub as2name: HashMap<u32, Option<String>>,
+    pub rpki_cache: HashMap<(u32, String), i32>,
 }
 
 pub struct Classifier {
@@ -1416,6 +1417,13 @@ impl Classifier {
         None
     }
 
+    pub fn clear_cache(&self) {
+        let mut cache = self.bgpkit_cache.lock();
+        cache.as2org.clear();
+        cache.as2name.clear();
+        cache.rpki_cache.clear();
+    }
+
     fn parse_path(&self, path_str: &str) -> Vec<u32> {
         let mut path: Vec<u32> = path_str
             .split_whitespace()
@@ -1426,15 +1434,27 @@ impl Classifier {
     }
 
     fn rpki_validate(&self, asn: u32, prefix: &str) -> i32 {
+        {
+            let cache = self.bgpkit_cache.lock();
+            if let Some(res) = cache.rpki_cache.get(&(asn, prefix.to_string())) {
+                return *res;
+            }
+        }
+
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard
             && let Ok(status) = bgpkit.rpki_validate(asn, prefix)
         {
-            return match status {
+            let res = match status {
                 bgpkit_commons::rpki::RpkiValidation::Valid => 1,
                 bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
                 bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
             };
+            {
+                let mut cache = self.bgpkit_cache.lock();
+                cache.rpki_cache.insert((asn, prefix.to_string()), res);
+            }
+            return res;
         }
         0
     }

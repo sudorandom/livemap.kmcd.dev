@@ -65,7 +65,7 @@ func (e *Engine) DrawBGPStatus(screen *ebiten.Image) {
 	// 5. Left Bottom / Above Now Playing: Flappiest Network
 	e.drawFlappiestNetwork(screen, margin, boxW, fontSize)
 
-	// 6. RPKI Status Vertical Progress Bar
+	// 6. RPKI Status side-by-side vertical bars (Right Edge)
 	e.drawRPKIStatus(screen, margin, boxW, fontSize)
 
 	e.drawDisconnected(screen)
@@ -675,59 +675,77 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 }
 
 func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {
-	total := e.topStatsRPKIValidIPv4 + e.topStatsRPKIInvalidIPv4 + e.topStatsRPKINotFoundIPv4
-	if total == 0 {
+	totalV4 := e.topStatsRPKIValidIPv4 + e.topStatsRPKIInvalidIPv4 + e.topStatsRPKINotFoundIPv4
+	totalV6 := e.topStatsRPKIValidIPv6 + e.topStatsRPKIInvalidIPv6 + e.topStatsRPKINotFoundIPv6
+	if totalV4 == 0 && totalV6 == 0 {
 		return
 	}
 
-	validPct := float64(e.topStatsRPKIValidIPv4) / float64(total)
-	invalidPct := float64(e.topStatsRPKIInvalidIPv4) / float64(total)
-	notFoundPct := float64(e.topStatsRPKINotFoundIPv4) / float64(total)
-
-	// Position the vertical bar to the right edge
-	barW := 15.0
+	// Bar dimensions
+	barW := 25.0
 	barH := float64(e.Height) * 0.4 // 40% of screen height
 	if e.Width > 2000 {
-		barW = 30.0
+		barW = 50.0
 	}
+	spacing := 10.0
 
-	// Position the bar higher up on the right edge
-	barX := float64(e.Width) - margin - barW
+	// Positioning (Right Edge)
+	v6X := float64(e.Width) - margin - barW
+	v4X := v6X - barW - spacing
 	barY := float64(e.Height) * 0.05
 
-	// Draw Background for the bar
-	vector.FillRect(screen, float32(barX), float32(barY), float32(barW), float32(barH), color.RGBA{0, 0, 0, 100}, false)
-	vector.StrokeRect(screen, float32(barX), float32(barY), float32(barW), float32(barH), 1, color.RGBA{36, 42, 53, 255}, false)
+	drawBar := func(x float64, valid, invalid, notFound uint64, label string) {
+		total := valid + invalid + notFound
+		if total == 0 {
+			return
+		}
 
-	currY := float32(barY)
+		validPct := float64(valid) / float64(total)
+		invalidPct := float64(invalid) / float64(total)
+		notFoundPct := float64(notFound) / float64(total)
 
-	validH := float32(barH * validPct)
-	invalidH := float32(barH * invalidPct)
-	notFoundH := float32(barH * notFoundPct)
+		// Draw Background
+		vector.FillRect(screen, float32(x), float32(barY), float32(barW), float32(barH), color.RGBA{0, 0, 0, 100}, false)
+		vector.StrokeRect(screen, float32(x), float32(barY), float32(barW), float32(barH), 1, color.RGBA{36, 42, 53, 255}, false)
 
-	// Not Found (Grey)
-	if notFoundH > 0 {
-		vector.FillRect(screen, float32(barX), currY, float32(barW), notFoundH, color.RGBA{120, 120, 120, 200}, false)
-		currY += notFoundH
+		currY := float32(barY)
+		validH := float32(barH * validPct)
+		invalidH := float32(barH * invalidPct)
+		notFoundH := float32(barH * notFoundPct)
+
+		// Not Found (Grey)
+		if notFoundH > 0 {
+			vector.FillRect(screen, float32(x), currY, float32(barW), notFoundH, color.RGBA{120, 120, 120, 200}, false)
+			currY += notFoundH
+		}
+		// Invalid (Red)
+		if invalidH > 0 {
+			vector.FillRect(screen, float32(x), currY, float32(barW), invalidH, color.RGBA{220, 50, 50, 200}, false)
+			currY += invalidH
+		}
+		// Valid (Green)
+		if validH > 0 {
+			vector.FillRect(screen, float32(x), currY, float32(barW), validH, color.RGBA{50, 220, 50, 200}, false)
+		}
+
+		// Draw Label (v4/v6) at the TOP
+		labelOp := &text.DrawOptions{}
+		labelOp.ColorScale.Scale(1, 1, 1, 0.6)
+		tw, _ := text.Measure(label, e.subMonoFace, 0)
+		labelOp.GeoM.Translate(x+(barW-tw)/2, barY-fontSize-5)
+		text.Draw(screen, label, e.subMonoFace, labelOp)
 	}
-	// Invalid (Red)
-	if invalidH > 0 {
-		vector.FillRect(screen, float32(barX), currY, float32(barW), invalidH, color.RGBA{220, 50, 50, 200}, false)
-		currY += invalidH
-	}
-	// Valid (Green)
-	if validH > 0 {
-		vector.FillRect(screen, float32(barX), currY, float32(barW), validH, color.RGBA{50, 220, 50, 200}, false)
-	}
 
-	// Add RPKI label below the bar
+	drawBar(v4X, e.topStatsRPKIValidIPv4, e.topStatsRPKIInvalidIPv4, e.topStatsRPKINotFoundIPv4, "v4")
+	drawBar(v6X, e.topStatsRPKIValidIPv6, e.topStatsRPKIInvalidIPv6, e.topStatsRPKINotFoundIPv6, "v6")
+
+	// RPKI Main Label at the bottom
 	msg := "RPKI"
 	tw, _ := text.Measure(msg, e.subMonoFace, 0)
-
-	labelOp := &text.DrawOptions{}
-	labelOp.ColorScale.Scale(1, 1, 1, 0.8)
-	labelOp.GeoM.Translate(barX+(barW-tw)/2, barY+barH+5)
-	text.Draw(screen, msg, e.subMonoFace, labelOp)
+	mainLabelOp := &text.DrawOptions{}
+	mainLabelOp.ColorScale.Scale(1, 1, 1, 0.8)
+	mainLabelOp.GeoM.Translate(v4X + (barW*2+spacing-tw)/2, barY+barH+5)
+	text.Draw(screen, msg, e.subMonoFace, mainLabelOp)
 }
 
 func (e *Engine) drawLegendAndTrends(screen *ebiten.Image) {

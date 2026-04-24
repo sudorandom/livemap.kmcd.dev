@@ -49,6 +49,10 @@ type Engine struct {
 	visualQueue        []QueuedPulse
 	queueMu            sync.Mutex
 	nextPulseEmittedAt time.Time
+	
+	// Smoothing buffer fields
+	pulseRateMovingAvg float64
+	lastPulseRecordedAt time.Time
 
 	bgImage       *ebiten.Image
 	pulseImage    *ebiten.Image
@@ -125,7 +129,11 @@ type Engine struct {
 	topStatsRPKIValidIPv4      uint64
 	topStatsRPKIInvalidIPv4    uint64
 	topStatsRPKINotFoundIPv4   uint64
+	topStatsRPKIValidIPv6      uint64
+	topStatsRPKIInvalidIPv6    uint64
+	topStatsRPKINotFoundIPv6   uint64
 	topStatsDirty              bool
+	lastFocusedState           bool
 	criticalCooldown           map[string]time.Time
 
 	flappyImage        *ebiten.Image
@@ -700,9 +708,26 @@ func (e *Engine) Update() error {
 			e.lastTourStateChange = now
 			e.lastFrameCapturedAt = now
 			e.songChangedAt = now
+
+			// Force-refresh all cached UI buffers to recover from potential graphics context stalls
+			e.streamDirty = true
+			e.impactDirty = true
+			e.nowPlayingDirty = true
+			e.topStatsDirty = true
 		}
 	}
 	e.lastUpdate = now
+
+	// Detect focus transition to force refresh
+	isFocused := ebiten.IsFocused()
+	if isFocused && !e.lastFocusedState {
+		log.Println("[ENGINE] Window regained focus, forcing UI refresh.")
+		e.streamDirty = true
+		e.impactDirty = true
+		e.nowPlayingDirty = true
+		e.topStatsDirty = true
+	}
+	e.lastFocusedState = isFocused
 
 	if e.VideoWriter != nil {
 		if e.virtualTime.IsZero() {
@@ -2011,62 +2036,34 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 	// Shuffle the batch so events from different geographic locations are interleaved
 	rand.Shuffle(len(nextBatch), func(i, j int) { nextBatch[i], nextBatch[j] = nextBatch[j], nextBatch[i] })
 
-	// Spread the batch evenly across a longer window to smooth out bursts
-	// We overlap batches to ensure a continuous flow (every 100ms we add a 300ms batch)
-	spreadWindow := 300 * time.Millisecond
-	spacing := spreadWindow / time.Duration(len(nextBatch))
+	// The smoothing window: how far ahead we schedule pulses to absorb stalls.
+	smoothingWindow := 5 * time.Second
 	now := e.Now()
 
-	// If we're too far behind (more than 500ms), jump closer to 'now' but keep a small
-	// buffer to avoid a hard gap in the visualization.
-	if e.nextPulseEmittedAt.Before(now.Add(-500 * time.Millisecond)) {
-		e.nextPulseEmittedAt = now.Add(-100 * time.Millisecond)
-	}
+	// Batch window: the period over which we spread this batch. 
+	// Our ticker is 100ms, so we spread them over 100ms to maintain a continuous stream.
+	batchWindow := 100 * time.Millisecond
+	spacing := batchWindow / time.Duration(len(nextBatch))
 
 	e.queueMu.Lock()
 	defer e.queueMu.Unlock()
-	// Cap the visual backlog to prevent memory exhaustion during massive BGP spikes
+	
+	// Cap the visual backlog
 	maxQueueSize := MaxVisualQueueSize
 	currentSize := len(e.visualQueue)
-
 	if currentSize >= maxQueueSize {
-		// Queue is full. Instead of dropping the whole batch, we can try to "thin" the incoming data
-		// by merging it into existing entries if possible, or just dropping it silently to avoid log spam.
 		e.droppedQueue.Add(uint64(len(nextBatch)))
 		return
 	}
 
-	// If the queue is getting large, we sample the incoming batch to slow down the growth
-	if currentSize > VisualQueueCull {
-		// Progressively drop more as we approach the limit
-		// e.g. at 50% of Cull, keep all. at 100% of Max, keep none.
-		keepRatio := 1.0 - float64(currentSize-VisualQueueCull)/float64(maxQueueSize-VisualQueueCull)
-		if keepRatio < 0.1 {
-			keepRatio = 0.1 // Always keep at least 10%
-		}
-
-		if keepRatio < 1.0 {
-			newLen := int(float64(len(nextBatch)) * keepRatio)
-			if newLen < len(nextBatch) {
-				nextBatch = nextBatch[:newLen]
-				if len(nextBatch) > 0 {
-					spacing = spreadWindow / time.Duration(len(nextBatch))
-				}
-			}
-		}
-	}
+	// Calculate a target start time for this batch. 
+	// We use the arrival 'now' + smoothingWindow to ensure every batch is offset consistently.
+	batchStartTime := now.Add(smoothingWindow)
 
 	for i, p := range nextBatch {
-		// Schedule the pulse to be processed by the Update() loop at a specific time
-		p.ScheduledTime = e.nextPulseEmittedAt.Add(time.Duration(i) * spacing)
+		// Distribute pulses evenly throughout the 100ms window
+		p.ScheduledTime = batchStartTime.Add(time.Duration(i) * spacing)
 		e.visualQueue = append(e.visualQueue, p)
-	}
-
-	// Advance the next emission baseline by 100ms (the ticker interval),
-	// capping the visual backlog to 3 seconds to prevent falling too far behind.
-	e.nextPulseEmittedAt = e.nextPulseEmittedAt.Add(100 * time.Millisecond)
-	if e.nextPulseEmittedAt.After(now.Add(3 * time.Second)) {
-		e.nextPulseEmittedAt = now.Add(3 * time.Second)
 	}
 }
 

@@ -222,7 +222,10 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	if e.topStatsLargestOrg != resp.GetLargestOrgName() ||
 		e.topStatsRPKIValidIPv4 != resp.GetRpkiValidIpv4() ||
 		e.topStatsRPKIInvalidIPv4 != resp.GetRpkiInvalidIpv4() ||
-		e.topStatsRPKINotFoundIPv4 != resp.GetRpkiNotFoundIpv4() {
+		e.topStatsRPKINotFoundIPv4 != resp.GetRpkiNotFoundIpv4() ||
+		e.topStatsRPKIValidIPv6 != resp.GetRpkiValidIpv6() ||
+		e.topStatsRPKIInvalidIPv6 != resp.GetRpkiInvalidIpv6() ||
+		e.topStatsRPKINotFoundIPv6 != resp.GetRpkiNotFoundIpv6() {
 		dirty = true
 	}
 
@@ -250,6 +253,9 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	e.topStatsRPKIValidIPv4 = resp.GetRpkiValidIpv4()
 	e.topStatsRPKIInvalidIPv4 = resp.GetRpkiInvalidIpv4()
 	e.topStatsRPKINotFoundIPv4 = resp.GetRpkiNotFoundIpv4()
+	e.topStatsRPKIValidIPv6 = resp.GetRpkiValidIpv6()
+	e.topStatsRPKIInvalidIPv6 = resp.GetRpkiInvalidIpv6()
+	e.topStatsRPKINotFoundIPv6 = resp.GetRpkiNotFoundIpv6()
 
 	e.prefixCounts = newPrefixCounts
 	e.impactDirty = true

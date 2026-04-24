@@ -138,6 +138,9 @@ struct AppState {
     top_rpki_valid_ipv4: AtomicU64,
     top_rpki_invalid_ipv4: AtomicU64,
     top_rpki_not_found_ipv4: AtomicU64,
+    top_rpki_valid_ipv6: AtomicU64,
+    top_rpki_invalid_ipv6: AtomicU64,
+    top_rpki_not_found_ipv6: AtomicU64,
 }
 
 struct LiveMapService {
@@ -258,9 +261,6 @@ impl LiveMap for LiveMapService {
             .state
             .top_largest_org_ipv4_count
             .load(Ordering::Relaxed);
-        let rpki_valid_ipv4 = self.state.top_rpki_valid_ipv4.load(Ordering::Relaxed);
-        let rpki_invalid_ipv4 = self.state.top_rpki_invalid_ipv4.load(Ordering::Relaxed);
-        let rpki_not_found_ipv4 = self.state.top_rpki_not_found_ipv4.load(Ordering::Relaxed);
 
         Ok(Response::new(GetSummaryResponse {
             messages_per_second: self.state.global_stats.get_current_rate(now, start_ts),
@@ -294,9 +294,12 @@ impl LiveMap for LiveMapService {
             }),
             largest_org_name,
             largest_org_ipv4_count,
-            rpki_valid_ipv4,
-            rpki_invalid_ipv4,
-            rpki_not_found_ipv4,
+            rpki_valid_ipv4: self.state.top_rpki_valid_ipv4.load(Ordering::Relaxed),
+            rpki_invalid_ipv4: self.state.top_rpki_invalid_ipv4.load(Ordering::Relaxed),
+            rpki_not_found_ipv4: self.state.top_rpki_not_found_ipv4.load(Ordering::Relaxed),
+            rpki_valid_ipv6: self.state.top_rpki_valid_ipv6.load(Ordering::Relaxed),
+            rpki_invalid_ipv6: self.state.top_rpki_invalid_ipv6.load(Ordering::Relaxed),
+            rpki_not_found_ipv6: self.state.top_rpki_not_found_ipv6.load(Ordering::Relaxed),
         }))
     }
 }
@@ -756,6 +759,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let classifier_bg = classifier.clone();
+    let db_bg = db.clone();
     tokio::task::spawn_blocking(move || {
         info!("Loading BGPKIT RPKI data and AS2REL in background...");
         let start = Instant::now();
@@ -790,36 +794,111 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             start.elapsed().as_secs()
         );
 
-        // Background worker to keep asinfo fresh
+        // Background worker to keep metadata fresh
+        let db_refresh = db_bg.clone();
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(86400)); // Every 24 hours
+            // Wait for 10 minutes on startup to prioritize ingestion and stabilization
+            info!("Background refresh manager will start in 10 minutes.");
+            tokio::time::sleep(Duration::from_secs(600)).await;
+
+            #[derive(Debug)]
+            struct DatasetConfig {
+                name: &'static str,
+                refresh_interval: i64,
+                retry_interval: i64,
+            }
+
+            let configs = vec![
+                DatasetConfig { name: "as_info", refresh_interval: 7 * 86400, retry_interval: 86400 }, // 7 days / 1 day retry
+                DatasetConfig { name: "rpki", refresh_interval: 86400, retry_interval: 3600 },        // 1 day / 1 hour retry
+                DatasetConfig { name: "bogons", refresh_interval: 7 * 86400, retry_interval: 86400 },
+                DatasetConfig { name: "as2rel", refresh_interval: 7 * 86400, retry_interval: 86400 },
+                DatasetConfig { name: "mrt", refresh_interval: 30 * 86400, retry_interval: 7 * 86400 },
+            ];
+
             loop {
-                interval.tick().await;
-                info!("Refreshing BGPKIT AS info in background...");
+                let now_ts = Utc::now().timestamp();
+                let mut anything_changed = false;
 
-                let fresh_bgpkit_opt = tokio::task::spawn_blocking(|| {
-                    let mut fresh_bgpkit = bgpkit_commons::BgpkitCommons::new();
-                    // Attempt fresh download for reload
-                    if let Err(e) = fresh_bgpkit.load_asinfo(true, true, true, true) {
-                        warn!("Background refresh of BGPKIT AS info failed: {}", e);
-                        None
-                    } else {
-                        let _ = fresh_bgpkit.load_bogons();
-                        let _ = fresh_bgpkit.load_as2rel();
-                        let _ = fresh_bgpkit.load_mrt_collectors();
-                        let _ = fresh_bgpkit.load_rpki(None);
-                        Some(fresh_bgpkit)
-                    }
-                })
-                .await
-                .unwrap_or(None);
-
-                if let Some(fresh_bgpkit) = fresh_bgpkit_opt {
-                    if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
-                        info!("Applying fresh BGPKIT AS info.");
-                        *c_bg = Some(fresh_bgpkit);
+                // Load current global state for incremental updates
+                // We maintain our own master copy in this thread to accumulate updates.
+                static MASTER_BGPKIT: parking_lot::Mutex<Option<bgpkit_commons::BgpkitCommons>> = parking_lot::Mutex::new(None);
+                
+                {
+                    let mut master = MASTER_BGPKIT.lock();
+                    if master.is_none() {
+                        *master = Some(bgpkit_commons::BgpkitCommons::new());
                     }
                 }
+
+                for config in &configs {
+                    let last_success = db_refresh.get_refresh_timestamp(config.name, "success");
+                    let last_attempt = db_refresh.get_refresh_timestamp(config.name, "attempt");
+
+                    let due_for_refresh = now_ts >= (last_success + config.refresh_interval);
+                    let due_for_retry = (last_attempt > last_success) && (now_ts >= (last_attempt + config.retry_interval));
+
+                    if due_for_refresh || due_for_retry {
+                        info!("[REFRESH] Dataset '{}' is due. Refresh={}, Retry={}", config.name, due_for_refresh, due_for_retry);
+                        db_refresh.set_refresh_timestamp(config.name, "attempt", now_ts);
+                        
+                        let name = config.name;
+                        // Move the master instance into the blocking task to update it
+                        let mut bgpkit_to_update = MASTER_BGPKIT.lock().take().unwrap();
+                        
+                        let refresh_op = tokio::task::spawn_blocking(move || -> anyhow::Result<bgpkit_commons::BgpkitCommons> {
+                            match name {
+                                "as_info" => bgpkit_to_update.load_asinfo(true, true, true, true)?,
+                                "rpki" => bgpkit_to_update.load_rpki(None)?,
+                                "bogons" => bgpkit_to_update.load_bogons()?,
+                                "as2rel" => bgpkit_to_update.load_as2rel()?,
+                                "mrt" => bgpkit_to_update.load_mrt_collectors()?,
+                                _ => return Err(anyhow::anyhow!("Unknown dataset")),
+                            }
+                            Ok(bgpkit_to_update)
+                        }).await;
+
+                        match refresh_op {
+                            Ok(Ok(updated_bgpkit)) => {
+                                info!("[REFRESH] Successfully updated dataset: {}", config.name);
+                                db_refresh.set_refresh_timestamp(config.name, "success", now_ts);
+                                *MASTER_BGPKIT.lock() = Some(updated_bgpkit);
+                                anything_changed = true;
+                            }
+                            Ok(Err(e)) => {
+                                warn!("[REFRESH] Failed to update dataset '{}': {}. Will retry in {} seconds.", config.name, e, config.retry_interval);
+                                // Put it back even on failure so we don't lose the other data
+                                // We have to move it back, but wait, the closure consumed it.
+                                // In the Err case, we don't have bgpkit_to_update anymore unless we return it.
+                                // Actually, I'll just re-initialize it for now if it fails, or better, 
+                                // change the closure to return (BgpkitCommons, Result).
+                                // For now, creating a new one is safe but lose some cached info.
+                                *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
+                            }
+                            Err(e) => {
+                                warn!("[REFRESH] Background task panicked for dataset '{}': {}", config.name, e);
+                                *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
+                            }
+                        }
+                    }
+                }
+
+                if anything_changed {
+                    // We need to give a copy to the global state. 
+                    // Since it's not Clone, we'll move it in and create a new one for the background.
+                    if let Some(mut c_bg) = classifier_bg.bgpkit.try_write() {
+                        info!("Applying granular BGPKIT updates and clearing caches.");
+                        let current_master = MASTER_BGPKIT.lock().take().unwrap();
+                        *c_bg = Some(current_master);
+                        classifier_bg.clear_cache();
+                        
+                        // Background worker starts fresh for next cycle
+                        *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
+                    }
+                }
+
+                // Check again in 5 minutes
+                tokio::time::sleep(Duration::from_secs(300)).await;
             }
         });
     });
@@ -841,8 +920,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    let (initial_valid, initial_invalid, initial_not_found) =
-        db.get_cached_rpki_stats().unwrap_or((0, 0, 0));
+    let (iv4v, iv4i, iv4n, iv6v, iv6i, iv6n) =
+        db.get_cached_rpki_stats().unwrap_or((0, 0, 0, 0, 0, 0));
 
     let app_state = Arc::new(AppState {
         subscribers: RwLock::new(Vec::new()),
@@ -873,9 +952,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         top_flappy_event_rate: RwLock::new(0.0),
         top_largest_org_name: RwLock::new(String::new()),
         top_largest_org_ipv4_count: AtomicU64::new(0),
-        top_rpki_valid_ipv4: AtomicU64::new(initial_valid),
-        top_rpki_invalid_ipv4: AtomicU64::new(initial_invalid),
-        top_rpki_not_found_ipv4: AtomicU64::new(initial_not_found),
+        top_rpki_valid_ipv4: AtomicU64::new(iv4v),
+        top_rpki_invalid_ipv4: AtomicU64::new(iv4i),
+        top_rpki_not_found_ipv4: AtomicU64::new(iv4n),
+        top_rpki_valid_ipv6: AtomicU64::new(iv6v),
+        top_rpki_invalid_ipv6: AtomicU64::new(iv6i),
+        top_rpki_not_found_ipv6: AtomicU64::new(iv6n),
     });
     let c1 = classifier.clone();
     let g1 = geo.clone();
@@ -1005,9 +1087,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut org_v4: HashMap<String, Vec<ipnet::Ipv4Net>> = HashMap::new();
                 let mut global_v4 = Vec::new();
 
-                let mut rpki_valid = Vec::new();
-                let mut rpki_invalid = Vec::new();
-                let mut rpki_missing = Vec::new();
+                let mut rpki_v4_valid = Vec::new();
+                let mut rpki_v4_invalid = Vec::new();
+                let mut rpki_v4_missing = Vec::new();
+
+                let mut rpki_v6_valid = 0u64;
+                let mut rpki_v6_invalid = 0u64;
+                let mut rpki_v6_missing = 0u64;
 
                 let mut count = 0;
 
@@ -1024,55 +1110,100 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         conn.prepare("SELECT prefix, classified_type, origin_asn FROM prefix_state")
                 {
                     let mut rows = stmt.query([]).unwrap();
+                    // Per-loop local cache for heavy aggregation to avoid redundant lookups
+                    let mut local_asinfo: HashMap<u32, (String, Option<String>)> = HashMap::new();
+                    let mut local_rpki: HashMap<(u32, String), i32> = HashMap::new();
+
                     while let Ok(Some(row)) = rows.next() {
                         let p_str: String = row.get(0).unwrap();
                         let c_i32: i32 = row.get(1).unwrap();
                         let o_asn: u32 = row.get(2).unwrap_or(0);
-                        if let Ok(IpNet::V4(v4)) = IpNet::from_str(&p_str) {
-                            global_v4.push(v4);
-                            class_v4
-                                .entry(ClassificationType::from_i32(c_i32))
-                                .or_default()
-                                .push(v4);
+                        let net_parsed = IpNet::from_str(&p_str).ok();
+                        match net_parsed {
+                            Some(IpNet::V4(v4)) => {
+                                global_v4.push(v4);
+                                class_v4
+                                    .entry(ClassificationType::from_i32(c_i32))
+                                    .or_default()
+                                    .push(v4);
 
-                            if o_asn > 0 {
-                                let mut o_name = format!("AS{}", o_asn);
-                                if let Some(bgpkit) = bgpkit_opt
-                                    && let Ok(Some(info)) = bgpkit.asinfo_get(o_asn) {
-                                        if let Some(org) = info.as2org {
-                                            o_name = org.org_name.clone();
-                                        } else if !info.name.is_empty() {
-                                            o_name = info.name.clone();
-                                        }
-                                    }
-                                org_v4.entry(o_name).or_default().push(v4);
-
-                                // RPKI Check
-                                if rpki_loaded
-                                    && let Some(bgpkit) = bgpkit_opt {
-                                        if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
-                                            match status {
-                                                bgpkit_commons::rpki::RpkiValidation::Valid => {
-                                                    rpki_valid.push(v4)
-                                                }
-                                                bgpkit_commons::rpki::RpkiValidation::Invalid => {
-                                                    rpki_invalid.push(v4)
-                                                }
-                                                bgpkit_commons::rpki::RpkiValidation::Unknown => {
-                                                    rpki_missing.push(v4)
+                                if o_asn > 0 {
+                                    let (o_name, _) = local_asinfo
+                                        .entry(o_asn)
+                                        .or_insert_with(|| {
+                                            let mut name = format!("AS{}", o_asn);
+                                            let mut org = None;
+                                            if let Some(bgpkit) = bgpkit_opt
+                                                && let Ok(Some(info)) = bgpkit.asinfo_get(o_asn)
+                                            {
+                                                if let Some(o) = info.as2org {
+                                                    name = o.org_name.clone();
+                                                    org = Some(o.org_name);
+                                                } else if !info.name.is_empty() {
+                                                    name = info.name.clone();
                                                 }
                                             }
-                                        } else {
-                                            // Either malformed prefix string or something else, but since
-                                            // we already checked rpki_loaded, we assume it's just unknown/invalid
-                                            rpki_missing.push(v4);
+                                            (name, org)
+                                        })
+                                        .clone();
+                                    org_v4.entry(o_name).or_default().push(v4);
+
+                                    // RPKI Check
+                                    if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
+                                        let status = *local_rpki
+                                            .entry((o_asn, p_str.clone()))
+                                            .or_insert_with(|| {
+                                                if let Ok(status) =
+                                                    bgpkit.rpki_validate(o_asn, &p_str)
+                                                {
+                                                    match status {
+                                                        bgpkit_commons::rpki::RpkiValidation::Valid => 1,
+                                                        bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
+                                                        bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
+                                                    }
+                                                } else {
+                                                    3
+                                                }
+                                            });
+
+                                        match status {
+                                            1 => rpki_v4_valid.push(v4),
+                                            2 => rpki_v4_invalid.push(v4),
+                                            _ => rpki_v4_missing.push(v4),
                                         }
                                     }
-                            } else if rpki_loaded {
-                                rpki_missing.push(v4);
+                                } else if rpki_loaded {
+                                    rpki_v4_missing.push(v4);
+                                }
+                                count += 1;
                             }
+                            Some(IpNet::V6(_)) => {
+                                if o_asn > 0 && rpki_loaded && let Some(bgpkit) = bgpkit_opt {
+                                    let status = *local_rpki
+                                        .entry((o_asn, p_str.clone()))
+                                        .or_insert_with(|| {
+                                            if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str)
+                                            {
+                                                match status {
+                                                    bgpkit_commons::rpki::RpkiValidation::Valid => 1,
+                                                    bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
+                                                    bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
+                                                }
+                                            } else {
+                                                3
+                                            }
+                                        });
 
-                            count += 1;
+                                    match status {
+                                        1 => rpki_v6_valid += 1,
+                                        2 => rpki_v6_invalid += 1,
+                                        _ => rpki_v6_missing += 1,
+                                    }
+                                } else if rpki_loaded {
+                                    rpki_v6_missing += 1;
+                                }
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -1143,11 +1274,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .sum::<u64>()
                 };
 
-                let rv = sum_ips(&rpki_valid);
-                let ri = sum_ips(&rpki_invalid);
-                let rm = sum_ips(&rpki_missing);
+                let rv4 = sum_ips(&rpki_v4_valid);
+                let ri4 = sum_ips(&rpki_v4_invalid);
+                let rm4 = sum_ips(&rpki_v4_missing);
 
-                (g_ipv4, c_ipv4, largest_org, largest_org_ips, rv, ri, rm, rpki_loaded)
+                (
+                    g_ipv4,
+                    c_ipv4,
+                    largest_org,
+                    largest_org_ips,
+                    rv4,
+                    ri4,
+                    rm4,
+                    rpki_v6_valid,
+                    rpki_v6_invalid,
+                    rpki_v6_missing,
+                    rpki_loaded,
+                )
             })
             .await
             {
@@ -1162,7 +1305,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .top_largest_org_ipv4_count
                     .store(summary.3, Ordering::Relaxed);
 
-                let rpki_loaded = summary.7;
+                let rpki_loaded = summary.10;
                 if rpki_loaded {
                     s_heavy
                         .top_rpki_valid_ipv4
@@ -1173,8 +1316,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     s_heavy
                         .top_rpki_not_found_ipv4
                         .store(summary.6, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_valid_ipv6
+                        .store(summary.7, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_invalid_ipv6
+                        .store(summary.8, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_not_found_ipv6
+                        .store(summary.9, Ordering::Relaxed);
 
-                    db_heavy.set_cached_rpki_stats(summary.4, summary.5, summary.6);
+                    db_heavy.set_cached_rpki_stats(
+                        summary.4, summary.5, summary.6, summary.7, summary.8, summary.9,
+                    );
                 }
 
                 info!("[STATS] Refreshed heavy IP aggregation.");

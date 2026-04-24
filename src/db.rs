@@ -81,7 +81,14 @@ impl Db {
                      id INTEGER PRIMARY KEY,
                      valid_ipv4 INTEGER,
                      invalid_ipv4 INTEGER,
-                     not_found_ipv4 INTEGER
+                     not_found_ipv4 INTEGER,
+                     valid_ipv6 INTEGER,
+                     invalid_ipv6 INTEGER,
+                     not_found_ipv6 INTEGER
+                 );
+                 CREATE TABLE IF NOT EXISTS metadata (
+                     key TEXT PRIMARY KEY,
+                     value TEXT
                  );
                  CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
                  CREATE INDEX IF NOT EXISTS idx_events_asn_ts ON events(asn, ts);
@@ -171,17 +178,27 @@ impl Db {
         self.pool.clone()
     }
 
-    pub fn get_cached_rpki_stats(&self) -> Option<(u64, u64, u64)> {
+    pub fn get_cached_rpki_stats(&self) -> Option<(u64, u64, u64, u64, u64, u64)> {
         if let Ok(conn) = self.pool.get() {
             if let Ok(mut stmt) = conn.prepare(
-                "SELECT valid_ipv4, invalid_ipv4, not_found_ipv4 FROM rpki_stats WHERE id = 1",
+                "SELECT valid_ipv4, invalid_ipv4, not_found_ipv4, valid_ipv6, invalid_ipv6, not_found_ipv6 FROM rpki_stats WHERE id = 1",
             ) {
                 if let Ok(mut rows) = stmt.query([]) {
                     if let Ok(Some(row)) = rows.next() {
-                        let valid: i64 = row.get(0).unwrap_or(0);
-                        let invalid: i64 = row.get(1).unwrap_or(0);
-                        let not_found: i64 = row.get(2).unwrap_or(0);
-                        return Some((valid as u64, invalid as u64, not_found as u64));
+                        let v4_valid: i64 = row.get(0).unwrap_or(0);
+                        let v4_invalid: i64 = row.get(1).unwrap_or(0);
+                        let v4_not_found: i64 = row.get(2).unwrap_or(0);
+                        let v6_valid: i64 = row.get(3).unwrap_or(0);
+                        let v6_invalid: i64 = row.get(4).unwrap_or(0);
+                        let v6_not_found: i64 = row.get(5).unwrap_or(0);
+                        return Some((
+                            v4_valid as u64,
+                            v4_invalid as u64,
+                            v4_not_found as u64,
+                            v6_valid as u64,
+                            v6_invalid as u64,
+                            v6_not_found as u64,
+                        ));
                     }
                 }
             }
@@ -189,14 +206,61 @@ impl Db {
         None
     }
 
-    pub fn set_cached_rpki_stats(&self, valid: u64, invalid: u64, not_found: u64) {
+    pub fn set_cached_rpki_stats(
+        &self,
+        v4_valid: u64,
+        v4_invalid: u64,
+        v4_not_found: u64,
+        v6_valid: u64,
+        v6_invalid: u64,
+        v6_not_found: u64,
+    ) {
         if let Ok(conn) = self.pool.get() {
             let _ = conn.execute(
-                "INSERT INTO rpki_stats (id, valid_ipv4, invalid_ipv4, not_found_ipv4) VALUES (1, ?1, ?2, ?3)
-                 ON CONFLICT(id) DO UPDATE SET valid_ipv4=excluded.valid_ipv4, invalid_ipv4=excluded.invalid_ipv4, not_found_ipv4=excluded.not_found_ipv4",
-                params![valid as i64, invalid as i64, not_found as i64],
+                "INSERT INTO rpki_stats (id, valid_ipv4, invalid_ipv4, not_found_ipv4, valid_ipv6, invalid_ipv6, not_found_ipv6) VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(id) DO UPDATE SET valid_ipv4=excluded.valid_ipv4, invalid_ipv4=excluded.invalid_ipv4, not_found_ipv4=excluded.not_found_ipv4,
+                 valid_ipv6=excluded.valid_ipv6, invalid_ipv6=excluded.invalid_ipv6, not_found_ipv6=excluded.not_found_ipv6",
+                params![
+                    v4_valid as i64,
+                    v4_invalid as i64,
+                    v4_not_found as i64,
+                    v6_valid as i64,
+                    v6_invalid as i64,
+                    v6_not_found as i64
+                ],
             );
         }
+    }
+
+    pub fn get_metadata(&self, key: &str) -> Option<String> {
+        if let Ok(conn) = self.pool.get() {
+            if let Ok(mut stmt) = conn.prepare_cached("SELECT value FROM metadata WHERE key = ?1") {
+                return stmt.query_row([key], |row| row.get(0)).ok();
+            }
+        }
+        None
+    }
+
+    pub fn set_metadata(&self, key: &str, value: &str) {
+        if let Ok(conn) = self.pool.get() {
+            let _ = conn.execute(
+                "INSERT INTO metadata (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                params![key, value],
+            );
+        }
+    }
+
+    pub fn get_refresh_timestamp(&self, name: &str, key_type: &str) -> i64 {
+        let key = format!("refresh:{}:{}", name, key_type);
+        self.get_metadata(&key)
+            .and_then(|s| s.parse::<i64>().ok())
+            .unwrap_or(0)
+    }
+
+    pub fn set_refresh_timestamp(&self, name: &str, key_type: &str, ts: i64) {
+        let key = format!("refresh:{}:{}", name, key_type);
+        self.set_metadata(&key, &ts.to_string());
     }
 
     pub fn get_global_counts(&self) -> GlobalCounts {

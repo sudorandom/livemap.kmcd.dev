@@ -619,6 +619,9 @@ type GetSummaryResponse struct {
 	RpkiValidIpv4         uint64                 `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
 	RpkiInvalidIpv4       uint64                 `protobuf:"varint,21,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
 	RpkiNotFoundIpv4      uint64                 `protobuf:"varint,22,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
+	RpkiValidIpv6         uint64                 `protobuf:"varint,24,opt,name=rpki_valid_ipv6,json=rpkiValidIpv6,proto3" json:"rpki_valid_ipv6,omitempty"`
+	RpkiInvalidIpv6       uint64                 `protobuf:"varint,25,opt,name=rpki_invalid_ipv6,json=rpkiInvalidIpv6,proto3" json:"rpki_invalid_ipv6,omitempty"`
+	RpkiNotFoundIpv6      uint64                 `protobuf:"varint,26,opt,name=rpki_not_found_ipv6,json=rpkiNotFoundIpv6,proto3" json:"rpki_not_found_ipv6,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -782,6 +785,27 @@ func (x *GetSummaryResponse) GetRpkiInvalidIpv4() uint64 {
 func (x *GetSummaryResponse) GetRpkiNotFoundIpv4() uint64 {
 	if x != nil {
 		return x.RpkiNotFoundIpv4
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetRpkiValidIpv6() uint64 {
+	if x != nil {
+		return x.RpkiValidIpv6
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetRpkiInvalidIpv6() uint64 {
+	if x != nil {
+		return x.RpkiInvalidIpv6
+	}
+	return 0
+}
+
+func (x *GetSummaryResponse) GetRpkiNotFoundIpv6() uint64 {
+	if x != nil {
+		return x.RpkiNotFoundIpv6
 	}
 	return 0
 }
@@ -1525,7 +1549,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
 	"\n" +
 	"percentage\x18\x02 \x01(\x02R\n" +
-	"percentage\"\xd4\a\n" +
+	"percentage\"\xd7\b\n" +
 	"\x12GetSummaryResponse\x12.\n" +
 	"\x13messages_per_second\x18\x01 \x01(\x02R\x11messagesPerSecond\x12\x1b\n" +
 	"\tasn_count\x18\x02 \x01(\rR\basnCount\x12!\n" +
@@ -1547,7 +1571,10 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x16largest_org_ipv4_count\x18\x13 \x01(\x04R\x13largestOrgIpv4Count\x12&\n" +
 	"\x0frpki_valid_ipv4\x18\x14 \x01(\x04R\rrpkiValidIpv4\x12*\n" +
 	"\x11rpki_invalid_ipv4\x18\x15 \x01(\x04R\x0frpkiInvalidIpv4\x12-\n" +
-	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\"\xa2\x01\n" +
+	"\x13rpki_not_found_ipv4\x18\x16 \x01(\x04R\x10rpkiNotFoundIpv4\x12&\n" +
+	"\x0frpki_valid_ipv6\x18\x18 \x01(\x04R\rrpkiValidIpv6\x12*\n" +
+	"\x11rpki_invalid_ipv6\x18\x19 \x01(\x04R\x0frpkiInvalidIpv6\x12-\n" +
+	"\x13rpki_not_found_ipv6\x18\x1a \x01(\x04R\x10rpkiNotFoundIpv6\"\xa2\x01\n" +
 	"\x15FlappiestNetworkStats\x12\x10\n" +
 	"\x03asn\x18\x01 \x01(\rR\x03asn\x12!\n" +
 	"\fnetwork_name\x18\x02 \x01(\tR\vnetworkName\x12\x1d\n" +

@@ -84,6 +84,9 @@ message GetSummaryResponse {
     uint64 rpki_valid_ipv4 = 20;
     uint64 rpki_invalid_ipv4 = 21;
     uint64 rpki_not_found_ipv4 = 22;
+    uint64 rpki_valid_ipv6 = 24;
+    uint64 rpki_invalid_ipv6 = 25;
+    uint64 rpki_not_found_ipv6 = 26;
 }
 
 message FlappiestNetworkStats {
