@@ -1,41 +1,86 @@
 # livemap.kmcd.dev
 
-A Rust project using `bgpkit-parser` to consume BGP data from RIS Live (WebSocket) and RouteViews (Kafka).
+A high-performance, real-time BGP visualization platform. This project visualizes the global "heartbeat" of the internet by processing thousands of BGP updates per second and rendering them as a fluid, interactive map.
 
-## Setup
+[**Download the Latest Release**](https://github.com/sudorandom/livemap.kmcd.dev/releases/latest)
 
-Tools are managed via `mise`.
+## Architecture
 
-```bash
-mise install
-```
+This project uses a hybrid architecture to achieve maximum performance and stability:
 
-## Running
+- **Collector (Rust):** A high-throughput backend that consumes BGP data from RIS Live (WebSocket) and RouteViews (Kafka). It performs real-time classification, RPKI validation, and anomaly detection using the `bgpkit` ecosystem.
+- **Viewer (Go):** A 60fps, GPU-accelerated desktop application built with the **Ebitengine** 2D game engine. It communicates with the collector via gRPC to provide a fluid, real-time visualization of global routing events.
 
-The project runs both RIS Live and RouteViews consumers concurrently using `tokio`.
+## Features
 
-```bash
-cargo run
-```
-
-Note: The RouteViews Kafka consumer is conceptual and expects a connection to `bmp.routeviews.org:9092`.
+- **Real-Time Visualization:** Every BGP announcement or withdrawal is rendered as a pulse of light on a global map.
+- **Advanced Classification:** Detects Hijacks, Route Leaks, Outages, Bogons, and DDoS Mitigation events in near real-time.
+- **Dual-Protocol RPKI:** A dedicated dashboard visualizing the cryptographic health of both IPv4 and IPv6 routing.
+- **Jitter Smoothing:** A 5-second desynchronized smoothing buffer ensures a fluid visual flow even during network stalls.
+- **Resilient Recovery:** Intelligent "time-jump" detection allows the application to recover instantly from system sleep or hibernation.
 
 ## Data Sources
 
-The BGP analysis leverages **bgpkit** tools heavily to aggregate, parse, and analyze BGP data:
-- **RIS Live**: Consumes streaming BGP messages from RIPE RIS Live WebSocket using `bgpkit-parser`.
-- **RouteViews**: Consumes BMP messages from RouteViews Kafka stream using `bgpkit-parser`.
-- **Authoritative Data**: Incorporates data from RPKI, AS-to-Org mappings, and hegemony scores fetched using `bgpkit-commons`.
+The BGP analysis leverages the **bgpkit** ecosystem heavily:
+- **RIS Live**: Streaming BGP messages from RIPE RIS Live.
+- **RouteViews**: BMP messages from RouteViews Kafka streams.
+- **Authoritative Data**: RPKI validation, AS-to-Org mappings, and ASN metadata via `bgpkit-commons`.
 
-## Classifications
+## Building from Source
 
-The application analyzes the ingested streams to detect various types of events in near real-time:
-- **Bogon**: An announcement for a prefix that is not globally routable (e.g., private IPs) or reserved.
-- **Hijack**: An announcement for a prefix by an origin ASN that differs from the historically observed origin ASN, provided they aren't recognized siblings.
-- **Route Leak**: The propagation of routing announcements beyond their intended scope (e.g., a customer route leaked to a transit provider), detected via Valley-Free violations or hairpin loops.
-- **Minor Route Leak**: A smaller-scale route leak that is observed by a very small number of collectors/hosts.
-- **Outage**: A significant event where a prefix loses all visibility (is fully withdrawn) across multiple collectors for a sustained period of time (e.g., 30 minutes).
-- **DDoS Mitigation**: Detected through the presence of specific BGP communities (e.g., `65535:666`) commonly used for Remote Triggered Blackholing (RTBH) or traffic diversion during a DDoS attack.
-- **Flap**: Frequent, rapid alternations between announcements and withdrawals for the same prefix.
-- **Path Hunting**: A network convergence behavior where BGP explores multiple, increasingly longer, alternative paths before withdrawing a route completely.
-- **Discovery**: A newly observed prefix that hasn't been seen historically by the application.
+To build optimized production binaries for both components:
+
+```bash
+# Build the Collector (Rust)
+cargo build --release
+
+# Build the Viewer (Go)
+go build -o bgp-viewer ./cmd/bgp-viewer/
+```
+
+## Running the Project
+
+### 1. Start the Collector (Backend)
+The collector handles all BGP stream ingestion and data processing. It requires a MaxMind GeoIP database (MMDB) to map BGP updates to geographical coordinates.
+
+```bash
+./target/release/bgp-collector --mmdb ./assets/dbip-city-lite-2026-03.mmdb --listen 127.0.0.1:50051
+```
+*Note: You can specify multiple MMDB files by repeating the `--mmdb` flag.*
+
+### 2. Start the Viewer (Frontend)
+The viewer connects to the collector via gRPC and renders the visualization.
+
+```bash
+./bgp-viewer
+```
+
+The viewer supports several CLI arguments for customization:
+- `--width`: Render width (default: 1920)
+- `--height`: Render height (default: 1080)
+- `--scale`: Map scale factor (default: 380.0)
+- `--tps`: Ticks per second (default: 30)
+- `--hide-ui`: Start with UI hidden
+- `--minimal-ui`: Start with minimal UI
+
+## Local Development
+
+For development, tools are managed via `mise`. This will install the required versions of Rust, Go, and other build tools.
+
+```bash
+# Install dependencies
+mise install
+
+# Run full project check (lint, fmt, test)
+just check
+```
+
+You can use `just` to run the project in development mode:
+
+```bash
+# Start the Collector
+just collector
+
+# Start the Viewer
+just viewer
+```
