@@ -1,7 +1,10 @@
 check:
 	cargo fmt --all -- --check
 	cargo clippy -- -D warnings -A clippy::collapsible_if
+
+test:
 	cargo test
+	go test ./...
 
 viewer:
 	go run ./cmd/bgp-viewer/
