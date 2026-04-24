@@ -643,6 +643,9 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 
 		// 2. Network: Organization (ASnnnn) - Wrapped below prefix
 		networkStr := fmt.Sprintf("Network: %s (AS%d)", e.topStatsFlappiestOrg, e.topStatsFlappiestASN)
+		if e.topStatsFlappiestOrg == fmt.Sprintf("AS%d", e.topStatsFlappiestASN) {
+			networkStr = fmt.Sprintf("Network: %s", e.topStatsFlappiestOrg)
+		}
 		networkOp := &text.DrawOptions{}
 		networkOp.ColorScale.Scale(1, 1, 1, 0.6)
 		
