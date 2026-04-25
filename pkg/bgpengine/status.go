@@ -693,11 +693,12 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 
 	if e.rpkiBuffer == nil || e.rpkiBuffer.Bounds().Dx() != e.Width || e.rpkiBuffer.Bounds().Dy() != e.Height {
 		e.rpkiBuffer = ebiten.NewImage(e.Width, e.Height)
+		e.rpkiBuffer.Fill(color.Transparent)
 		e.rpkiDirty = true
 	}
 
 	if e.rpkiDirty {
-		e.rpkiBuffer.Clear()
+		e.rpkiBuffer.Fill(color.Transparent)
 
 		// Bar dimensions (Horizontal now)
 		barW := float64(e.Width) * 0.25
@@ -739,7 +740,7 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 			notFoundPct := float64(notFound) / float64(total)
 
 			// Draw Background
-			vector.FillRect(e.rpkiBuffer, float32(x), float32(y), float32(barW), float32(barH), color.RGBA{0, 0, 0, 200}, false)
+			vector.FillRect(e.rpkiBuffer, float32(x), float32(y), float32(barW), float32(barH), color.RGBA{0, 0, 0, 180}, false)
 
 			gap := float32(4.0)
 			currX := float32(x)
@@ -776,12 +777,8 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 				path.Close()
 
 				op := &vector.DrawPathOptions{}
-				op.ColorScale.Scale(
-					float32(col.R)/255.0,
-					float32(col.G)/255.0,
-					float32(col.B)/255.0,
-					(float32(col.A)/255.0)*alphaMult,
-				)
+				op.ColorScale.ScaleWithColor(col)
+				op.ColorScale.ScaleAlpha(alphaMult)
 				vector.FillPath(dst, &path, nil, op)
 			}
 
@@ -796,7 +793,27 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 				for i := 1.0; i <= 3.0; i++ {
 					alpha := float32(0.3 / (i * 2.0))
 					spread := float32(i * 3.0)
-					drawRoundedRect(e.rpkiBuffer, sx, float32(y)-spread, sw, float32(barH)+spread*2, 4+spread, seg.col, alpha)
+					
+					op := &vector.DrawPathOptions{}
+					op.Blend = ebiten.BlendLighter
+					op.ColorScale.ScaleWithColor(seg.col)
+					op.ColorScale.ScaleAlpha(alpha)
+					
+					var path vector.Path
+					rx, ry, rw, rh, rr := sx, float32(y)-spread, sw, float32(barH)+spread*2, 4+spread
+					if rr > rw/2 { rr = rw / 2 }
+					if rr > rh/2 { rr = rh / 2 }
+					path.MoveTo(rx+rr, ry)
+					path.LineTo(rx+rw-rr, ry)
+					path.ArcTo(rx+rw, ry, rx+rw, ry+rr, rr)
+					path.LineTo(rx+rw, ry+rh-rr)
+					path.ArcTo(rx+rw, ry+rh, rx+rw-rr, ry+rh, rr)
+					path.LineTo(rx+rr, ry+rh)
+					path.ArcTo(rx, ry+rh, rx, ry+rh-rr, rr)
+					path.LineTo(rx, ry+rr)
+					path.ArcTo(rx, ry, rx+rr, ry, rr)
+					path.Close()
+					vector.FillPath(e.rpkiBuffer, &path, nil, op)
 				}
 
 				// Base Segment
