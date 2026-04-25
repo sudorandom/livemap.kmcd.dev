@@ -49,10 +49,8 @@ type Engine struct {
 	visualQueue        []QueuedPulse
 	queueMu            sync.Mutex
 	nextPulseEmittedAt time.Time
-	
+
 	// Smoothing buffer fields
-	pulseRateMovingAvg float64
-	lastPulseRecordedAt time.Time
 
 	bgImage       *ebiten.Image
 	pulseImage    *ebiten.Image
@@ -64,8 +62,6 @@ type Engine struct {
 	fontSource    *text.GoTextFaceSource
 	boldSource    *text.GoTextFaceSource
 	monoSource    *text.GoTextFaceSource
-
-	displayBeaconPercent float64
 
 	countryActivity map[string]int
 
@@ -186,18 +182,17 @@ type Engine struct {
 	mapImage             *ebiten.Image
 
 	// Reusable rendering resources
-	face, boldFace, monoFace, titleFace, titleMonoFace *text.GoTextFace
-	subFace, subBoldFace, subMonoFace, extraFace, artistFace  *text.GoTextFace
-	titleFace09, titleFace05                    *text.GoTextFace
-	drawOp                                      *ebiten.DrawImageOptions
-	legendRows                                  []legendRow
+	face, boldFace, monoFace, titleFace, titleMonoFace       *text.GoTextFace
+	subFace, subBoldFace, subMonoFace, extraFace, artistFace *text.GoTextFace
+	titleFace09, titleFace05                                 *text.GoTextFace
+	drawOp                                                   *ebiten.DrawImageOptions
+	legendRows                                               []legendRow
 
 	droppedPulses atomic.Uint64
 	droppedQueue  atomic.Uint64
 	droppedStale  atomic.Uint64
 
 	eventCh chan *bgpEvent
-	statsCh chan *statsEvent
 }
 
 func (e *Engine) Now() time.Time {
@@ -266,7 +261,6 @@ func NewEngine(width, height int, scale float64) *Engine {
 		tourRegionIndex:        -1, // Start with full map
 		tourRegionStayDuration: 10 * time.Second,
 		eventCh:                make(chan *bgpEvent, 250000),
-		statsCh:                make(chan *statsEvent, 250000),
 		criticalCooldown:       make(map[string]time.Time),
 		streamDirty:            true,
 	}
@@ -1289,16 +1283,6 @@ func (e *Engine) createCriticalEventFromTransition(trans *livemap.StateTransitio
 	return ce
 }
 
-func (e *Engine) recordToCriticalStream(ev *bgpEvent, c color.RGBA, name string) {
-	// Legacy for non-gRPC
-}
-
-func (e *Engine) removePrefixFromOldEvents(prefix, currentAnomName string) {
-	e.streamMu.Lock()
-	defer e.streamMu.Unlock()
-	e.removePrefixFromOldEventsLocked(prefix, currentAnomName)
-}
-
 func (e *Engine) removeFromCriticalSlice(slice *[]*CriticalEvent, prefix, currentAnomName string) bool {
 	for i := 0; i < len(*slice); i++ {
 		ce := (*slice)[i]
@@ -1318,18 +1302,6 @@ func (e *Engine) removePrefixFromEvent(ce *CriticalEvent, prefix string) {
 	delete(ce.ActivePrefixes, prefix)
 	ce.Resolved = len(ce.ActivePrefixes) == 0
 	ce.Dirty = true
-}
-
-func (e *Engine) isSameEvent(ce *CriticalEvent, ev *bgpEvent, name string) bool {
-	return false
-}
-
-func (e *Engine) updateExistingCriticalEvent(ce *CriticalEvent, ev *bgpEvent) bool {
-	return false
-}
-
-func (e *Engine) createCriticalEvent(ev *bgpEvent, c color.RGBA, name, asnStr, orgID, newLoc string, now time.Time) *CriticalEvent {
-	return &CriticalEvent{}
 }
 
 func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
@@ -1388,7 +1360,7 @@ func (e *Engine) updateCriticalStream() {
 	// 2. Promote from queue if enough time has passed
 	if len(e.criticalQueue) > 0 && time.Since(e.lastCriticalAddedAt) > 100*time.Millisecond {
 		var ev *CriticalEvent
-		var evIdx int = -1
+		evIdx := -1
 
 		for i, ce := range e.criticalQueue {
 			if e.isEventSignificant(ce) {
@@ -1536,17 +1508,6 @@ func (e *Engine) cacheHijackDDoSStrings(ce *CriticalEvent) {
 		netVal += fmt.Sprintf(", (%d more)", moreCount)
 	}
 	ce.CachedNetVal = netVal
-}
-
-func formatRPKI(status int32) string {
-	switch status {
-	case 1:
-		return "VALID"
-	case 2:
-		return "INVALID"
-	default:
-		return "UNKNOWN"
-	}
 }
 
 func (e *Engine) cacheLeakStrings(ce *CriticalEvent) {
@@ -2048,14 +2009,14 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 	smoothingWindow := 10 * time.Second
 	now := e.Now()
 
-	// Batch window: the period over which we spread this batch. 
+	// Batch window: the period over which we spread this batch.
 	// Our ticker is 100ms, so we spread them over 100ms to maintain a continuous stream.
 	batchWindow := 100 * time.Millisecond
 	spacing := batchWindow / time.Duration(len(nextBatch))
 
 	e.queueMu.Lock()
 	defer e.queueMu.Unlock()
-	
+
 	// Cap the visual backlog
 	maxQueueSize := MaxVisualQueueSize
 	currentSize := len(e.visualQueue)
@@ -2064,7 +2025,7 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 		return
 	}
 
-	// Calculate a target start time for this batch. 
+	// Calculate a target start time for this batch.
 	// We use the arrival 'now' + smoothingWindow to ensure every batch is offset consistently.
 	batchStartTime := now.Add(smoothingWindow)
 
@@ -2074,7 +2035,7 @@ func (e *Engine) scheduleVisualPulses(nextBatch []QueuedPulse) {
 		batchStartTime = e.nextPulseEmittedAt
 	}
 
-	// If the current batch is more than 1 second behind our target window, 
+	// If the current batch is more than 1 second behind our target window,
 	// reset it to now + smoothingWindow to avoid massive backlogs after deep stalls.
 	if batchStartTime.Sub(now) > smoothingWindow+time.Second {
 		batchStartTime = now.Add(smoothingWindow)

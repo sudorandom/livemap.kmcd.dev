@@ -1,6 +1,8 @@
 check:
 	cargo fmt --all -- --check
+	golangci-lint fmt ./...
 	cargo clippy -- -D warnings -A clippy::collapsible_if
+	golangci-lint run ./...
 
 test:
 	cargo test

@@ -492,8 +492,6 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 	return nextY
 }
 
-const indent = 20.0
-
 func (e *Engine) drawNowPlaying(screen *ebiten.Image, margin, boxW, fontSize float64, face *text.GoTextFace) {
 	now := e.Now()
 	if e.CurrentSong == "" {
@@ -720,7 +718,7 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 		panelW := boxW * 1.0
 
 		// Start RPKI safely after the anomaly stream (drawn at margin-10)
-		v4X := margin - 10 + streamW + 70 
+		v4X := margin - 10 + streamW + 70
 		// Limit barW so it doesn't collide with flappiest panel
 		availableSpace := (float64(e.Width) - margin - summaryW - 20 - panelW - 20) - v4X
 		if barW > availableSpace {
@@ -728,7 +726,7 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 		}
 
 		barY_v6 := float64(e.Height) - margin - barH
-		barY_v4 := barY_v6 - barH - fontSize - 15 
+		barY_v4 := barY_v6 - barH - fontSize - 15
 
 		drawBar := func(x float64, y float64, valid, invalid, notFound uint64, label string, isTop bool) {
 			total := valid + invalid + notFound
@@ -747,8 +745,8 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 			currX := float32(x)
 
 			segments := []struct {
-				w    float32
-				col  color.RGBA
+				w   float32
+				col color.RGBA
 			}{
 				{float32(barW * validPct), ColorRPKIValid},
 				{float32(barW * invalidPct), ColorRPKIInvalid},
@@ -777,25 +775,14 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 				path.ArcTo(rx, ry, rx+rr, ry, rr)
 				path.Close()
 
-				vertices, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
-
-				// Restore the non-premultiplied additive blend trick
-				r := float32(col.R) / 255.0
-				g := float32(col.G) / 255.0
-				b := float32(col.B) / 255.0
-				a := (float32(col.A) / 255.0) * alphaMult
-
-				for i := range vertices {
-					// e.whitePixel is 1x1, so 0 is the correct coordinate
-					vertices[i].SrcX = 0
-					vertices[i].SrcY = 0
-					vertices[i].ColorR = r
-					vertices[i].ColorG = g
-					vertices[i].ColorB = b
-					vertices[i].ColorA = a
-				}
-
-				dst.DrawTriangles(vertices, indices, e.whitePixel, &ebiten.DrawTrianglesOptions{})
+				op := &vector.DrawPathOptions{}
+				op.ColorScale.Scale(
+					float32(col.R)/255.0,
+					float32(col.G)/255.0,
+					float32(col.B)/255.0,
+					(float32(col.A)/255.0)*alphaMult,
+				)
+				vector.FillPath(dst, &path, nil, op)
 			}
 
 			for _, seg := range segments {
@@ -830,9 +817,10 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 				// 1. Percentage (ABOVE the bar)
 				tw, _ := text.Measure(valTxt, e.subMonoFace, 0)
 				finalX := tx
-				if align == 1 { // center
+				switch align {
+				case 1: // center
 					finalX -= tw / 2
-				} else if align == 2 { // right
+				case 2: // right
 					finalX -= tw
 				}
 				op.GeoM.Translate(finalX, y-fontSize)
@@ -841,12 +829,13 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 				// 2. Optional Label (ABOVE the percentage, only for Top bar)
 				if isTop && labelTxt != "" {
 					op.GeoM.Reset()
-					op.ColorScale.Scale(1, 1, 1, 0.6) 
+					op.ColorScale.Scale(1, 1, 1, 0.6)
 					lw, _ := text.Measure(labelTxt, e.subMonoFace, 0)
 					lX := tx
-					if align == 1 {
+					switch align {
+					case 1:
 						lX -= lw / 2
-					} else if align == 2 {
+					case 2:
 						lX -= lw
 					}
 					op.GeoM.Translate(lX, y-fontSize*1.9)
@@ -911,65 +900,6 @@ func (e *Engine) drawLegendAndTrends(screen *ebiten.Image) {
 	summaryY := float64(e.Height) - margin - summaryH
 
 	e.drawAnomalySummary(screen, summaryX, summaryY, boxW, summaryH, summaryFontSize)
-}
-
-func (e *Engine) aggregateMetrics(s *MetricSnapshot) (good, poly, bad, crit float64) {
-	// Normal (Blue) - Includes Discovery and None
-	good = s.Global
-	// Policy (Purple)
-	poly = s.Hunting + s.Oscill + s.DDoS
-
-	// Bad (Orange)
-	bad = s.Flap
-	// Critical (Red)
-	crit = s.Outage + s.Leak + s.Hijack + s.Bogon
-	return
-}
-
-func (e *Engine) logVal(v float64) float64 {
-	if v < 1 {
-		return 0
-	}
-	return math.Log10(v)
-}
-
-func (e *Engine) calculateGlobalIPBounds() (minLog, maxLog float64) {
-	globalMaxLog := 1.0
-	globalMinLog := 100.0
-	if len(e.history) < 3 {
-		return 0, 1.0
-	}
-	hasData := false
-	for i := 2; i < len(e.history); i++ {
-		s := &e.history[i]
-		for _, v := range []uint64{s.GoodIPs, s.PolyIPs, s.BadIPs, s.CritIPs} {
-			if v > 0 {
-				l := e.logVal(float64(v))
-				if l > globalMaxLog {
-					globalMaxLog = l
-				}
-				if l < globalMinLog {
-					globalMinLog = l
-				}
-				hasData = true
-			}
-		}
-	}
-	if !hasData {
-		return 0, 1.0
-	}
-	// Round down min to previous power of 10
-	globalMinLog = math.Floor(globalMinLog)
-	if globalMinLog < 0 {
-		globalMinLog = 0
-	}
-	// Round up max to next power of 10 to always show one additional label
-	globalMaxLog = math.Floor(globalMaxLog) + 1.0
-
-	if globalMaxLog <= globalMinLog {
-		globalMaxLog = globalMinLog + 1.0
-	}
-	return globalMinLog, globalMaxLog
 }
 
 func (e *Engine) StartMetricsLoop() {
@@ -1088,10 +1018,11 @@ func (e *Engine) drawRPKILine(dst *ebiten.Image, label string, rpkiStatus int32,
 	// Draw RPKI Status
 	statusText := "[UNKNOWN]"
 	statusColor := ColorRPKIUnknown
-	if rpkiStatus == 1 {
+	switch rpkiStatus {
+	case 1:
 		statusText = "[VALID]"
 		statusColor = ColorRPKIValid
-	} else if rpkiStatus == 2 {
+	case 2:
 		statusText = "[INVALID]"
 		statusColor = ColorRPKIInvalid
 	}
@@ -1190,126 +1121,6 @@ func (e *Engine) drawLabeledLine(dst *ebiten.Image, label, value string, face *t
 	return y
 }
 
-func (e *Engine) wrapHeight(content string, face *text.GoTextFace, maxWidth, fontSize float64) float64 {
-	if content == "" {
-		return 0
-	}
-	if face == nil {
-		return fontSize * 1.1
-	}
-	words := strings.Fields(content)
-	if len(words) == 0 {
-		return 0
-	}
-	h := fontSize * 1.1
-	line := words[0]
-	for _, word := range words[1:] {
-		testLine := line + " " + word
-		tw, _ := text.Measure(testLine, face, 0)
-		if tw > maxWidth {
-			h += fontSize * 1.1
-			line = word
-		} else {
-			line = testLine
-		}
-	}
-	return h
-}
-
-func (e *Engine) labeledLineHeight(label, value string, face *text.GoTextFace, maxWidth, fontSize float64) float64 {
-	if label == "" && value == "" {
-		return 0
-	}
-	if face == nil {
-		return fontSize * 1.1
-	}
-	labelWidth, _ := text.Measure(label, face, 0)
-	h := fontSize * 1.1
-	words := strings.Fields(value)
-	if len(words) == 0 {
-		return h
-	}
-	line := words[0]
-	firstLine := true
-	for _, word := range words[1:] {
-		testLine := line + " " + word
-		currentMaxW := maxWidth
-		if firstLine {
-			currentMaxW = maxWidth - labelWidth
-		}
-		tw, _ := text.Measure(testLine, face, 0)
-		if tw > currentMaxW {
-			h += fontSize * 1.1
-			line = word
-			firstLine = false
-		} else {
-			line = testLine
-		}
-	}
-	return h
-}
-
-func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64) float64 {
-	x := 10.0 // Consistent with localX in drawCriticalStream
-	rightEdge := boxW - 15.0
-	title := ce.CachedTypeLabel
-	if ce.Resolved {
-		title = "[RESOLVED]" + title
-	}
-	h := e.wrapHeight(title, e.subMonoFace, rightEdge-x, fontSize)
-
-	if ce.CachedFirstLine != "" {
-		h += e.wrapHeight(ce.CachedFirstLine, e.subMonoFace, rightEdge-x, fontSize)
-	}
-
-	indent := 20.0
-	detailsRightEdge := rightEdge
-
-	switch ce.Anom {
-	case bgp.NameRouteLeak, bgp.NameMinorRouteLeak:
-		if ce.LeakType != bgp.LeakUnknown {
-			// Leaker line height (Label + [UNKNOWN]: + Value)
-			leakerLabelWithStatus := ce.CachedLeakerLabel + "[UNKNOWN]: "
-			h += e.labeledLineHeight(leakerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-
-			// Impacted line height
-			impactedLabelWithStatus := ce.CachedVictimLabel + "[UNKNOWN]: "
-			h += e.labeledLineHeight(impactedLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-
-			h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-		}
-	case bgp.NameHardOutage:
-		h += e.labeledLineHeight(ce.CachedASNLabel, ce.CachedASNVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-	case bgp.NameDDoSMitigation, bgp.NameHijack:
-		// Attacker/Source line height
-		attackerLabelWithStatus := ce.CachedLeakerLabel + "[UNKNOWN]: "
-		h += e.labeledLineHeight(attackerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-
-		// Victim/Target line height
-		victimLabelWithStatus := ce.CachedVictimLabel + "[UNKNOWN]: "
-		h += e.labeledLineHeight(victimLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-
-		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
-	}
-
-	if ce.CachedLocVal != "" {
-		curIndent := indent
-		if ce.CachedLocLabel == "" {
-			curIndent = 0
-		}
-		h += e.labeledLineHeight(ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, detailsRightEdge-(x+curIndent), fontSize)
-	} else if ce.Locations != "" {
-		curIndent := indent
-		if ce.CachedLocLabel == "" {
-			curIndent = 0
-		}
-		h += e.labeledLineHeight(ce.CachedLocLabel, ce.Locations, e.subMonoFace, detailsRightEdge-(x+curIndent), fontSize)
-	}
-
-	return h
-}
-
 func (e *Engine) drawDisconnected(screen *ebiten.Image) {
 	if e.IsConnected.Load() {
 		return
@@ -1322,9 +1133,6 @@ func (e *Engine) drawDisconnected(screen *ebiten.Image) {
 
 	msg := "DISCONNECTED"
 	face := e.titleFace
-	if e.Width > 2000 {
-		// Use a larger font for high-res if available, otherwise titleFace is already scaled
-	}
 
 	tw, th := text.Measure(msg, face, 0)
 	x := (float64(e.Width) - tw) / 2

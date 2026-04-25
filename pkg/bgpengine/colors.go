@@ -36,7 +36,7 @@ var (
 	ColorOpen = color.RGBA{0, 100, 255, 255}   // Blue
 
 	// Cyberpunk RPKI Colors
-	ColorRPKIValid   = color.RGBA{0, 255, 159, 255} // Neo Green
-	ColorRPKIInvalid = color.RGBA{255, 0, 96, 255}   // Neo Pink/Red
+	ColorRPKIValid   = color.RGBA{0, 255, 159, 255}   // Neo Green
+	ColorRPKIInvalid = color.RGBA{255, 0, 96, 255}    // Neo Pink/Red
 	ColorRPKIUnknown = color.RGBA{130, 130, 130, 255} // Neutral Grey
 )

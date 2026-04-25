@@ -44,36 +44,31 @@ type BufferedCity struct {
 	Counts   map[PulseKey]int
 }
 
-type asnGroupKey struct {
-	ASN  uint32
-	Anom string
-}
-
 type CriticalEvent struct {
-	Timestamp  time.Time
-	Anom       string
-	ASN        uint32
-	ASNStr     string
-	OrgID      string
-	LeakType   bgp.LeakType
-	LeakerASN  uint32
-	LeakerName string
-	LeakerRPKI int32
-	VictimASN  uint32
-	VictimName string
-	VictimRPKI int32
-	Locations  string
-	Country    string
-	Color      color.RGBA
-	UIColor    color.RGBA
+	Timestamp   time.Time
+	Anom        string
+	ASN         uint32
+	ASNStr      string
+	OrgID       string
+	LeakType    bgp.LeakType
+	LeakerASN   uint32
+	LeakerName  string
+	LeakerRPKI  int32
+	VictimASN   uint32
+	VictimName  string
+	VictimRPKI  int32
+	Locations   string
+	Country     string
+	Color       color.RGBA
+	UIColor     color.RGBA
 	IsAggregate bool
 
-	ImpactedIPs       uint64
+	ImpactedIPs          uint64
 	ImpactedIPv6Prefixes uint32
-	ImpactedPrefixes  map[string]struct{}
-	ActivePrefixes    map[string]struct{}
-	ActiveIncidentIDs map[string]struct{}
-	Resolved          bool
+	ImpactedPrefixes     map[string]struct{}
+	ActivePrefixes       map[string]struct{}
+	ActiveIncidentIDs    map[string]struct{}
+	Resolved             bool
 
 	// Pre-rendered layout values
 	CachedTypeLabel string
@@ -93,14 +88,6 @@ type CriticalEvent struct {
 
 	CachedImpactStr string
 	Dirty           bool
-}
-
-type statsEvent struct {
-	ev         *bgpEvent
-	name       string
-	c          color.RGBA
-	uiInterval float64
-	trigger    bool
 }
 
 type bgpEvent struct {
@@ -207,19 +194,4 @@ type MetricSnapshot struct {
 	Leak, Hijack, Bogon, Attr, Global, DDoS, Dedupe, Uncat float64
 
 	GoodIPs, PolyIPs, BadIPs, CritIPs uint64
-}
-
-type asnGroup struct {
-	asnStr     string
-	prefixes   []string
-	anom       string
-	color      color.RGBA
-	priority   int
-	maxCount   float64
-	totalCount float64
-
-	leakType  bgp.LeakType
-	leakerASN uint32
-	victimASN uint32
-	locations map[string]struct{}
 }

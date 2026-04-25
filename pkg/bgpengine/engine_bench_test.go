@@ -17,7 +17,6 @@ func BenchmarkDrawBGPStatus(b *testing.B) {
 	e.InitFlareTexture()
 	e.InitSquareTexture()
 
-
 	// Pre-fill history to ensure we are benchmarking the actual drawing logic
 	for i := 0; i < 60; i++ {
 		e.history[i] = MetricSnapshot{
@@ -45,7 +44,6 @@ func TestDrawBGPStatusAllocations(t *testing.T) {
 	e.InitPulseTexture()
 	e.InitFlareTexture()
 	e.InitSquareTexture()
-
 
 	// Fill history
 	for i := 0; i < 60; i++ {
@@ -79,7 +77,6 @@ func BenchmarkDrawMap(b *testing.B) {
 	e.InitFlareTexture()
 	e.InitSquareTexture()
 
-
 	// Fill with pulses
 	now := time.Now()
 	for i := 0; i < 500; i++ {
@@ -108,7 +105,6 @@ func TestDrawMapAllocations(t *testing.T) {
 	e.InitPulseTexture()
 	e.InitFlareTexture()
 	e.InitSquareTexture()
-
 
 	// Fill with pulses
 	now := time.Now()

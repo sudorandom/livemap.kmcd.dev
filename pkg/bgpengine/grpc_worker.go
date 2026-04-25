@@ -34,7 +34,7 @@ func (e *Engine) runGRPCClient(addr string) error {
 		Timeout:             5 * time.Second,
 		PermitWithoutStream: true,
 	}
-	conn, err := grpc.Dial(addr,
+	conn, err := grpc.NewClient(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kpc),
 	)
@@ -42,7 +42,7 @@ func (e *Engine) runGRPCClient(addr string) error {
 		e.IsConnected.Store(false)
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	e.IsConnected.Store(true)
 	defer e.IsConnected.Store(false)
@@ -54,7 +54,11 @@ func (e *Engine) runGRPCClient(addr string) error {
 	defer cancel()
 
 	go e.pollSummary(ctx, client)
-	go e.consumeAlertStream(ctx, client)
+	go func() {
+		if err := e.consumeAlertStream(ctx, client); err != nil && ctx.Err() == nil {
+			log.Printf("[GRPC] Alert stream error: %v", err)
+		}
+	}()
 	return e.consumeEventStream(ctx, client)
 }
 
