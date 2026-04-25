@@ -227,6 +227,14 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 		e.topStatsRPKIInvalidIPv6 != resp.GetRpkiInvalidIpv6() ||
 		e.topStatsRPKINotFoundIPv6 != resp.GetRpkiNotFoundIpv6() {
 		dirty = true
+		if e.topStatsRPKIValidIPv4 != resp.GetRpkiValidIpv4() ||
+			e.topStatsRPKIInvalidIPv4 != resp.GetRpkiInvalidIpv4() ||
+			e.topStatsRPKINotFoundIPv4 != resp.GetRpkiNotFoundIpv4() ||
+			e.topStatsRPKIValidIPv6 != resp.GetRpkiValidIpv6() ||
+			e.topStatsRPKIInvalidIPv6 != resp.GetRpkiInvalidIpv6() ||
+			e.topStatsRPKINotFoundIPv6 != resp.GetRpkiNotFoundIpv6() {
+			e.rpkiDirty = true
+		}
 	}
 
 	if networkStats != nil {

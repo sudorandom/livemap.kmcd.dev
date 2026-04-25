@@ -116,7 +116,7 @@ func (e *Engine) drawAnomalySummary(screen *ebiten.Image, xBase, yBase, boxW, bo
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(xBase-10, yBase-fontSize-15)
+	op.GeoM.Translate(xBase-10, yBase)
 	screen.DrawImage(e.impactBuffer, op)
 }
 
@@ -372,13 +372,28 @@ func (e *Engine) drawCriticalStream(screen *ebiten.Image, margin, yBase, boxW, b
 	}
 
 	now := e.Now()
+	timeSinceUpdate := now.Sub(e.streamUpdatedAt)
+	alpha := 1.0
+	if timeSinceUpdate > 25*time.Second {
+		alpha = 1.0 - (timeSinceUpdate.Seconds()-25.0)/5.0
+		if alpha <= 0 {
+			return
+		}
+	}
+
 	isGlitching := now.Sub(e.streamUpdatedAt) < 300*time.Millisecond
 	intensity := 0.0
 	if isGlitching {
 		intensity = 1.0 - (now.Sub(e.streamUpdatedAt).Seconds() / 0.3)
 	}
+	// Glitch out as the panel disappears (only the final 500ms of the fade)
+	if timeSinceUpdate > 29500*time.Millisecond {
+		glitchProgress := (timeSinceUpdate.Seconds() - 29.5) / 0.5 // 0→1 over 500ms
+		intensity = glitchProgress
+		isGlitching = true
+	}
 
-	e.drawGlitchImage(screen, e.streamBuffer, margin-10, yBase-fontSize-15, intensity, isGlitching)
+	e.drawGlitchImage(screen, e.streamBuffer, margin-10, yBase, intensity, isGlitching, alpha)
 }
 
 func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float64) float64 {
@@ -535,7 +550,7 @@ func (e *Engine) drawNowPlaying(screen *ebiten.Image, margin, boxW, fontSize flo
 		intensity = 1.0 - (now.Sub(e.songChangedAt).Seconds() / 2.0)
 	}
 
-	e.drawGlitchImage(screen, e.nowPlayingBuffer, songX-10, songYBase-fontSize-15, intensity, isGlitching)
+	e.drawGlitchImage(screen, e.nowPlayingBuffer, songX-10, songYBase-fontSize-15, intensity, isGlitching, 1.0)
 }
 
 func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSize float64) {
@@ -543,26 +558,20 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 		return
 	}
 
+	summaryFontSize := fontSize * 0.7
+	panelH := e.calculateSummaryBoxHeight(summaryFontSize)
 	panelW := boxW * 1.0
-	panelH := fontSize * 7.0
 
-	// Align with the legend/summary box positioning
+	// Positioning: we want this to be to the left of the BGP summary
 	legendBoxW := 320.0
 	if e.Width > 2000 {
 		legendBoxW = 640.0
 	}
 	summaryW := legendBoxW * 1.5
-	summaryX := float64(e.Width) - margin - summaryW - 40
-	legendH := 150.0
-	if e.Width > 2000 {
-		legendH = 300.0
-	}
-	trendBoxH := legendH - fontSize - 25
-	graphH := trendBoxH - 10
-	gy := float64(e.Height) - margin - graphH - 10 - 120
+	summaryX := float64(e.Width) - margin - summaryW
 
-	panelX := summaryX - panelW - 40
-	panelY := gy + 120 - (fontSize * 0.7) - 15
+	panelX := summaryX - panelW - 20
+	panelY := float64(e.Height) - margin - panelH
 
 	now := e.Now()
 	timeSinceChanged := now.Sub(e.flappiestChangedAt).Seconds()
@@ -648,7 +657,7 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 		}
 		networkOp := &text.DrawOptions{}
 		networkOp.ColorScale.Scale(1, 1, 1, 0.6)
-		
+
 		// Use subFace and its size for correct wrapping and line spacing
 		nextY := e.drawWrappedText(e.flappiestBuffer, networkStr, e.subFace, localX, networkY, panelW-20.0, e.subFace.Size, networkOp)
 
@@ -656,7 +665,7 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 		flapStr := fmt.Sprintf("%s Flaps in the last 24 hours", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount)))
 		flapOp := &text.DrawOptions{}
 		flapOp.ColorScale.Scale(1, 1, 1, 0.8)
-		
+
 		// Use subBoldFace to ensure the count is bolded and the line wraps correctly
 		_ = e.drawWrappedText(e.flappiestBuffer, flapStr, e.subBoldFace, localX, nextY, panelW-20.0, e.subBoldFace.Size, flapOp)
 	}
@@ -674,7 +683,7 @@ func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSi
 		}
 	}
 
-	e.drawGlitchImage(screen, e.flappiestBuffer, panelX-10, panelY, glitchIntensity, isGlitching)
+	e.drawGlitchImage(screen, e.flappiestBuffer, panelX-10, panelY, glitchIntensity, isGlitching, 1.0)
 }
 
 func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {
@@ -684,73 +693,194 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 		return
 	}
 
-	// Bar dimensions
-	barW := 25.0
-	barH := float64(e.Height) * 0.4 // 40% of screen height
-	if e.Width > 2000 {
-		barW = 50.0
-	}
-	spacing := 10.0
-
-	// Positioning (Right Edge)
-	v6X := float64(e.Width) - margin - barW
-	v4X := v6X - barW - spacing
-	barY := float64(e.Height) * 0.05
-
-	drawBar := func(x float64, valid, invalid, notFound uint64, label string) {
-		total := valid + invalid + notFound
-		if total == 0 {
-			return
-		}
-
-		validPct := float64(valid) / float64(total)
-		invalidPct := float64(invalid) / float64(total)
-		notFoundPct := float64(notFound) / float64(total)
-
-		// Draw Background
-		vector.FillRect(screen, float32(x), float32(barY), float32(barW), float32(barH), color.RGBA{0, 0, 0, 100}, false)
-		vector.StrokeRect(screen, float32(x), float32(barY), float32(barW), float32(barH), 1, color.RGBA{36, 42, 53, 255}, false)
-
-		currY := float32(barY)
-		validH := float32(barH * validPct)
-		invalidH := float32(barH * invalidPct)
-		notFoundH := float32(barH * notFoundPct)
-
-		// Not Found (Grey)
-		if notFoundH > 0 {
-			vector.FillRect(screen, float32(x), currY, float32(barW), notFoundH, color.RGBA{120, 120, 120, 200}, false)
-			currY += notFoundH
-		}
-		// Invalid (Red)
-		if invalidH > 0 {
-			vector.FillRect(screen, float32(x), currY, float32(barW), invalidH, color.RGBA{220, 50, 50, 200}, false)
-			currY += invalidH
-		}
-		// Valid (Green)
-		if validH > 0 {
-			vector.FillRect(screen, float32(x), currY, float32(barW), validH, color.RGBA{50, 220, 50, 200}, false)
-		}
-
-		// Draw Label (v4/v6) at the TOP
-		labelOp := &text.DrawOptions{}
-		labelOp.ColorScale.Scale(1, 1, 1, 0.6)
-		tw, _ := text.Measure(label, e.subMonoFace, 0)
-		labelOp.GeoM.Translate(x+(barW-tw)/2, barY-fontSize-5)
-		text.Draw(screen, label, e.subMonoFace, labelOp)
+	if e.rpkiBuffer == nil || e.rpkiBuffer.Bounds().Dx() != e.Width || e.rpkiBuffer.Bounds().Dy() != e.Height {
+		e.rpkiBuffer = ebiten.NewImage(e.Width, e.Height)
+		e.rpkiDirty = true
 	}
 
-	drawBar(v4X, e.topStatsRPKIValidIPv4, e.topStatsRPKIInvalidIPv4, e.topStatsRPKINotFoundIPv4, "v4")
-	drawBar(v6X, e.topStatsRPKIValidIPv6, e.topStatsRPKIInvalidIPv6, e.topStatsRPKINotFoundIPv6, "v6")
+	if e.rpkiDirty {
+		e.rpkiBuffer.Clear()
 
-	// RPKI Main Label at the bottom
-	msg := "RPKI"
-	tw, _ := text.Measure(msg, e.subMonoFace, 0)
-	mainLabelOp := &text.DrawOptions{}
-	mainLabelOp.ColorScale.Scale(1, 1, 1, 0.8)
-	mainLabelOp.GeoM.Translate(v4X + (barW*2+spacing-tw)/2, barY+barH+5)
-	text.Draw(screen, msg, e.subMonoFace, mainLabelOp)
+		// Bar dimensions (Horizontal now)
+		barW := float64(e.Width) * 0.25
+		barH := 20.0
+		if e.Width > 2000 {
+			barW = float64(e.Width) * 0.2
+			barH = 40.0
+		}
+
+		// Positioning (Bottom, between Anomaly Stream and Flappiest Network)
+		// Critical Stream boxW is multiplied by 1.1 internally, so actual width is boxW * 1.4 * 1.1
+		streamW := (boxW * 1.4 * 1.1)
+		legendBoxW := 320.0
+		if e.Width > 2000 {
+			legendBoxW = 640.0
+		}
+		summaryW := legendBoxW * 1.5
+		panelW := boxW * 1.0
+
+		// Start RPKI safely after the anomaly stream (drawn at margin-10)
+		v4X := margin - 10 + streamW + 70 
+		// Limit barW so it doesn't collide with flappiest panel
+		availableSpace := (float64(e.Width) - margin - summaryW - 20 - panelW - 20) - v4X
+		if barW > availableSpace {
+			barW = availableSpace
+		}
+
+		barY_v6 := float64(e.Height) - margin - barH
+		barY_v4 := barY_v6 - barH - fontSize - 15 
+
+		drawBar := func(x float64, y float64, valid, invalid, notFound uint64, label string, isTop bool) {
+			total := valid + invalid + notFound
+			if total == 0 {
+				return
+			}
+
+			validPct := float64(valid) / float64(total)
+			invalidPct := float64(invalid) / float64(total)
+			notFoundPct := float64(notFound) / float64(total)
+
+			// Draw Background
+			vector.FillRect(e.rpkiBuffer, float32(x), float32(y), float32(barW), float32(barH), color.RGBA{0, 0, 0, 200}, false)
+
+			gap := float32(4.0)
+			currX := float32(x)
+
+			segments := []struct {
+				w    float32
+				col  color.RGBA
+			}{
+				{float32(barW * validPct), ColorRPKIValid},
+				{float32(barW * invalidPct), ColorRPKIInvalid},
+				{float32(barW * notFoundPct), ColorRPKIUnknown},
+			}
+
+			drawRoundedRect := func(dst *ebiten.Image, rx, ry, rw, rh, rr float32, col color.RGBA, alphaMult float32) {
+				if rw <= 0 || rh <= 0 {
+					return
+				}
+				if rr > rw/2 {
+					rr = rw / 2
+				}
+				if rr > rh/2 {
+					rr = rh / 2
+				}
+				var path vector.Path
+				path.MoveTo(rx+rr, ry)
+				path.LineTo(rx+rw-rr, ry)
+				path.ArcTo(rx+rw, ry, rx+rw, ry+rr, rr)
+				path.LineTo(rx+rw, ry+rh-rr)
+				path.ArcTo(rx+rw, ry+rh, rx+rw-rr, ry+rh, rr)
+				path.LineTo(rx+rr, ry+rh)
+				path.ArcTo(rx, ry+rh, rx, ry+rh-rr, rr)
+				path.LineTo(rx, ry+rr)
+				path.ArcTo(rx, ry, rx+rr, ry, rr)
+				path.Close()
+
+				vertices, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
+
+				// Restore the non-premultiplied additive blend trick
+				r := float32(col.R) / 255.0
+				g := float32(col.G) / 255.0
+				b := float32(col.B) / 255.0
+				a := (float32(col.A) / 255.0) * alphaMult
+
+				for i := range vertices {
+					// e.whitePixel is 1x1, so 0 is the correct coordinate
+					vertices[i].SrcX = 0
+					vertices[i].SrcY = 0
+					vertices[i].ColorR = r
+					vertices[i].ColorG = g
+					vertices[i].ColorB = b
+					vertices[i].ColorA = a
+				}
+
+				dst.DrawTriangles(vertices, indices, e.whitePixel, &ebiten.DrawTrianglesOptions{})
+			}
+
+			for _, seg := range segments {
+				if seg.w <= gap {
+					continue
+				}
+				sw := seg.w - gap
+				sx := currX
+
+				// Glow Layers
+				for i := 1.0; i <= 3.0; i++ {
+					alpha := float32(0.3 / (i * 2.0))
+					spread := float32(i * 3.0)
+					drawRoundedRect(e.rpkiBuffer, sx, float32(y)-spread, sw, float32(barH)+spread*2, 4+spread, seg.col, alpha)
+				}
+
+				// Base Segment
+				drawRoundedRect(e.rpkiBuffer, sx, float32(y), sw, float32(barH), 4, seg.col, 0.8)
+
+				currX += seg.w
+			}
+			// Percentage and Status Labels
+			validTxt := fmt.Sprintf("%.0f%%", validPct*100)
+			invalidTxt := fmt.Sprintf("%.0f%%", invalidPct*100)
+			unknownTxt := fmt.Sprintf("%.0f%%", notFoundPct*100)
+
+			drawValue := func(valTxt, labelTxt string, tx float64, col color.RGBA, align int) {
+				op := &text.DrawOptions{}
+				op.ColorScale.ScaleWithColor(col)
+				op.ColorScale.Scale(1, 1, 1, float32(0.9))
+
+				// 1. Percentage (ABOVE the bar)
+				tw, _ := text.Measure(valTxt, e.subMonoFace, 0)
+				finalX := tx
+				if align == 1 { // center
+					finalX -= tw / 2
+				} else if align == 2 { // right
+					finalX -= tw
+				}
+				op.GeoM.Translate(finalX, y-fontSize)
+				text.Draw(e.rpkiBuffer, valTxt, e.subMonoFace, op)
+
+				// 2. Optional Label (ABOVE the percentage, only for Top bar)
+				if isTop && labelTxt != "" {
+					op.GeoM.Reset()
+					op.ColorScale.Scale(1, 1, 1, 0.6) 
+					lw, _ := text.Measure(labelTxt, e.subMonoFace, 0)
+					lX := tx
+					if align == 1 {
+						lX -= lw / 2
+					} else if align == 2 {
+						lX -= lw
+					}
+					op.GeoM.Translate(lX, y-fontSize*1.9)
+					text.Draw(e.rpkiBuffer, labelTxt, e.subMonoFace, op)
+				}
+			}
+
+			// Valid (Left Aligned)
+			drawValue(validTxt, "RPKI Valid", x, ColorRPKIValid, 0)
+
+			// Invalid (Centered over invalid segment or its location)
+			invalidCenterX := x + float64(barW*validPct) + float64(barW*invalidPct)/2
+			drawValue(invalidTxt, "RPKI Invalid", invalidCenterX, ColorRPKIInvalid, 1)
+
+			// Unknown (Right Aligned)
+			drawValue(unknownTxt, "Unknown", x+barW, ColorRPKIUnknown, 2)
+
+			// Draw Label (IPv4/IPv6)
+			labelOp := &text.DrawOptions{}
+			labelOp.ColorScale.ScaleWithColor(ColorRPKIUnknown)
+			labelOp.ColorScale.Scale(1, 1, 1, float32(0.8))
+			tw, _ := text.Measure(label, e.subMonoFace, 0)
+			labelOp.GeoM.Translate(x-tw-10, y+(barH-fontSize)/2)
+			text.Draw(e.rpkiBuffer, label, e.subMonoFace, labelOp)
+		}
+
+		drawBar(v4X, barY_v4, e.topStatsRPKIValidIPv4, e.topStatsRPKIInvalidIPv4, e.topStatsRPKINotFoundIPv4, "IPv4", true)
+		drawBar(v4X, barY_v6, e.topStatsRPKIValidIPv6, e.topStatsRPKIInvalidIPv6, e.topStatsRPKINotFoundIPv6, "IPv6", false)
+
+		e.rpkiDirty = false
+	}
+
+	screen.DrawImage(e.rpkiBuffer, nil)
 }
-
 func (e *Engine) drawLegendAndTrends(screen *ebiten.Image) {
 	hasData := false
 	for _, pc := range e.prefixCounts {
@@ -769,9 +899,7 @@ func (e *Engine) drawLegendAndTrends(screen *ebiten.Image) {
 	}
 
 	boxW := 320.0
-	legendH := 150.0
 	if e.Width > 2000 {
-		legendH = 300.0
 		boxW = 640.0
 	}
 
@@ -779,13 +907,10 @@ func (e *Engine) drawLegendAndTrends(screen *ebiten.Image) {
 	summaryW := boxW * 1.5
 	summaryH := e.calculateSummaryBoxHeight(summaryFontSize)
 
-	trendBoxH := legendH - fontSize - 25
-	graphH := trendBoxH - 10
+	summaryX := float64(e.Width) - margin - summaryW
+	summaryY := float64(e.Height) - margin - summaryH
 
-	summaryX := float64(e.Width) - margin - summaryW - 40
-	gy := float64(e.Height) - margin - graphH - 10 - 120
-
-	e.drawAnomalySummary(screen, summaryX, gy+120, boxW, summaryH, summaryFontSize)
+	e.drawAnomalySummary(screen, summaryX, summaryY, boxW, summaryH, summaryFontSize)
 }
 
 func (e *Engine) aggregateMetrics(s *MetricSnapshot) (good, poly, bad, crit float64) {
@@ -956,16 +1081,29 @@ func (e *Engine) drawRPKILine(dst *ebiten.Image, label string, rpkiStatus int32,
 	text.Draw(dst, label, face, op)
 	labelWidth, _ := text.Measure(label, face, 0)
 
+	// Cyberpunk effects
+	t := float64(time.Now().UnixMilli()) / 1000.0
+	pulse := 0.6 + 0.4*math.Abs(math.Sin(t*3.0))
+
 	// Draw RPKI Status
-	statusText := "[NO RPKI]"
-	statusColor := color.RGBA{255, 50, 50, 255} // Red
+	statusText := "[UNKNOWN]"
+	statusColor := ColorRPKIUnknown
 	if rpkiStatus == 1 {
-		statusText = "[RPKI]"
-		statusColor = color.RGBA{0, 255, 0, 255} // Green
+		statusText = "[VALID]"
+		statusColor = ColorRPKIValid
+	} else if rpkiStatus == 2 {
+		statusText = "[INVALID]"
+		statusColor = ColorRPKIInvalid
 	}
 
 	op.ColorScale.Reset()
 	op.ColorScale.ScaleWithColor(statusColor)
+	if rpkiStatus == 2 {
+		op.ColorScale.Scale(1, 1, 1, float32(pulse))
+	} else {
+		op.ColorScale.Scale(1, 1, 1, 1.0)
+	}
+
 	op.GeoM.Reset()
 	op.GeoM.Translate(x+labelWidth, y)
 	text.Draw(dst, statusText, face, op)
@@ -1130,12 +1268,12 @@ func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64)
 	switch ce.Anom {
 	case bgp.NameRouteLeak, bgp.NameMinorRouteLeak:
 		if ce.LeakType != bgp.LeakUnknown {
-			// Leaker line height (Label + [RPKI]: + Value)
-			leakerLabelWithStatus := ce.CachedLeakerLabel + "[NO RPKI]: "
+			// Leaker line height (Label + [UNKNOWN]: + Value)
+			leakerLabelWithStatus := ce.CachedLeakerLabel + "[UNKNOWN]: "
 			h += e.labeledLineHeight(leakerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
 			// Impacted line height
-			impactedLabelWithStatus := ce.CachedVictimLabel + "[NO RPKI]: "
+			impactedLabelWithStatus := ce.CachedVictimLabel + "[UNKNOWN]: "
 			h += e.labeledLineHeight(impactedLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
 			h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
@@ -1145,11 +1283,11 @@ func (e *Engine) calculateEventHeight(ce *CriticalEvent, boxW, fontSize float64)
 		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 	case bgp.NameDDoSMitigation, bgp.NameHijack:
 		// Attacker/Source line height
-		attackerLabelWithStatus := ce.CachedLeakerLabel + "[NO RPKI]: "
+		attackerLabelWithStatus := ce.CachedLeakerLabel + "[UNKNOWN]: "
 		h += e.labeledLineHeight(attackerLabelWithStatus, ce.CachedLeakerVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
 		// Victim/Target line height
-		victimLabelWithStatus := ce.CachedVictimLabel + "[NO RPKI]: "
+		victimLabelWithStatus := ce.CachedVictimLabel + "[UNKNOWN]: "
 		h += e.labeledLineHeight(victimLabelWithStatus, ce.CachedVictimVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)
 
 		h += e.labeledLineHeight(ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, detailsRightEdge-(x+indent), fontSize)

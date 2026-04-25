@@ -270,11 +270,20 @@ pub struct PendingEvent {
     pub country: Option<String>,
 }
 
-#[derive(Default)]
 pub struct BgpkitCache {
     pub as2org: HashMap<u32, Option<String>>,
     pub as2name: HashMap<u32, Option<String>>,
-    pub rpki_cache: HashMap<(u32, String), i32>,
+    pub rpki_cache: LruCache<(u32, String), i32>,
+}
+
+impl Default for BgpkitCache {
+    fn default() -> Self {
+        Self {
+            as2org: HashMap::new(),
+            as2name: HashMap::new(),
+            rpki_cache: LruCache::new(std::num::NonZeroUsize::new(200_000).unwrap()),
+        }
+    }
 }
 
 pub struct Classifier {
@@ -1435,7 +1444,7 @@ impl Classifier {
 
     fn rpki_validate(&self, asn: u32, prefix: &str) -> i32 {
         {
-            let cache = self.bgpkit_cache.lock();
+            let mut cache = self.bgpkit_cache.lock();
             if let Some(res) = cache.rpki_cache.get(&(asn, prefix.to_string())) {
                 return *res;
             }
@@ -1452,7 +1461,7 @@ impl Classifier {
             };
             {
                 let mut cache = self.bgpkit_cache.lock();
-                cache.rpki_cache.insert((asn, prefix.to_string()), res);
+                cache.rpki_cache.put((asn, prefix.to_string()), res);
             }
             return res;
         }

@@ -102,6 +102,19 @@ impl Db {
                 "ALTER TABLE prefix_state ADD COLUMN origin_asn INTEGER DEFAULT 0",
                 [],
             );
+            // Migrations for rpki_stats v6 columns added after initial schema
+            let _ = conn.execute(
+                "ALTER TABLE rpki_stats ADD COLUMN valid_ipv6 INTEGER DEFAULT 0",
+                [],
+            );
+            let _ = conn.execute(
+                "ALTER TABLE rpki_stats ADD COLUMN invalid_ipv6 INTEGER DEFAULT 0",
+                [],
+            );
+            let _ = conn.execute(
+                "ALTER TABLE rpki_stats ADD COLUMN not_found_ipv6 INTEGER DEFAULT 0",
+                [],
+            );
         }
 
         let (write_tx, mut write_rx) = mpsc::channel::<DbWriteOp>(20000);

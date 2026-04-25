@@ -1148,7 +1148,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut rows = stmt.query([]).unwrap();
                     // Per-loop local cache for heavy aggregation to avoid redundant lookups
                     let mut local_asinfo: HashMap<u32, (String, Option<String>)> = HashMap::new();
-                    let mut local_rpki: HashMap<(u32, String), i32> = HashMap::new();
 
                     while let Ok(Some(row)) = rows.next() {
                         let p_str: String = row.get(0).unwrap();
@@ -1186,21 +1185,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                                     // RPKI Check
                                     if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
-                                        let status = *local_rpki
-                                            .entry((o_asn, p_str.clone()))
-                                            .or_insert_with(|| {
-                                                if let Ok(status) =
-                                                    bgpkit.rpki_validate(o_asn, &p_str)
-                                                {
-                                                    match status {
-                                                        bgpkit_commons::rpki::RpkiValidation::Valid => 1,
-                                                        bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
-                                                        bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
-                                                    }
-                                                } else {
-                                                    3
-                                                }
-                                            });
+                                        let status = if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
+                                            match status {
+                                                bgpkit_commons::rpki::RpkiValidation::Valid => 1,
+                                                bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
+                                                bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
+                                            }
+                                        } else {
+                                            3
+                                        };
 
                                         match status {
                                             1 => rpki_v4_valid.push(v4),
@@ -1215,20 +1208,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                             Some(IpNet::V6(_)) => {
                                 if o_asn > 0 && rpki_loaded && let Some(bgpkit) = bgpkit_opt {
-                                    let status = *local_rpki
-                                        .entry((o_asn, p_str.clone()))
-                                        .or_insert_with(|| {
-                                            if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str)
-                                            {
-                                                match status {
-                                                    bgpkit_commons::rpki::RpkiValidation::Valid => 1,
-                                                    bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
-                                                    bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
-                                                }
-                                            } else {
-                                                3
-                                            }
-                                        });
+                                    let status = if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
+                                        match status {
+                                            bgpkit_commons::rpki::RpkiValidation::Valid => 1,
+                                            bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
+                                            bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
+                                        }
+                                    } else {
+                                        3
+                                    };
 
                                     match status {
                                         1 => rpki_v6_valid += 1,
@@ -1365,6 +1353,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     db_heavy.set_cached_rpki_stats(
                         summary.4, summary.5, summary.6, summary.7, summary.8, summary.9,
                     );
+                } else if let Some((cv4v, cv4i, cv4n, cv6v, cv6i, cv6n)) =
+                    db_heavy.get_cached_rpki_stats()
+                {
+                    // RPKI data is still loading; use cached values so the UI shows
+                    // previously computed stats instead of zeros.
+                    s_heavy
+                        .top_rpki_valid_ipv4
+                        .store(cv4v, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_invalid_ipv4
+                        .store(cv4i, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_not_found_ipv4
+                        .store(cv4n, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_valid_ipv6
+                        .store(cv6v, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_invalid_ipv6
+                        .store(cv6i, Ordering::Relaxed);
+                    s_heavy
+                        .top_rpki_not_found_ipv6
+                        .store(cv6n, Ordering::Relaxed);
                 }
 
                 info!("[STATS] Refreshed heavy IP aggregation.");

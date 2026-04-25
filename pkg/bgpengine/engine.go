@@ -133,6 +133,8 @@ type Engine struct {
 	topStatsRPKIInvalidIPv6    uint64
 	topStatsRPKINotFoundIPv6   uint64
 	topStatsDirty              bool
+	rpkiBuffer                 *ebiten.Image
+	rpkiDirty                  bool
 	lastFocusedState           bool
 	criticalCooldown           map[string]time.Time
 
@@ -714,6 +716,7 @@ func (e *Engine) Update() error {
 			e.impactDirty = true
 			e.nowPlayingDirty = true
 			e.topStatsDirty = true
+			e.rpkiDirty = true
 		}
 	}
 	e.lastUpdate = now
@@ -726,6 +729,7 @@ func (e *Engine) Update() error {
 		e.impactDirty = true
 		e.nowPlayingDirty = true
 		e.topStatsDirty = true
+		e.rpkiDirty = true
 	}
 	e.lastFocusedState = isFocused
 
@@ -1050,8 +1054,9 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 
 	// 1. Clean up old state if this prefix was in a different category before
 	// If it transitioned to None/Discovery, this will remove it completely since anomName won't match oldCt
+	removed := false
 	if oldCt != bgp.ClassificationNone && oldCt != bgp.ClassificationDiscovery && oldCt != ct {
-		e.removePrefixFromOldEventsLocked(trans.Prefix, anomName)
+		removed = e.removePrefixFromOldEventsLocked(trans.Prefix, anomName)
 
 		if e.loadingHistorical {
 			// During catch-up, don't keep resolved events at all
@@ -1061,8 +1066,10 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 
 	// 2. We only care about tracking and displaying these specific critical events
 	if ct != bgp.ClassificationOutage && ct != bgp.ClassificationRouteLeak && ct != bgp.ClassificationMinorRouteLeak && ct != bgp.ClassificationHijack {
-		e.streamDirty = true
-		e.streamUpdatedAt = time.Now()
+		if removed {
+			e.streamDirty = true
+			e.streamUpdatedAt = time.Now()
+		}
 		return
 	}
 
@@ -1102,12 +1109,13 @@ func (e *Engine) RecordStateTransition(trans *livemap.StateTransition) {
 	e.streamUpdatedAt = time.Now()
 }
 
-func (e *Engine) removePrefixFromOldEventsLocked(prefix, currentAnomName string) {
+func (e *Engine) removePrefixFromOldEventsLocked(prefix, currentAnomName string) bool {
 	if prefix == "" {
-		return
+		return false
 	}
-	e.removeFromCriticalSlice(&e.CriticalStream, prefix, currentAnomName)
-	e.removeFromCriticalSlice(&e.criticalQueue, prefix, currentAnomName)
+	r1 := e.removeFromCriticalSlice(&e.CriticalStream, prefix, currentAnomName)
+	r2 := e.removeFromCriticalSlice(&e.criticalQueue, prefix, currentAnomName)
+	return r1 || r2
 }
 
 func (e *Engine) updateCriticalEventFromTransition(ce *CriticalEvent, trans *livemap.StateTransition) {
@@ -1691,7 +1699,7 @@ func (e *Engine) cacheImpactStrings(ce *CriticalEvent) {
 	ce.CachedImpactStr = fmt.Sprintf("Impact(%s): %s", impactStr, pfxStr)
 }
 
-func (e *Engine) drawGlitchImage(screen, img *ebiten.Image, tx, ty, intensity float64, isGlitching bool) {
+func (e *Engine) drawGlitchImage(screen, img *ebiten.Image, tx, ty, intensity float64, isGlitching bool, alpha float64) {
 	if img == nil {
 		return
 	}
@@ -1705,13 +1713,13 @@ func (e *Engine) drawGlitchImage(screen, img *ebiten.Image, tx, ty, intensity fl
 		op.GeoM.Reset()
 		op.GeoM.Translate(tx+jx+offset, ty+jy)
 		op.ColorScale.Reset()
-		op.ColorScale.Scale(1, 0, 0, 0.6)
+		op.ColorScale.Scale(1, 0, 0, 0.6*float32(alpha))
 		screen.DrawImage(img, op)
 
 		op.GeoM.Reset()
 		op.GeoM.Translate(tx+jx-offset, ty+jy)
 		op.ColorScale.Reset()
-		op.ColorScale.Scale(0, 1, 1, 0.6)
+		op.ColorScale.Scale(0, 1, 1, 0.6*float32(alpha))
 		screen.DrawImage(img, op)
 
 		// Occasional white flash
@@ -1719,23 +1727,23 @@ func (e *Engine) drawGlitchImage(screen, img *ebiten.Image, tx, ty, intensity fl
 			op.GeoM.Reset()
 			op.GeoM.Translate(tx+jx, ty+jy)
 			op.ColorScale.Reset()
-			op.ColorScale.Scale(1, 1, 1, 0.3)
+			op.ColorScale.Scale(1, 1, 1, 0.3*float32(alpha))
 			op.Blend = ebiten.BlendLighter
 			screen.DrawImage(img, op)
 		}
 	}
 
 	jx, jy := 0.0, 0.0
-	alpha := float32(1.0)
+	imageAlpha := float32(1.0)
 	if isGlitching && rand.Float64() < intensity {
 		jx = (rand.Float64() - 0.5) * 6.0 * intensity
 		jy = (rand.Float64() - 0.5) * 3.0 * intensity
-		alpha = float32(0.4 + rand.Float64()*0.6)
+		imageAlpha = float32(0.4 + rand.Float64()*0.6)
 	}
 	op.GeoM.Reset()
 	op.GeoM.Translate(tx+jx, ty+jy)
 	op.ColorScale.Reset()
-	op.ColorScale.Scale(1, 1, 1, alpha)
+	op.ColorScale.Scale(1, 1, 1, imageAlpha*float32(alpha))
 	op.Blend = ebiten.BlendSourceOver
 	screen.DrawImage(img, op)
 }
