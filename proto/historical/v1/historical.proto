@@ -85,6 +85,14 @@ message PrefixSnapshot {
 message GlobalMetadataIndex {
     repeated AsnMetadata asns = 1;
     repeated OrgMetadata orgs = 2;
+    int64 last_updated_ts = 3;
+    uint64 rpki_valid_ipv4 = 4;
+    uint64 rpki_invalid_ipv4 = 5;
+    uint64 rpki_not_found_ipv4 = 6;
+    uint64 rpki_valid_ipv6 = 7;
+    uint64 rpki_invalid_ipv6 = 8;
+    uint64 rpki_not_found_ipv6 = 9;
+    repeated ClassificationCount classification_counts = 10;
 }
 
 message GlobalPrefixShard {
@@ -95,4 +103,16 @@ message DailyPrefixArchive {
     string prefix = 1;
     uint32 asn = 2;
     repeated Transition events = 3;
+}
+
+message ClassificationCount {
+    int32 classification = 1;
+    uint32 count = 2;
+    float messages_per_second = 3;
+    uint32 asn_count = 4;
+    uint32 prefix_count = 5;
+    uint32 ipv4_prefix_count = 7;
+    uint32 ipv6_prefix_count = 8;
+    uint64 ipv4_count = 9;
+    uint64 total_count = 10;
 }

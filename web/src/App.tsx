@@ -80,13 +80,11 @@ function App() {
             </div>
           ) : (
             <Routes>
-              <Route path="/" element={<IndexPage dates={dates} />} />
+              <Route path="/" element={<IndexPage dates={dates} metadata={metadata} />} />
               <Route path="/search" element={<SearchPage metadata={metadata} dates={dates} />} />
               <Route path="/orgs" element={<OrganizationsPage metadata={metadata} dates={dates} />} />
               <Route path="/org/:slug" element={<OrgViewPage dates={dates} metadata={metadata} />} />
-              <Route path="/org/:slug/:date" element={<OrgViewPage dates={dates} metadata={metadata} />} />
               <Route path="/asn/:asn" element={<AsnViewPage dates={dates} metadata={metadata} />} />
-              <Route path="/asn/:asn/:date" element={<AsnViewPage dates={dates} metadata={metadata} />} />
               <Route path="/prefix/:slug" element={<PrefixViewPage dates={dates} />} />
               <Route path="/prefix/:slug/:date" element={<PrefixViewPage dates={dates} />} />
             </Routes>

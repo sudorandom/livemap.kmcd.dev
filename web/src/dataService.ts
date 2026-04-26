@@ -1,5 +1,6 @@
 import { fromBinary } from "@bufbuild/protobuf";
-import { DailyAsnArchiveSchema, OrgArchiveSchema, GlobalMetadataIndexSchema, DaySummarySchema, DailyAsnArchive, OrgArchive } from "./gen/historical/v1/historical_pb";
+import { DailyAsnArchiveSchema, OrgArchiveSchema, GlobalMetadataIndexSchema, DaySummarySchema } from "./gen/historical/v1/historical_pb";
+import type { DailyAsnArchive, OrgArchive } from "./gen/historical/v1/historical_pb";
 import { Classification } from "./gen/livemap/v1/livemap_pb";
 
 async function fetchBinary(url: string) {

@@ -28,7 +28,7 @@ use historical::v1::{
     PrefixHistory, PrefixSnapshot, Transition as HistTransition,
 };
 use livemap::v1::live_map_service_client::LiveMapServiceClient;
-use livemap::v1::{StreamPrefixSnapshotsRequest, StreamStateTransitionsRequest};
+use livemap::v1::{GetSummaryRequest, StreamPrefixSnapshotsRequest, StreamStateTransitionsRequest};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
     .await?;
 
     // Build and save global metadata index immediately
-    build_global_index(&out_path, &bgpkit).await?;
+    build_global_index(&args.addr, &out_path, &bgpkit).await?;
 
     let state = Arc::new(Mutex::new(IndexerState {
         buffer: HashMap::new(),
@@ -126,11 +126,38 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn build_global_index(out_path: &Path, bgpkit: &BgpkitCommons) -> Result<()> {
+async fn build_global_index(addr: &str, out_path: &Path, bgpkit: &BgpkitCommons) -> Result<()> {
     log::info!("Building global metadata index...");
+    let mut client = LiveMapServiceClient::connect(addr.to_string()).await?;
+    let summary = client.get_summary(GetSummaryRequest {}).await?.into_inner();
+
+    let classification_counts = summary
+        .classification_counts
+        .into_iter()
+        .map(|c| historical::v1::ClassificationCount {
+            classification: c.classification,
+            count: c.count,
+            messages_per_second: c.messages_per_second,
+            asn_count: c.asn_count,
+            prefix_count: c.prefix_count,
+            ipv4_prefix_count: c.ipv4_prefix_count,
+            ipv6_prefix_count: c.ipv6_prefix_count,
+            ipv4_count: c.ipv4_count,
+            total_count: c.total_count,
+        })
+        .collect();
+
     let mut index = GlobalMetadataIndex {
         asns: vec![],
         orgs: vec![],
+        last_updated_ts: Utc::now().timestamp(),
+        rpki_valid_ipv4: summary.rpki_valid_ipv4,
+        rpki_invalid_ipv4: summary.rpki_invalid_ipv4,
+        rpki_not_found_ipv4: summary.rpki_not_found_ipv4,
+        rpki_valid_ipv6: summary.rpki_valid_ipv6,
+        rpki_invalid_ipv6: summary.rpki_invalid_ipv6,
+        rpki_not_found_ipv6: summary.rpki_not_found_ipv6,
+        classification_counts,
     };
 
     let mut org_set: HashMap<String, String> = HashMap::new();

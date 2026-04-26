@@ -6,13 +6,16 @@ import { ClassificationBadge } from '../components/ClassificationBadge';
 import { Classification } from '../gen/livemap/v1/livemap_pb';
 import { RpkiBadge } from '../components/RpkiBadge';
 
+import type { GlobalMetadataIndex } from '../gen/historical/v1/historical_pb';
+
 interface Props {
   dates: string[];
+  metadata: GlobalMetadataIndex | null;
 }
 
 const badStates = [Classification.HIJACK, Classification.ROUTE_LEAK, Classification.MINOR_ROUTE_LEAK, Classification.OUTAGE, Classification.PATH_HUNTING];
 
-export default function IndexPage({ dates }: Props) {
+export default function IndexPage({ dates, metadata }: Props) {
   const [data, setData] = useState<DaySummary | null>(null);
   const [loading, setLoading] = useState(false);
   const selectedDate = dates[0];
@@ -83,6 +86,49 @@ export default function IndexPage({ dates }: Props) {
           </div>
         </div>
       </section>
+
+      {metadata && (
+        <section className="metadata-stats-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div className="stat-panel" style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px' }}>
+            <h3>RPKI Global Coverage (IPv4)</h3>
+            <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginTop: '1rem' }}>
+              <div className="stat-card" style={{ background: 'var(--bg-panel)', padding: '0.5rem', borderRadius: '4px', borderLeft: '4px solid var(--accent-green)' }}>
+                <span className="stat-lbl" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>VALID</span>
+                <span className="stat-val" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{Number(metadata.rpkiValidIpv4).toLocaleString()}</span>
+              </div>
+              <div className="stat-card" style={{ background: 'var(--bg-panel)', padding: '0.5rem', borderRadius: '4px', borderLeft: '4px solid var(--accent-pink)' }}>
+                <span className="stat-lbl" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>INVALID</span>
+                <span className="stat-val" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{Number(metadata.rpkiInvalidIpv4).toLocaleString()}</span>
+              </div>
+              <div className="stat-card" style={{ background: 'var(--bg-panel)', padding: '0.5rem', borderRadius: '4px', borderLeft: '4px solid var(--text-dim)' }}>
+                <span className="stat-lbl" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>NOT FOUND</span>
+                <span className="stat-val" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{Number(metadata.rpkiNotFoundIpv4).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="stat-panel" style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+               <h3>Event Classifications (24h)</h3>
+               {metadata.lastUpdatedTs > 0n && (
+                 <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                   Updated: {new Date(Number(metadata.lastUpdatedTs) * 1000).toLocaleTimeString()}
+                 </span>
+               )}
+             </div>
+             <div className="stat-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
+               {metadata.classificationCounts.map(c => (
+                 <div key={c.classification} className="stat-card" style={{ background: 'var(--bg-panel)', padding: '0.5rem', borderRadius: '4px', minWidth: '100px' }}>
+                   <div style={{ marginBottom: '0.25rem' }}>
+                     <ClassificationBadge classification={c.classification as Classification} />
+                   </div>
+                   <span className="stat-val" style={{ fontSize: '1rem', fontWeight: 'bold' }}>{c.count.toLocaleString()}</span>
+                 </div>
+               ))}
+             </div>
+          </div>
+        </section>
+      )}
 
       <div className="recent-header-v2">
         <h3>Latest Global Events</h3>
