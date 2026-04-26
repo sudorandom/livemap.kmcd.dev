@@ -141,9 +141,25 @@ function EventRow({ ev, expanded, onToggle }: { ev: Transition, expanded: boolea
                 </div>
               )}
               {ev.anomalyDetails && (
-                <div className="detail-item">
+                <div className="detail-item anomaly-stats-grid">
                   <label>Anomaly Details</label>
-                  <p>{ev.anomalyDetails}</p>
+                  {(() => {
+                    try {
+                      const stats = JSON.parse(ev.anomalyDetails);
+                      return (
+                        <div className="stat-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          {Object.entries(stats).map(([k, v]) => (
+                            <div key={k} className="stat-card" style={{ padding: '0.5rem', background: 'var(--bg-panel)', borderRadius: '4px' }}>
+                              <div className="stat-lbl" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{k.replace(/_/g, ' ').toUpperCase()}</div>
+                              <div className="stat-val" style={{ fontSize: '1rem', fontWeight: 'bold' }}>{String(v)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    } catch {
+                      return <p>{ev.anomalyDetails}</p>;
+                    }
+                  })()}
                 </div>
               )}
               {ev.leakDetail && (

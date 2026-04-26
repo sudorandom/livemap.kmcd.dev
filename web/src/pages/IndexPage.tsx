@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import { fetchDaySummary, slugify } from '../dataService';
 import type { DaySummary } from '../gen/historical/v1/historical_pb';
 import { ClassificationBadge } from '../components/ClassificationBadge';
+import { Classification } from '../gen/livemap/v1/livemap_pb';
 import { RpkiBadge } from '../components/RpkiBadge';
 
 interface Props {
   dates: string[];
 }
+
+const badStates = [Classification.HIJACK, Classification.ROUTE_LEAK, Classification.MINOR_ROUTE_LEAK, Classification.OUTAGE, Classification.PATH_HUNTING];
 
 export default function IndexPage({ dates }: Props) {
   const [data, setData] = useState<DaySummary | null>(null);
@@ -99,29 +102,31 @@ export default function IndexPage({ dates }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.latestEvents.map((ev, i) => (
+                  {data.latestEvents.filter(ev => badStates.includes(ev.newState as Classification)).map((ev, i) => (
                     <tr key={i}>
                       <td className="time">{new Date(Number(ev.ts) * 1000).toLocaleTimeString()}</td>
                       <td>
                         <div className="feed-entity">
-                          <Link to={`/asn/${ev.asn}/${selectedDate}`} className="feed-asn">AS{ev.asn}</Link>
+                          <Link to={`/asn/${ev.asn}`} className="feed-asn">AS{ev.asn}</Link>
                           <span className="feed-name">{ev.asnName}</span>
                           {ev.org && (
-                            <Link to={`/org/${slugify(ev.org)}/${selectedDate}`} className="feed-org-tag">
+                            <Link to={`/org/${slugify(ev.org)}`} className="feed-org-tag">
                               {ev.org}
                             </Link>
                           )}
                         </div>
                       </td>
-                      <td className="feed-prefix"><code>{ev.prefix}</code></td>
+                      <td className="feed-prefix"><Link to={`/prefix/${slugify(ev.prefix)}`}><code>{ev.prefix}</code></Link></td>
                       <td>
-                        <div className="feed-actions-cell">
-                          <RpkiBadge status={ev.rpkiStatus} />
+                        <div className="feed-actions-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <div className="feed-transition">
                             <ClassificationBadge classification={ev.oldState} />
                             <span className="arrow">→</span>
                             <ClassificationBadge classification={ev.newState} />
                           </div>
+                          {(ev.newState === Classification.ROUTE_LEAK || ev.newState === Classification.MINOR_ROUTE_LEAK) && (
+                            <RpkiBadge status={ev.rpkiStatus} />
+                          )}
                         </div>
                       </td>
                     </tr>

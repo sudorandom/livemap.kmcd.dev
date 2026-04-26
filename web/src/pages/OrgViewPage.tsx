@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchOrgHistory } from '../dataService';
+import { fetchOrgHistoryAggregated } from '../dataService';
 import type { OrgArchive, GlobalMetadataIndex } from '../gen/historical/v1/historical_pb';
 
 interface Props {
@@ -9,22 +9,19 @@ interface Props {
 }
 
 export default function OrgViewPage({ dates, metadata }: Props) {
-  const { slug, date } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState<OrgArchive | null>(null);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState('');
 
-  const selectedDate = date || dates[0];
+  const orgMeta = metadata?.orgs.find(o => o.slug === slug);
 
   useEffect(() => {
-    if (!selectedDate || !slug) return;
+    if (!slug || dates.length === 0) return;
     let cancelled = false;
-    
-    Promise.resolve().then(() => {
-      if (!cancelled) setLoading(true);
-    });
-    fetchOrgHistory(selectedDate, slug)
+
+    Promise.resolve().then(() => { if (!cancelled) setLoading(true); });
+    fetchOrgHistoryAggregated(dates, slug)
       .then(res => {
         if (!cancelled) setData(res);
       })
@@ -34,94 +31,47 @@ export default function OrgViewPage({ dates, metadata }: Props) {
       });
 
     return () => { cancelled = true; };
-  }, [slug, selectedDate]);
-
-  const orgMeta = metadata?.orgs.find(o => o.slug === slug);
-
-  const enrichedAsns = useMemo(() => {
-    if (!data) return [];
-    return data.asns.map(asn => {
-      const meta = metadata?.asns.find(a => a.asn === asn);
-      return {
-        asn,
-        name: meta?.name || 'Unknown Network',
-      };
-    }).filter(a => 
-      a.name.toLowerCase().includes(filter.toLowerCase()) || 
-      a.asn.toString().includes(filter)
-    );
-  }, [data, metadata, filter]);
+  }, [slug, dates]);
 
   return (
-    <div className="view-page">
-      <div className="view-sidebar">
-        <h3>Available Dates</h3>
-        <ul className="date-nav">
-          {dates.map(d => (
-            <li key={d}>
-              <Link to={`/org/${slug}/${d}`} className={d === selectedDate ? 'active' : ''}>
-                {d}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-
+    <div className="view-page single-col">
       <div className="view-main">
         <div className="view-header fade-in">
-          <div className="view-title-row">
-            <div className="view-title-group">
-              <button className="back-link" onClick={() => navigate('/orgs')}>← All Organizations</button>
-              <h2>{orgMeta?.name || slug}</h2>
-              <p className="view-sub">Routing footprint for {selectedDate}</p>
-            </div>
-            {data && data.eventCount > 0 && (
-              <div className="event-badge-large">
-                <span className="badge-count">{data.eventCount}</span>
-                <span className="badge-label">Events Today</span>
-              </div>
-            )}
+          <button className="back-link" onClick={() => navigate('/orgs')}>← Back to Organizations</button>
+          <div className="asn-title-block">
+            <h2>{orgMeta?.name || slug}</h2>
           </div>
+          <p className="view-sub">Aggregated activity over the last 7 days</p>
         </div>
 
         {loading ? <div className="loader-center"><div className="loader"></div></div> : (
           <div className="view-content fade-in">
-            <div className="view-actions">
-              <input 
-                type="text" 
-                placeholder="Filter ASNs by number or name..." 
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="table-filter"
-              />
+            <div className="stat-cards">
+              <div className="stat-card">
+                <span className="stat-val">{data?.eventCount || 0}</span>
+                <span className="stat-lbl">Events (7d)</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-val">{data?.asns.length || 0}</span>
+                <span className="stat-lbl">Active ASNs</span>
+              </div>
             </div>
 
-            {enrichedAsns.length > 0 ? (
-              <div className="table-container-modern">
-                <table className="modern-table">
-                  <thead>
-                    <tr>
-                      <th>ASN</th>
-                      <th>Network Name</th>
-                      <th style={{ textAlign: 'right' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enrichedAsns.map(item => (
-                      <tr key={item.asn} onClick={() => navigate(`/asn/${item.asn}/${selectedDate}`)} className="clickable-row">
-                        <td className="asn-cell">AS{item.asn}</td>
-                        <td className="name-cell">{item.name}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          <span className="view-link">View History →</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {data && data.asns.length > 0 ? (
+              <div className="asn-grid mt-2">
+                {data.asns.map(a => {
+                  const m = metadata?.asns.find(x => x.asn === a);
+                  return (
+                    <Link key={a} to={`/asn/${a}`} className="asn-card">
+                      <span className="asn-num">AS{a}</span>
+                      <span className="asn-name">{m?.name || 'Unknown'}</span>
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
-              <div className="empty-state">
-                <p>{data ? 'No ASNs matching your filter.' : `No routing events were recorded for this organization on ${selectedDate}.`}</p>
+              <div className="empty-state mt-2">
+                <p>No routing events were recorded for this organization in the last 7 days.</p>
               </div>
             )}
           </div>

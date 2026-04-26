@@ -1,5 +1,5 @@
 import { fromBinary } from "@bufbuild/protobuf";
-import { DailyAsnArchiveSchema, OrgArchiveSchema, GlobalMetadataIndexSchema, DaySummarySchema } from "./gen/historical/v1/historical_pb";
+import { DailyAsnArchiveSchema, OrgArchiveSchema, GlobalMetadataIndexSchema, DaySummarySchema, DailyAsnArchive, OrgArchive } from "./gen/historical/v1/historical_pb";
 import { Classification } from "./gen/livemap/v1/livemap_pb";
 
 async function fetchBinary(url: string) {
@@ -71,6 +71,68 @@ export async function fetchOrgHistory(date: string, orgSlug: string) {
   }
 }
 
+export async function fetchAsnHistoryAggregated(dates: string[], asn: number): Promise<DailyAsnArchive | null> {
+  const fetches = dates.slice(0, 7).map(d => fetchAsnHistory(d, asn).catch(() => null));
+  const results = await Promise.all(fetches);
+
+  let merged: DailyAsnArchive | null = null;
+
+  for (const res of results) {
+    if (!res) continue;
+    if (!merged) {
+      merged = res;
+      continue;
+    }
+
+    // Merge prefixes
+    for (const p of res.prefixes) {
+      const existing = merged.prefixes.find(x => x.prefix === p.prefix);
+      if (existing) {
+        existing.events.push(...p.events);
+      } else {
+        merged.prefixes.push(p);
+      }
+    }
+  }
+
+  // Sort events by timestamp if needed (already sorted usually, but good practice when merging)
+  if (merged) {
+    for (const p of merged.prefixes) {
+      p.events.sort((a, b) => Number(b.ts) - Number(a.ts));
+    }
+  }
+
+  return merged;
+}
+
+export async function fetchOrgHistoryAggregated(dates: string[], orgSlug: string): Promise<OrgArchive | null> {
+  const fetches = dates.slice(0, 7).map(d => fetchOrgHistory(d, orgSlug).catch(() => null));
+  const results = await Promise.all(fetches);
+
+  let merged: OrgArchive | null = null;
+
+  for (const res of results) {
+    if (!res) continue;
+    if (!merged) {
+      merged = res;
+      continue;
+    }
+
+    merged.eventCount += res.eventCount;
+    for (const a of res.asns) {
+      if (!merged.asns.includes(a)) {
+        merged.asns.push(a);
+      }
+    }
+  }
+
+  if (merged) {
+    merged.asns.sort((a, b) => a - b);
+  }
+
+  return merged;
+}
+
 export function slugify(name: string): string {
   return name.toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -78,7 +140,9 @@ export function slugify(name: string): string {
 }
 
 export function getClassificationName(c: Classification): string {
-  switch (c) {
+  // Convert explicitly to number first in case TS loses track
+  switch (Number(c)) {
+    case Classification.BOGON: return 'Bogon';
     case Classification.HIJACK: return 'Hijack';
     case Classification.ROUTE_LEAK: return 'Route Leak';
     case Classification.MINOR_ROUTE_LEAK: return 'Minor Route Leak';
@@ -87,7 +151,8 @@ export function getClassificationName(c: Classification): string {
     case Classification.FLAP: return 'Flap';
     case Classification.PATH_HUNTING: return 'Path Hunting';
     case Classification.DISCOVERY: return 'Discovery';
-    default: return 'Unknown';
+    case Classification.UNSPECIFIED: return 'Unspecified';
+    default: return `Unknown (${c})`;
   }
 }
 
@@ -143,9 +208,7 @@ export function parseIP(ipStr: string): number[] | null {
       return parts;
     }
   } else if (ipStr.includes(':')) {
-    // simplified parsing for checking - not a full ipv6 parser but enough for octets checking if needed
-    // Actually we only need IPv4 for now based on the `octet` splitting using `.`
-    // Since the indexer uses split('.') and defaults to '0', IPv6 might just end up in '0' or whatever is before the first '.' (which is the whole ipv6 address or 0 if none)
+    // simplified parsing
   }
   return null;
 }

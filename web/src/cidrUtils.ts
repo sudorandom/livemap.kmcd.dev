@@ -4,10 +4,10 @@ export function parseCidr(cidr: string): { ip: number; mask: number; isV4: boole
   if (ipStr.includes('.')) { // IPv4
     const parts = ipStr.split('.').map(Number);
     if (parts.length === 4 && parts.every(p => !isNaN(p) && p >= 0 && p <= 255)) {
-      const ip = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
+      const ip = ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
       const mask = maskStr ? parseInt(maskStr, 10) : 32;
       if (mask >= 0 && mask <= 32) {
-        return { ip: ip >>> 0, mask, isV4: true }; // Ensure unsigned
+        return { ip, mask, isV4: true }; // Ensure unsigned
       }
     }
   } else if (ipStr.includes(':')) { // IPv6
