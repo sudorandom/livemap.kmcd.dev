@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package historical.v1;
+
+option go_package = "github.com/sudorandom/bgp-stream/pkg/livemap/historical/v1";
+
+message DailyAsnArchive {
+    uint32 asn = 1;
+    string name = 2;
+    string org = 3;
+    repeated PrefixHistory prefixes = 4;
+}
+
+message PrefixHistory {
+    string prefix = 1;
+    repeated Transition events = 2;
+}
+
+message Transition {
+    int32 old_state = 1;
+    int32 new_state = 2;
+    int64 ts = 3;
+    string incident_id = 4;
+    HistLeakDetail leak_detail = 5;
+    string anomaly_details = 6;
+    int32 rpki_status = 7;
+}
+
+message HistLeakDetail {
+    string leak_type = 1;
+    uint32 leaker_asn = 2;
+    string leaker_name = 3;
+    uint32 victim_asn = 4;
+    string victim_name = 5;
+    int32 leaker_rpki_status = 6;
+    int32 victim_rpki_status = 7;
+}
+
+message DaySummary {
+    int64 date = 1; // Unix timestamp for start of day
+    uint32 total_transitions = 2;
+    uint32 unique_asns = 3;
+    uint32 unique_prefixes = 4;
+    repeated HistTransitionSummary latest_events = 5;
+    uint32 unique_orgs = 6;
+}
+
+message HistTransitionSummary {
+    uint32 asn = 1;
+    string asn_name = 2;
+    string org = 3;
+    string prefix = 4;
+    int32 old_state = 5;
+    int32 new_state = 6;
+    int64 ts = 7;
+    int32 rpki_status = 8;
+}
+
+message OrgArchive {
+    string org = 1;
+    repeated uint32 asns = 2;
+    uint32 event_count = 3;
+}
+
+message AsnMetadata {
+    uint32 asn = 1;
+    string name = 2;
+    string org = 3;
+    int32 rpki_status = 4;
+}
+
+message OrgMetadata {
+    string name = 1;
+    string slug = 2;
+}
+
+message PrefixSnapshot {
+    string prefix = 1;
+    int32 classification = 2;
+    uint32 asn = 3;
+    int64 last_update_ts = 4;
+    uint32 total_events = 5;
+}
+
+message GlobalMetadataIndex {
+    repeated AsnMetadata asns = 1;
+    repeated OrgMetadata orgs = 2;
+}
+
+message GlobalPrefixShard {
+    repeated PrefixSnapshot snapshots = 1;
+}

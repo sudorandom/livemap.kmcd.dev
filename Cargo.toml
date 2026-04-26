@@ -7,6 +7,10 @@ edition = "2024"
 name = "bgp-collector"
 path = "src/main.rs"
 
+[[bin]]
+name = "bgp-indexer"
+path = "src/indexer/main.rs"
+
 [dependencies]
 bgpkit-commons = { version = "0.10.2", features = ["asinfo", "rpki", "bogons", "as2rel", "mrt_collectors"] }
 bgpkit-parser = { version = "0.15.0", features = ["rislive"] }

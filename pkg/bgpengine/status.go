@@ -793,16 +793,20 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 				for i := 1.0; i <= 3.0; i++ {
 					alpha := float32(0.3 / (i * 2.0))
 					spread := float32(i * 3.0)
-					
+
 					op := &vector.DrawPathOptions{}
 					op.Blend = ebiten.BlendLighter
 					op.ColorScale.ScaleWithColor(seg.col)
 					op.ColorScale.ScaleAlpha(alpha)
-					
+
 					var path vector.Path
 					rx, ry, rw, rh, rr := sx, float32(y)-spread, sw, float32(barH)+spread*2, 4+spread
-					if rr > rw/2 { rr = rw / 2 }
-					if rr > rh/2 { rr = rh / 2 }
+					if rr > rw/2 {
+						rr = rw / 2
+					}
+					if rr > rh/2 {
+						rr = rh / 2
+					}
 					path.MoveTo(rx+rr, ry)
 					path.LineTo(rx+rw-rr, ry)
 					path.ArcTo(rx+rw, ry, rx+rw, ry+rr, rr)

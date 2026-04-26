@@ -44,7 +44,8 @@ use livemap_proto::live_map_service_server::{
 use livemap_proto::{
     AggregatedEvent, Alert, AlertType, Classification as ProtoClassification, ClassificationCount,
     GeoData as ProtoGeoData, GetSummaryRequest, GetSummaryResponse, StateTransition,
-    StreamAlertsRequest, StreamAlertsResponse, StreamStateTransitionsRequest,
+    StreamAlertsRequest, StreamAlertsResponse, StreamPrefixSnapshotsRequest,
+    StreamPrefixSnapshotsResponse, StreamStateTransitionsRequest,
     StreamStateTransitionsResponse, SubscribeEventsRequest, SubscribeEventsResponse,
 };
 use tokio_stream::wrappers::ReceiverStream;
@@ -145,6 +146,7 @@ struct AppState {
 
 struct LiveMapService {
     state: Arc<AppState>,
+    classifier: Arc<Classifier>,
 }
 
 #[tonic::async_trait]
@@ -154,6 +156,51 @@ impl LiveMap for LiveMapService {
         ReceiverStream<Result<StreamStateTransitionsResponse, Status>>;
 
     type StreamAlertsStream = ReceiverStream<Result<StreamAlertsResponse, Status>>;
+    type StreamPrefixSnapshotsStream =
+        ReceiverStream<Result<StreamPrefixSnapshotsResponse, Status>>;
+    async fn stream_prefix_snapshots(
+        &self,
+        _req: Request<StreamPrefixSnapshotsRequest>,
+    ) -> Result<Response<Self::StreamPrefixSnapshotsStream>, Status> {
+        let (tx, rx) = mpsc::channel(16);
+        let classifier = self.classifier.clone();
+        tokio::spawn(async move {
+            const BATCH_SIZE: usize = 500;
+            for shard in &classifier.shards {
+                let snapshots: Vec<livemap_proto::PrefixSnapshot> = {
+                    let guard = shard.lock();
+                    guard
+                        .iter()
+                        .filter(|(_, state)| state.classified_type != ClassificationType::None)
+                        .map(|(prefix, state)| {
+                            let total_events: u32 =
+                                state.buckets.values().map(|b| b.total_messages).sum();
+                            livemap_proto::PrefixSnapshot {
+                                prefix: prefix.clone(),
+                                classification: map_classification(state.classified_type).into(),
+                                asn: state.last_origin_asn,
+                                last_update_ts: state.last_update_ts,
+                                total_events,
+                            }
+                        })
+                        .collect()
+                };
+                for chunk in snapshots.chunks(BATCH_SIZE) {
+                    if tx
+                        .send(Ok(StreamPrefixSnapshotsResponse {
+                            snapshots: chunk.to_vec(),
+                        }))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+        });
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
     async fn stream_alerts(
         &self,
         _req: Request<StreamAlertsRequest>,
@@ -2068,6 +2115,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             victim_rpki_status: ld.victim_rpki_status,
                                         }
                                     }),
+                                    organization: local_as_orgs
+                                        .entry(pending.asn)
+                                        .or_insert_with(|| c_ingest.get_as_org(pending.asn))
+                                        .clone()
+                                        .unwrap_or_default(),
+                                    anomaly_details: pending
+                                        .anomaly_details
+                                        .as_ref()
+                                        .map(|a| {
+                                            serde_json::to_string(a).unwrap_or_default()
+                                        })
+                                        .unwrap_or_default(),
+                                    rpki_status: 0,
                                 });
                             }
                         }
@@ -2117,7 +2177,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting gRPC server on {}", addr);
     info!("Startup took {}ms", start_instant.elapsed().as_millis());
     Server::builder()
-        .add_service(LiveMapServer::new(LiveMapService { state: app_state }))
+        .add_service(LiveMapServer::new(LiveMapService {
+            state: app_state,
+            classifier: classifier.clone(),
+        }))
         .serve(addr)
         .await?;
     Ok(())

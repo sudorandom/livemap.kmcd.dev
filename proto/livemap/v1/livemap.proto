@@ -130,6 +130,9 @@ message StateTransition {
     int64 start_time = 10;
     int64 end_time = 11;
     LeakDetail leak_detail = 12;
+    string organization = 13;
+    string anomaly_details = 14;
+    RPKIStatus rpki_status = 15;
 }
 
 // Aggregation method for alerts.
@@ -190,4 +193,19 @@ service LiveMapService {
     rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
     rpc StreamStateTransitions(StreamStateTransitionsRequest) returns (stream StreamStateTransitionsResponse);
     rpc StreamAlerts(StreamAlertsRequest) returns (stream StreamAlertsResponse);
+    rpc StreamPrefixSnapshots(StreamPrefixSnapshotsRequest) returns (stream StreamPrefixSnapshotsResponse);
+}
+
+message StreamPrefixSnapshotsRequest {}
+
+message StreamPrefixSnapshotsResponse {
+    repeated PrefixSnapshot snapshots = 1;
+}
+
+message PrefixSnapshot {
+    string prefix = 1;
+    Classification classification = 2;
+    uint32 asn = 3;
+    int64 last_update_ts = 4;
+    uint32 total_events = 5;
 }
