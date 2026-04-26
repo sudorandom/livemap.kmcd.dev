@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchAsnHistory } from '../dataService';
-import type { DailyAsnArchive, GlobalMetadataIndex, Transition } from '../gen/historical/v1/historical_pb';
-import { ClassificationBadge } from '../components/ClassificationBadge';
-import { RpkiBadge } from '../components/RpkiBadge';
+import { fetchAsnHistory, slugify } from '../dataService';
+import type { DailyAsnArchive, GlobalMetadataIndex } from '../gen/historical/v1/historical_pb';
 
 interface Props {
   dates: string[];
@@ -15,7 +13,6 @@ export default function AsnViewPage({ dates, metadata }: Props) {
   const navigate = useNavigate();
   const [data, setData] = useState<DailyAsnArchive | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
 
   const selectedDate = date || dates[0];
   const asnNum = parseInt(asn || '0');
@@ -24,9 +21,7 @@ export default function AsnViewPage({ dates, metadata }: Props) {
     if (!selectedDate || !asnNum) return;
     let cancelled = false;
 
-    Promise.resolve().then(() => {
-      if (!cancelled) setLoading(true);
-    });
+    Promise.resolve().then(() => { if (!cancelled) setLoading(true); });
     fetchAsnHistory(selectedDate, asnNum)
       .then(res => {
         if (!cancelled) setData(res);
@@ -38,11 +33,6 @@ export default function AsnViewPage({ dates, metadata }: Props) {
 
     return () => { cancelled = true; };
   }, [asnNum, selectedDate]);
-
-  const toggleExpand = (prefix: string, idx: number) => {
-    const key = `${prefix}-${idx}`;
-    setExpandedEvents(prev => ({ ...prev, [key]: !prev[key] }));
-  };
 
   const asnMeta = metadata?.asns.find(a => a.asn === asnNum);
 
@@ -77,32 +67,19 @@ export default function AsnViewPage({ dates, metadata }: Props) {
             {data && data.prefixes.length > 0 ? (
               <div className="prefix-list-modern">
                 {data.prefixes.map(pfx => (
-                  <div key={pfx.prefix} className="prefix-entry">
+                  <div key={pfx.prefix} className="prefix-entry" style={{ padding: '1rem', borderBottom: '1px solid var(--bg-surface)'}}>
                     <div className="prefix-header">
                       <code>{pfx.prefix}</code>
                       <span className="event-count">{pfx.events.length} transitions</span>
                     </div>
-                    <div className="event-table-container">
-                      <table className="transition-log">
-                        <thead>
-                          <tr>
-                            <th>Time</th>
-                            <th>Old State</th>
-                            <th>New State</th>
-                            <th></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pfx.events.map((ev, i) => (
-                            <EventRow 
-                              key={i} 
-                              ev={ev} 
-                              expanded={expandedEvents[`${pfx.prefix}-${i}`]}
-                              onToggle={() => toggleExpand(pfx.prefix, i)}
-                            />
-                          ))}
-                        </tbody>
-                      </table>
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <Link
+                        to={`/prefix/${slugify(pfx.prefix)}/${selectedDate}?p=${encodeURIComponent(pfx.prefix)}`}
+                        className="btn-secondary"
+                        style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
+                      >
+                        View Prefix History &rarr;
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -117,71 +94,4 @@ export default function AsnViewPage({ dates, metadata }: Props) {
       </div>
     </div>
   );
-}
-
-function EventRow({ ev, expanded, onToggle }: { ev: Transition, expanded: boolean, onToggle: () => void }) {
-  const hasExtra = ev.incidentId || ev.anomalyDetails || ev.leakDetail;
-
-  return (
-    <>
-      <tr className={expanded ? 'expanded' : ''} onClick={hasExtra ? onToggle : undefined} style={{ cursor: hasExtra ? 'pointer' : 'default' }}>
-        <td className="time">{new Date(Number(ev.ts) * 1000).toLocaleTimeString()}</td>
-        <td><ClassificationBadge classification={ev.oldState} /></td>
-        <td><ClassificationBadge classification={ev.newState} /></td>
-        <td className="expand-cell">
-          <div className="row-actions">
-            <RpkiBadge status={ev.rpkiStatus} />
-            {hasExtra && (expanded ? '▼' : '▶')}
-          </div>
-        </td>
-      </tr>
-      {expanded && hasExtra && (
-        <tr className="details-row">
-          <td colSpan={4}>
-            <div className="event-details-box fade-in">
-              {ev.incidentId && (
-                <div className="detail-item">
-                  <label>Incident ID</label>
-                  <span>{ev.incidentId}</span>
-                </div>
-              )}
-              {ev.anomalyDetails && (
-                <div className="detail-item">
-                  <label>Anomaly Details</label>
-                  <p>{ev.anomalyDetails}</p>
-                </div>
-              )}
-              {ev.leakDetail && (
-                <div className="detail-item">
-                  <label>Route Leak Context</label>
-                  <div className="leak-grid">
-                    <div className="leak-sub">
-                      <label>Leaker</label>
-                      <div className="leak-entity-info">
-                        <span>AS{ev.leakDetail.leakerAsn} ({ev.leakDetail.leakerName})</span>
-                        <RpkiBadge status={ev.leakDetail.leakerRpkiStatus} />
-                      </div>
-                    </div>
-                    <div className="leak-sub">
-                      <label>Victim</label>
-                      <div className="leak-entity-info">
-                        <span>AS{ev.leakDetail.victimAsn} ({ev.leakDetail.victimName})</span>
-                        <RpkiBadge status={ev.leakDetail.victimRpkiStatus} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-function slugify(name: string): string {
-  return name.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
 }

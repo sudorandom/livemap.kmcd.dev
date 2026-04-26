@@ -9,6 +9,7 @@ import OrganizationsPage from './pages/OrganizationsPage';
 import OrgViewPage from './pages/OrgViewPage';
 import AsnViewPage from './pages/AsnViewPage';
 import IndexPage from './pages/IndexPage';
+import PrefixViewPage from './pages/PrefixViewPage';
 
 function App() {
   const [dates, setDates] = useState<string[]>([]);
@@ -86,6 +87,8 @@ function App() {
               <Route path="/org/:slug/:date" element={<OrgViewPage dates={dates} metadata={metadata} />} />
               <Route path="/asn/:asn" element={<AsnViewPage dates={dates} metadata={metadata} />} />
               <Route path="/asn/:asn/:date" element={<AsnViewPage dates={dates} metadata={metadata} />} />
+              <Route path="/prefix/:slug" element={<PrefixViewPage dates={dates} />} />
+              <Route path="/prefix/:slug/:date" element={<PrefixViewPage dates={dates} />} />
             </Routes>
           )}
         </main>

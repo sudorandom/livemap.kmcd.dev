@@ -23,9 +23,9 @@ pub mod historical {
 }
 
 use historical::v1::{
-    AsnMetadata, DailyAsnArchive, DaySummary, GlobalMetadataIndex, GlobalPrefixShard,
-    HistLeakDetail, HistTransitionSummary, OrgArchive, OrgMetadata, PrefixHistory, PrefixSnapshot,
-    Transition as HistTransition,
+    AsnMetadata, DailyAsnArchive, DailyPrefixArchive, DaySummary, GlobalMetadataIndex,
+    GlobalPrefixShard, HistLeakDetail, HistTransitionSummary, OrgArchive, OrgMetadata,
+    PrefixHistory, PrefixSnapshot, Transition as HistTransition,
 };
 use livemap::v1::live_map_service_client::LiveMapServiceClient;
 use livemap::v1::{StreamPrefixSnapshotsRequest, StreamStateTransitionsRequest};
@@ -213,7 +213,9 @@ async fn update_prefix_snapshots(addr: &str, out_path: &Path) -> Result<()> {
         let shard = GlobalPrefixShard { snapshots };
         let mut out_data = Vec::new();
         shard.encode(&mut out_data)?;
-        let shard_file = snap_dir.join(format!("{}.pb", octet));
+        let shard_dir = snap_dir.join(&octet);
+        fs::create_dir_all(&shard_dir).await?;
+        let shard_file = shard_dir.join("metadata.pb");
         fs::write(shard_file, out_data).await?;
     }
 
@@ -327,10 +329,35 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>) -> Resul
                 });
             }
 
+            // Write out DailyPrefixArchive
+            let pfx_slug = slugify(&prefix);
+            let pfx_octet = prefix.split('.').next().unwrap_or("0").to_string();
+            let pfx_shard_path = day_path.join("prefixes").join(&pfx_octet);
+            fs::create_dir_all(&pfx_shard_path).await?;
+
+            let pfx_file_path = pfx_shard_path.join(format!("{}.pb", pfx_slug));
+            let mut pfx_archive = if pfx_file_path.exists() {
+                let data = fs::read(&pfx_file_path).await?;
+                DailyPrefixArchive::decode(data.as_slice())?
+            } else {
+                DailyPrefixArchive {
+                    prefix: prefix.clone(),
+                    asn,
+                    events: vec![],
+                }
+            };
+            pfx_archive.events.extend(events.clone());
+            let mut pfx_out_data = Vec::new();
+            pfx_archive.encode(&mut pfx_out_data)?;
+            fs::write(pfx_file_path, pfx_out_data).await?;
+
             if let Some(pfx_hist) = archive.prefixes.iter_mut().find(|p| p.prefix == prefix) {
                 pfx_hist.events.extend(events);
             } else {
-                archive.prefixes.push(PrefixHistory { prefix, events });
+                archive.prefixes.push(PrefixHistory {
+                    prefix: prefix.clone(),
+                    events,
+                });
             }
         }
 
@@ -364,7 +391,7 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>) -> Resul
 
     // Sort and truncate recent events
     let mut all_events = new_summaries;
-    all_events.sort_by(|a, b| b.ts.cmp(&a.ts));
+    all_events.sort_by_key(|b| std::cmp::Reverse(b.ts));
     day_summary.latest_events.splice(0..0, all_events);
     day_summary.latest_events.truncate(100);
 

@@ -1,6 +1,6 @@
 import { RPKIStatus } from "../gen/livemap/v1/livemap_pb";
 
-export function getRpkiStatusName(s: RPKIStatus): string {
+function getRpkiStatusName(s: RPKIStatus): string {
   switch (s) {
     case RPKIStatus.RPKI_STATUS_VALID: return 'Valid';
     case RPKIStatus.RPKI_STATUS_INVALID: return 'Invalid';
@@ -9,7 +9,7 @@ export function getRpkiStatusName(s: RPKIStatus): string {
   }
 }
 
-export function getRpkiStatusColor(s: RPKIStatus): string {
+function getRpkiStatusColor(s: RPKIStatus): string {
   switch (s) {
     case RPKIStatus.RPKI_STATUS_VALID: return 'var(--accent-green)';
     case RPKIStatus.RPKI_STATUS_INVALID: return 'var(--accent-pink)';

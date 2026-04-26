@@ -106,3 +106,46 @@ export function getClassificationColor(c: Classification): string {
       return '#888';
   }
 }
+
+import { GlobalPrefixShardSchema, DailyPrefixArchiveSchema } from "./gen/historical/v1/historical_pb";
+
+export async function fetchPrefixShardMetadata(octet: string) {
+  const bytes = await fetchBinary(`/data/prefixes/${octet}/metadata.pb`);
+  if (!bytes) return null;
+  try {
+    return fromBinary(GlobalPrefixShardSchema, bytes);
+  } catch (err) {
+    console.error("Protobuf decoding error for Prefix Shard:", err);
+    return null;
+  }
+}
+
+export async function fetchPrefixHistory(date: string, prefix: string) {
+  const pfxSlug = slugify(prefix);
+  const octet = prefix.split('.')[0] || "0";
+  const url = `/data/${date}/prefixes/${octet}/${pfxSlug}.pb`;
+
+  const bytes = await fetchBinary(url);
+  if (!bytes) return null;
+
+  try {
+    return fromBinary(DailyPrefixArchiveSchema, bytes);
+  } catch (err) {
+    console.error("Protobuf decoding error for Prefix:", err);
+    throw new Error("Received invalid data format from server.", { cause: err });
+  }
+}
+
+export function parseIP(ipStr: string): number[] | null {
+  if (ipStr.includes('.')) {
+    const parts = ipStr.split('.').map(Number);
+    if (parts.length === 4 && parts.every(p => p >= 0 && p <= 255)) {
+      return parts;
+    }
+  } else if (ipStr.includes(':')) {
+    // simplified parsing for checking - not a full ipv6 parser but enough for octets checking if needed
+    // Actually we only need IPv4 for now based on the `octet` splitting using `.`
+    // Since the indexer uses split('.') and defaults to '0', IPv6 might just end up in '0' or whatever is before the first '.' (which is the whole ipv6 address or 0 if none)
+  }
+  return null;
+}

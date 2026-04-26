@@ -90,3 +90,9 @@ message GlobalMetadataIndex {
 message GlobalPrefixShard {
     repeated PrefixSnapshot snapshots = 1;
 }
+
+message DailyPrefixArchive {
+    string prefix = 1;
+    uint32 asn = 2;
+    repeated Transition events = 3;
+}

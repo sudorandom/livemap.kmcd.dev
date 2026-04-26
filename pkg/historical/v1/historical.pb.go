@@ -861,6 +861,66 @@ func (x *GlobalPrefixShard) GetSnapshots() []*PrefixSnapshot {
 	return nil
 }
 
+type DailyPrefixArchive struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Prefix        string                 `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	Asn           uint32                 `protobuf:"varint,2,opt,name=asn,proto3" json:"asn,omitempty"`
+	Events        []*Transition          `protobuf:"bytes,3,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DailyPrefixArchive) Reset() {
+	*x = DailyPrefixArchive{}
+	mi := &file_historical_v1_historical_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DailyPrefixArchive) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DailyPrefixArchive) ProtoMessage() {}
+
+func (x *DailyPrefixArchive) ProtoReflect() protoreflect.Message {
+	mi := &file_historical_v1_historical_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DailyPrefixArchive.ProtoReflect.Descriptor instead.
+func (*DailyPrefixArchive) Descriptor() ([]byte, []int) {
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *DailyPrefixArchive) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+func (x *DailyPrefixArchive) GetAsn() uint32 {
+	if x != nil {
+		return x.Asn
+	}
+	return 0
+}
+
+func (x *DailyPrefixArchive) GetEvents() []*Transition {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
 var File_historical_v1_historical_proto protoreflect.FileDescriptor
 
 const file_historical_v1_historical_proto_rawDesc = "" +
@@ -943,7 +1003,11 @@ const file_historical_v1_historical_proto_rawDesc = "" +
 	"\x04asns\x18\x01 \x03(\v2\x1a.historical.v1.AsnMetadataR\x04asns\x12.\n" +
 	"\x04orgs\x18\x02 \x03(\v2\x1a.historical.v1.OrgMetadataR\x04orgs\"P\n" +
 	"\x11GlobalPrefixShard\x12;\n" +
-	"\tsnapshots\x18\x01 \x03(\v2\x1d.historical.v1.PrefixSnapshotR\tsnapshotsB\xb5\x01\n" +
+	"\tsnapshots\x18\x01 \x03(\v2\x1d.historical.v1.PrefixSnapshotR\tsnapshots\"q\n" +
+	"\x12DailyPrefixArchive\x12\x16\n" +
+	"\x06prefix\x18\x01 \x01(\tR\x06prefix\x12\x10\n" +
+	"\x03asn\x18\x02 \x01(\rR\x03asn\x121\n" +
+	"\x06events\x18\x03 \x03(\v2\x19.historical.v1.TransitionR\x06eventsB\xb5\x01\n" +
 	"\x11com.historical.v1B\x0fHistoricalProtoP\x01Z:github.com/sudorandom/bgp-stream/pkg/livemap/historical/v1\xa2\x02\x03HXX\xaa\x02\rHistorical.V1\xca\x02\rHistorical\\V1\xe2\x02\x19Historical\\V1\\GPBMetadata\xea\x02\x0eHistorical::V1b\x06proto3"
 
 var (
@@ -958,7 +1022,7 @@ func file_historical_v1_historical_proto_rawDescGZIP() []byte {
 	return file_historical_v1_historical_proto_rawDescData
 }
 
-var file_historical_v1_historical_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_historical_v1_historical_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_historical_v1_historical_proto_goTypes = []any{
 	(*DailyAsnArchive)(nil),       // 0: historical.v1.DailyAsnArchive
 	(*PrefixHistory)(nil),         // 1: historical.v1.PrefixHistory
@@ -972,6 +1036,7 @@ var file_historical_v1_historical_proto_goTypes = []any{
 	(*PrefixSnapshot)(nil),        // 9: historical.v1.PrefixSnapshot
 	(*GlobalMetadataIndex)(nil),   // 10: historical.v1.GlobalMetadataIndex
 	(*GlobalPrefixShard)(nil),     // 11: historical.v1.GlobalPrefixShard
+	(*DailyPrefixArchive)(nil),    // 12: historical.v1.DailyPrefixArchive
 }
 var file_historical_v1_historical_proto_depIdxs = []int32{
 	1, // 0: historical.v1.DailyAsnArchive.prefixes:type_name -> historical.v1.PrefixHistory
@@ -981,11 +1046,12 @@ var file_historical_v1_historical_proto_depIdxs = []int32{
 	7, // 4: historical.v1.GlobalMetadataIndex.asns:type_name -> historical.v1.AsnMetadata
 	8, // 5: historical.v1.GlobalMetadataIndex.orgs:type_name -> historical.v1.OrgMetadata
 	9, // 6: historical.v1.GlobalPrefixShard.snapshots:type_name -> historical.v1.PrefixSnapshot
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	2, // 7: historical.v1.DailyPrefixArchive.events:type_name -> historical.v1.Transition
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_historical_v1_historical_proto_init() }
@@ -999,7 +1065,7 @@ func file_historical_v1_historical_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_historical_v1_historical_proto_rawDesc), len(file_historical_v1_historical_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
