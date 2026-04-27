@@ -56,8 +56,21 @@ message DaySummary {
     uint64 rpki_invalid_ipv6 = 14;
     uint64 rpki_not_found_ipv6 = 15;
 
-    HistFlappiestNetwork flappiest_network = 16;
+    repeated HistFlappiestNetwork flappiest_networks = 16;
     repeated HistAlert top_alerts = 17;
+    repeated HistClassificationCount classification_counts = 18;
+}
+
+message HistClassificationCount {
+    int32 classification = 1;
+    uint32 count = 2;
+    float messages_per_second = 3;
+    uint32 asn_count = 4;
+    uint32 prefix_count = 5;
+    uint32 ipv4_prefix_count = 6;
+    uint32 ipv6_prefix_count = 7;
+    uint64 ipv4_count = 8;
+    uint64 total_count = 9;
 }
 
 message HistAlertLocation {

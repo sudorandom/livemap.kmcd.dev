@@ -1,67 +1,84 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { ReportCard } from '../components/ReportCard';
+import { ISPSafetyTest } from '../components/ISPSafetyTest';
 ---
 
-<Layout title="BGP Report Card">
-  <main class="min-h-screen bg-slate-50">
+<Layout title="BGP Live Report Card">
+  <main class="min-h-screen">
     {/* Header */}
-    <header class="bg-indigo-900 text-white shadow-md">
-      <div class="container mx-auto px-4 py-6">
-        <div class="flex flex-col md:flex-row justify-between items-center">
-          <div>
-            <h1 class="text-3xl font-bold tracking-tight">BGP Report Card</h1>
-            <p class="text-indigo-200 mt-1">Daily snapshot of global routing stability</p>
+    <header class="bg-indigo-900 dark:bg-slate-900 text-white shadow-lg border-b border-indigo-500/30 dark:border-cyan-500/30 relative overflow-hidden">
+      <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+      <div class="container mx-auto px-4 py-8 relative z-10">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div class="text-center md:text-left">
+            <h1 class="text-4xl md:text-5xl font-cyber font-bold tracking-wider cyber-text-gradient">
+              BGP.KMCD.DEV
+            </h1>
+            <p class="text-indigo-200 dark:text-cyan-200 mt-2 text-sm font-medium uppercase tracking-widest opacity-80">
+              Global Routing Telemetry
+            </p>
           </div>
-          <div class="mt-4 md:mt-0 text-sm bg-indigo-800/50 rounded-lg px-4 py-2 border border-indigo-700">
-            Real-time telemetry via <span class="font-semibold text-indigo-300">BGP-Stream</span>
+          <div class="flex flex-col items-center md:items-end gap-4">
+            <div class="flex items-center gap-4">
+               <button
+                id="theme-toggle"
+                class="p-2.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all shadow-inner group"
+                aria-label="Toggle Dark Mode"
+              >
+                {/* Lucide Sun */}
+                <svg id="sun-icon" class="w-5 h-5 hidden dark:block text-yellow-400 group-hover:rotate-45 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                {/* Lucide Moon */}
+                <svg id="moon-icon" class="w-5 h-5 block dark:hidden text-indigo-200 group-hover:-rotate-12 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </header>
 
     <div class="container mx-auto px-4 py-8">
-      {/* RPKI Educational Section */}
-      <section class="mb-10 bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
-        <div class="max-w-4xl">
-          <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            🛡️ What is RPKI and Why is it Important?
-          </h2>
-          <div class="prose text-gray-600 space-y-4">
-            <p>
-              The Border Gateway Protocol (BGP) was designed without built-in security, meaning any network can accidentally or maliciously claim to own IP addresses they don't actually control. This leads to severe outages and traffic interception known as <strong>BGP Hijacking</strong> or <strong>Route Leaks</strong>.
-            </p>
-            <p>
-              <strong>RPKI (Resource Public Key Infrastructure)</strong> solves this by adding cryptographic signatures to routing data. It allows network operators to verify that the Autonomous System (ASN) announcing a block of IP addresses is officially authorized to do so.
-            </p>
-            <p>
-              The visualizations below act as a report card to show how secure BGP currently is based on ASN-to-IP validations. However, securing the internet requires ISPs and network operators to actively <em>enforce</em> RPKI filtering (Route Origin Validation) and drop invalid announcements.
-            </p>
+      {/* Live Stream Section */}
+      <section class="mb-10 cyber-box rounded-xl overflow-hidden shadow-2xl">
+        <div class="bg-slate-900 text-white px-4 py-2 flex items-center justify-between border-b border-cyan-500/30">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            <span class="text-xs font-bold tracking-widest uppercase opacity-90">Live Telemetry Stream</span>
           </div>
-          <div class="mt-6 flex flex-wrap gap-4">
-            <a
-              href="https://isbgpsafeyet.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors"
-            >
-              Check "Is BGP Safe Yet?"
-            </a>
-            <a
-              href="https://blog.cloudflare.com/is-bgp-safe-yet-rpki-routing-security-initiative/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-800 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Read Cloudflare's RPKI Initiative
-            </a>
+          <div class="flex items-center gap-4 text-[10px] font-mono uppercase tracking-tight">
+            <div class="opacity-50">
+              CHANNEL: <a href="https://www.youtube.com/channel/UCA9eO4Gt-Ua6lAEGzWQHQFA" target="_blank" rel="noopener noreferrer" class="hover:text-cyan-400 transition-colors underline decoration-dotted">UCA9eO4Gt-Ua6lAEGzWQHQFA</a>
+            </div>
           </div>
+        </div>
+        <div class="aspect-video bg-black">
+          <iframe 
+            src="https://www.youtube.com/embed/live_stream?channel=UCA9eO4Gt-Ua6lAEGzWQHQFA" 
+            title="BGP Live Telemetry Stream"
+            class="w-full h-full"
+            frameborder="0"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
         </div>
       </section>
 
-      {/* React Dashboard Component */}
-      <ReportCard client:only="react" />
+      {/* Main Integrated Dashboard */}
+      <ReportCard client:only="react">
+         <ISPSafetyTest client:only="react" />
+      </ReportCard>
 
     </div>
   </main>
+
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle?.addEventListener('click', () => {
+      const element = document.documentElement;
+      element.classList.toggle('dark');
+      
+      const isDark = element.classList.contains('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+  </script>
 </Layout>

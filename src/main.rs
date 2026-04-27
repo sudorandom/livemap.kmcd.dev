@@ -16,7 +16,7 @@ use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
@@ -129,11 +129,7 @@ struct AppState {
     cached_class_ipv4_counts: RwLock<HashMap<ClassificationType, u64>>,
     loading_historical: AtomicBool,
 
-    top_flappiest_asn: RwLock<u32>,
-    top_flappiest_network: RwLock<String>,
-    top_flappiest_prefix: RwLock<String>,
-    top_flappy_prefix_count: AtomicU32,
-    top_flappy_event_rate: RwLock<f32>,
+    top_flappiest_networks: RwLock<Vec<livemap_proto::FlappiestNetworkStats>>,
     top_largest_org_name: RwLock<String>,
     top_largest_org_ipv4_count: AtomicU64,
     top_rpki_valid_ipv4: AtomicU64,
@@ -298,11 +294,6 @@ impl LiveMap for LiveMapService {
                 total_count,
             });
         }
-        let flappiest_asn = *self.state.top_flappiest_asn.read();
-        let flappiest_network = self.state.top_flappiest_network.read().clone();
-        let flappiest_prefix = self.state.top_flappiest_prefix.read().clone();
-        let flappy_prefix_count = self.state.top_flappy_prefix_count.load(Ordering::Relaxed);
-        let flappy_event_rate = *self.state.top_flappy_event_rate.read();
         let largest_org_name = self.state.top_largest_org_name.read().clone();
         let largest_org_ipv4_count = self
             .state
@@ -332,13 +323,7 @@ impl LiveMap for LiveMapService {
             loading_historical: self.state.loading_historical.load(Ordering::Relaxed),
             event_composition: Vec::new(),
             last_rpki_status: 0,
-            flappiest_network_stats: Some(livemap_proto::FlappiestNetworkStats {
-                asn: flappiest_asn,
-                network_name: flappiest_network,
-                event_rate: flappy_event_rate,
-                flap_count: flappy_prefix_count,
-                prefix: flappiest_prefix,
-            }),
+            flappiest_network_stats: self.state.top_flappiest_networks.read().clone(),
             largest_org_name,
             largest_org_ipv4_count,
             rpki_valid_ipv4: self.state.top_rpki_valid_ipv4.load(Ordering::Relaxed),
@@ -1028,11 +1013,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cached_class_ipv4_counts: RwLock::new(HashMap::new()),
         loading_historical: AtomicBool::new(true),
 
-        top_flappiest_asn: RwLock::new(0),
-        top_flappiest_network: RwLock::new(String::new()),
-        top_flappiest_prefix: RwLock::new(String::new()),
-        top_flappy_prefix_count: AtomicU32::new(0),
-        top_flappy_event_rate: RwLock::new(0.0),
+        top_flappiest_networks: RwLock::new(Vec::new()),
         top_largest_org_name: RwLock::new(String::new()),
         top_largest_org_ipv4_count: AtomicU64::new(0),
         top_rpki_valid_ipv4: AtomicU64::new(iv4v),
@@ -1123,30 +1104,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .store(g.ipv6_prefix_count as u64, Ordering::Relaxed);
                 *s_stats.cached_class_db_stats.write() = c;
 
-                if ts.flappiest_asn > 0 {
-                    s_stats
-                        .top_flappy_prefix_count
-                        .store(ts.flappy_prefix_count, Ordering::Relaxed);
-
-                    *s_stats.top_flappy_event_rate.write() = ts.flappy_event_rate;
-                    let mut flappiest_org = String::new();
-
+                let mut new_flappiest = Vec::new();
+                for f in ts.flappiest_networks {
+                    let mut network_name = String::new();
                     if let Some(bgpkit) = &*c_stats.bgpkit.read() {
-                        if let Ok(Some(info)) = bgpkit.asinfo_get(ts.flappiest_asn) {
+                        if let Ok(Some(info)) = bgpkit.asinfo_get(f.asn) {
                             if let Some(org) = info.as2org {
-                                flappiest_org = org.org_name.clone();
+                                network_name = org.org_name.clone();
                             } else if !info.name.is_empty() {
-                                flappiest_org = info.name.clone();
+                                network_name = info.name.clone();
                             }
                         }
                     }
-                    if flappiest_org.is_empty() {
-                        flappiest_org = format!("AS{}", ts.flappiest_asn);
+                    if network_name.is_empty() {
+                        network_name = format!("AS{}", f.asn);
                     }
-                    *s_stats.top_flappiest_asn.write() = ts.flappiest_asn;
-                    *s_stats.top_flappiest_network.write() = flappiest_org;
-                    *s_stats.top_flappiest_prefix.write() = ts.flappiest_prefix;
+                    new_flappiest.push(livemap_proto::FlappiestNetworkStats {
+                        asn: f.asn,
+                        network_name,
+                        event_rate: f.event_rate,
+                        flap_count: f.flap_count,
+                        prefix: f.prefix,
+                    });
                 }
+                *s_stats.top_flappiest_networks.write() = new_flappiest;
             }
         }
     });

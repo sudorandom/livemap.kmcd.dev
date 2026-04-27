@@ -24,10 +24,10 @@ pub mod historical {
 
 use historical::v1::{
     AsnMetadata, DailyAsnArchive, DaySummary, GlobalMetadataIndex, GlobalPrefixShard,
-    HistLeakDetail, HistTransitionSummary, OrgArchive, OrgMetadata, PrefixHistory, PrefixSnapshot,
+    HistAlert, HistAlertLocation, HistClassificationCount, HistFlappiestNetwork, HistLeakDetail,
+    HistTransitionSummary, OrgArchive, OrgMetadata, PrefixHistory, PrefixSnapshot,
     Transition as HistTransition,
 };
-use historical::v1::{HistAlert, HistAlertLocation, HistFlappiestNetwork};
 use livemap::v1::live_map_service_client::LiveMapServiceClient;
 use livemap::v1::{
     GetSummaryRequest, StreamAlertsRequest, StreamPrefixSnapshotsRequest,
@@ -205,21 +205,27 @@ async fn update_prefix_snapshots(addr: &str, out_path: &Path) -> Result<()> {
         all_snapshots.len()
     );
 
-    // Shard by first octet to keep files small
+    // Shard to keep files small
     let mut shards: HashMap<String, Vec<PrefixSnapshot>> = HashMap::new();
     for s in all_snapshots {
-        let octet = s.prefix.split('.').next().unwrap_or("0").to_string();
-        shards.entry(octet).or_default().push(s);
+        let shard_name = if s.prefix.contains(':') {
+            // IPv6: first block
+            format!("v6_{}", s.prefix.split(':').next().unwrap_or("0"))
+        } else {
+            // IPv4: first octet
+            s.prefix.split('.').next().unwrap_or("0").to_string()
+        };
+        shards.entry(shard_name).or_default().push(s);
     }
 
     let snap_dir = out_path.join("prefixes");
     fs::create_dir_all(&snap_dir).await?;
 
-    for (octet, snapshots) in shards {
+    for (shard_name, snapshots) in shards {
         let shard = GlobalPrefixShard { snapshots };
         let mut out_data = Vec::new();
         shard.encode(&mut out_data)?;
-        let shard_file = snap_dir.join(format!("{}.pb", octet));
+        let shard_file = snap_dir.join(format!("{}.pb", shard_name));
         fs::write(shard_file, out_data).await?;
     }
 
@@ -423,8 +429,9 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>, addr: &s
             rpki_valid_ipv6: 0,
             rpki_invalid_ipv6: 0,
             rpki_not_found_ipv6: 0,
-            flappiest_network: None,
+            flappiest_networks: vec![],
             top_alerts: vec![],
+            classification_counts: vec![],
         }
     };
 
@@ -443,16 +450,27 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>, addr: &s
             day_summary.rpki_valid_ipv6 = s.rpki_valid_ipv6;
             day_summary.rpki_invalid_ipv6 = s.rpki_invalid_ipv6;
             day_summary.rpki_not_found_ipv6 = s.rpki_not_found_ipv6;
+            day_summary.unique_prefixes = s.prefix_count;
 
-            if let Some(f) = s.flappiest_network_stats {
-                day_summary.flappiest_network = Some(HistFlappiestNetwork {
-                    asn: f.asn,
-                    network_name: f.network_name,
-                    event_rate: f.event_rate,
-                    flap_count: f.flap_count,
-                    prefix: f.prefix,
-                });
-            }
+            day_summary.classification_counts = s.classification_counts.into_iter().map(|c| HistClassificationCount {
+                classification: c.classification,
+                count: c.count,
+                messages_per_second: c.messages_per_second,
+                asn_count: c.asn_count,
+                prefix_count: c.prefix_count,
+                ipv4_prefix_count: c.ipv4_prefix_count,
+                ipv6_prefix_count: c.ipv6_prefix_count,
+                ipv4_count: c.ipv4_count,
+                total_count: c.total_count,
+            }).collect();
+
+            day_summary.flappiest_networks = s.flappiest_network_stats.into_iter().map(|f| HistFlappiestNetwork {
+                asn: f.asn,
+                network_name: f.network_name,
+                event_rate: f.event_rate,
+                flap_count: f.flap_count,
+                prefix: f.prefix,
+            }).collect();
         }
     }
 
@@ -501,21 +519,35 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>, addr: &s
         fs::write(org_file, out_data).await?;
     }
 
-    // Update index.json
-    update_day_index(out_path, &day_str).await?;
-
     // Update global day summary stats (count actual files on disk for accuracy)
+    let mut org_count = 0;
     if let Ok(mut entries) = fs::read_dir(day_path.join("orgs")).await {
-        let mut org_count = 0;
         while let Ok(Some(_)) = entries.next_entry().await {
             org_count += 1;
         }
-        day_summary.unique_orgs = org_count;
-
-        let mut out_data = Vec::new();
-        day_summary.encode(&mut out_data)?;
-        fs::write(summary_path, out_data).await?;
     }
+    day_summary.unique_orgs = org_count;
+
+    let mut asn_count = 0;
+    if let Ok(mut shards) = fs::read_dir(day_path.join("asns")).await {
+        while let Ok(Some(shard)) = shards.next_entry().await {
+            if shard.path().is_dir() {
+                if let Ok(mut entries) = fs::read_dir(shard.path()).await {
+                    while let Ok(Some(_)) = entries.next_entry().await {
+                        asn_count += 1;
+                    }
+                }
+            }
+        }
+    }
+    day_summary.unique_asns = asn_count;
+
+    let mut out_data = Vec::new();
+    day_summary.encode(&mut out_data)?;
+    fs::write(summary_path, out_data).await?;
+
+    // Update index.json
+    update_day_index(out_path, &day_str).await?;
 
     Ok(())
 }
