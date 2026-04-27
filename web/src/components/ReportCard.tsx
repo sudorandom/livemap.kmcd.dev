@@ -461,7 +461,6 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                                   className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/5 dark:bg-indigo-500/10 rounded border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors text-[9px] font-bold text-indigo-400 font-mono uppercase group/link"
                                 >
                                   AS{alert.asn}
-                                  <ExternalLink size={8} className="opacity-0 group-hover/link:opacity-100 transition-opacity" />
                                 </a>
                               )}
                               
