@@ -27,8 +27,12 @@ use historical::v1::{
     HistLeakDetail, HistTransitionSummary, OrgArchive, OrgMetadata, PrefixHistory, PrefixSnapshot,
     Transition as HistTransition,
 };
+use historical::v1::{HistAlert, HistAlertLocation, HistFlappiestNetwork};
 use livemap::v1::live_map_service_client::LiveMapServiceClient;
-use livemap::v1::{StreamPrefixSnapshotsRequest, StreamStateTransitionsRequest};
+use livemap::v1::{
+    GetSummaryRequest, StreamAlertsRequest, StreamPrefixSnapshotsRequest,
+    StreamStateTransitionsRequest,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -47,6 +51,7 @@ struct IndexerState {
     // ASN -> Prefix -> Vec<Transitions>
     buffer: HashMap<u32, HashMap<String, Vec<HistTransition>>>,
     bgpkit: Option<BgpkitCommons>,
+    alerts: Vec<HistAlert>,
 }
 
 #[tokio::main]
@@ -74,6 +79,7 @@ async fn main() -> Result<()> {
     let state = Arc::new(Mutex::new(IndexerState {
         buffer: HashMap::new(),
         bgpkit: Some(bgpkit),
+        alerts: Vec::new(),
     }));
 
     let state_clone = state.clone();
@@ -109,7 +115,7 @@ async fn main() -> Result<()> {
     loop {
         tokio::select! {
             _ = flush_interval.tick() => {
-                if let Err(e) = flush_buffer(&out_path, state.clone()).await {
+                if let Err(e) = flush_buffer(&out_path, state.clone(), &args.addr).await {
                     log::error!("Flush error: {}", e);
                 }
                 if let Err(e) = cleanup_old_days(&out_path).await {
@@ -223,43 +229,94 @@ async fn update_prefix_snapshots(addr: &str, out_path: &Path) -> Result<()> {
 async fn consume_stream(addr: &str, state: Arc<Mutex<IndexerState>>) -> Result<()> {
     log::info!("Connecting to LiveMap at {}...", addr);
     let mut client = LiveMapServiceClient::connect(addr.to_string()).await?;
+    let mut client2 = LiveMapServiceClient::connect(addr.to_string()).await?;
+
     let request = StreamStateTransitionsRequest {
         target_states: vec![], // All states
     };
 
     let mut stream = client.stream_state_transitions(request).await?.into_inner();
-    log::info!("Subscribed to state transitions");
+    let mut alerts_stream = client2
+        .stream_alerts(StreamAlertsRequest {})
+        .await?
+        .into_inner();
 
-    while let Some(resp) = stream.message().await? {
-        if let Some(t) = resp.transition {
-            let mut s = state.lock().await;
-            let asn_entry = s.buffer.entry(t.asn).or_default();
-            let pfx_entry = asn_entry.entry(t.prefix).or_default();
+    log::info!("Subscribed to state transitions and alerts");
 
-            pfx_entry.push(HistTransition {
-                old_state: t.old_state,
-                new_state: t.new_state,
-                ts: t.start_time,
-                incident_id: t.incident_id,
-                anomaly_details: t.anomaly_details,
-                rpki_status: t.rpki_status,
-                leak_detail: t.leak_detail.map(|ld| HistLeakDetail {
-                    leak_type: ld.leak_type.to_string(),
-                    leaker_asn: ld.leaker_asn,
-                    leaker_name: ld.leaker_as_name,
-                    victim_asn: ld.victim_asn,
-                    victim_name: ld.victim_as_name,
-                    leaker_rpki_status: ld.leaker_rpki_status,
-                    victim_rpki_status: ld.victim_rpki_status,
-                }),
-            });
+    loop {
+        tokio::select! {
+            msg = stream.message() => {
+                match msg {
+                    Ok(Some(resp)) => {
+                        if let Some(t) = resp.transition {
+                            let mut s = state.lock().await;
+                            let asn_entry = s.buffer.entry(t.asn).or_default();
+                            let pfx_entry = asn_entry.entry(t.prefix).or_default();
+
+                            pfx_entry.push(HistTransition {
+                                old_state: t.old_state,
+                                new_state: t.new_state,
+                                ts: t.start_time,
+                                incident_id: t.incident_id,
+                                anomaly_details: t.anomaly_details,
+                                rpki_status: t.rpki_status,
+                                leak_detail: t.leak_detail.map(|ld| HistLeakDetail {
+                                    leak_type: ld.leak_type.to_string(),
+                                    leaker_asn: ld.leaker_asn,
+                                    leaker_name: ld.leaker_as_name,
+                                    victim_asn: ld.victim_asn,
+                                    victim_name: ld.victim_as_name,
+                                    leaker_rpki_status: ld.leaker_rpki_status,
+                                    victim_rpki_status: ld.victim_rpki_status,
+                                }),
+                            });
+                        }
+                    }
+                    Ok(None) => break,
+                    Err(e) => return Err(e.into()),
+                }
+            }
+            msg = alerts_stream.message() => {
+                match msg {
+                    Ok(Some(resp)) => {
+                        if let Some(a) = resp.alert {
+                            let mut s = state.lock().await;
+                            s.alerts.push(HistAlert {
+                                alert_type: a.alert_type,
+                                location: a.location.map(|l| HistAlertLocation {
+                                    city: l.city,
+                                    country: l.country,
+                                    lat: l.lat,
+                                    lon: l.lon,
+                                    radius_km: l.radius_km,
+                                }),
+                                asn: a.asn,
+                                country: a.country,
+                                classification: a.classification,
+                                events_count: a.events_count,
+                                delta: a.delta,
+                                timestamp: a.timestamp,
+                                impacted_ipv4_ips: a.impacted_ipv4_ips,
+                                impacted_ipv6_prefixes: a.impacted_ipv6_prefixes,
+                                percentage_increase: a.percentage_increase,
+                                as_name: a.as_name,
+                                organization: a.organization,
+                                asn_count: a.asn_count,
+                                anomaly_score: a.anomaly_score,
+                            });
+                        }
+                    }
+                    Ok(None) => break,
+                    Err(e) => return Err(e.into()),
+                }
+            }
         }
     }
 
     Ok(())
 }
 
-async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>) -> Result<()> {
+async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>, addr: &str) -> Result<()> {
     let mut s = state.lock().await;
     if s.buffer.is_empty() {
         return Ok(());
@@ -357,16 +414,58 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>) -> Resul
             unique_prefixes: 0,
             latest_events: vec![],
             unique_orgs: 0,
+            ipv4_prefix_count: 0,
+            ipv6_prefix_count: 0,
+            ipv4_count: 0,
+            rpki_valid_ipv4: 0,
+            rpki_invalid_ipv4: 0,
+            rpki_not_found_ipv4: 0,
+            rpki_valid_ipv6: 0,
+            rpki_invalid_ipv6: 0,
+            rpki_not_found_ipv6: 0,
+            flappiest_network: None,
+            top_alerts: vec![],
         }
     };
 
     day_summary.total_transitions += total_new_events as u32;
+
+    log::info!("Fetching GetSummary to update day_summary...");
+    if let Ok(mut client) = LiveMapServiceClient::connect(addr.to_string()).await {
+        if let Ok(resp) = client.get_summary(GetSummaryRequest {}).await {
+            let s = resp.into_inner();
+            day_summary.ipv4_prefix_count = s.ipv4_prefix_count;
+            day_summary.ipv6_prefix_count = s.ipv6_prefix_count;
+            day_summary.ipv4_count = s.ipv4_count;
+            day_summary.rpki_valid_ipv4 = s.rpki_valid_ipv4;
+            day_summary.rpki_invalid_ipv4 = s.rpki_invalid_ipv4;
+            day_summary.rpki_not_found_ipv4 = s.rpki_not_found_ipv4;
+            day_summary.rpki_valid_ipv6 = s.rpki_valid_ipv6;
+            day_summary.rpki_invalid_ipv6 = s.rpki_invalid_ipv6;
+            day_summary.rpki_not_found_ipv6 = s.rpki_not_found_ipv6;
+
+            if let Some(f) = s.flappiest_network_stats {
+                day_summary.flappiest_network = Some(HistFlappiestNetwork {
+                    asn: f.asn,
+                    network_name: f.network_name,
+                    event_rate: f.event_rate,
+                    flap_count: f.flap_count,
+                    prefix: f.prefix,
+                });
+            }
+        }
+    }
 
     // Sort and truncate recent events
     let mut all_events = new_summaries;
     all_events.sort_by(|a, b| b.ts.cmp(&a.ts));
     day_summary.latest_events.splice(0..0, all_events);
     day_summary.latest_events.truncate(100);
+
+    let mut all_alerts = std::mem::take(&mut s.alerts);
+    all_alerts.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    day_summary.top_alerts.splice(0..0, all_alerts);
+    day_summary.top_alerts.truncate(100);
 
     let mut out_data = Vec::new();
     day_summary.encode(&mut out_data)?;

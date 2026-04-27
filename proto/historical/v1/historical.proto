@@ -43,6 +43,55 @@ message DaySummary {
     uint32 unique_prefixes = 4;
     repeated HistTransitionSummary latest_events = 5;
     uint32 unique_orgs = 6;
+
+    uint32 ipv4_prefix_count = 7;
+    uint32 ipv6_prefix_count = 8;
+    uint64 ipv4_count = 9;
+
+    uint64 rpki_valid_ipv4 = 10;
+    uint64 rpki_invalid_ipv4 = 11;
+    uint64 rpki_not_found_ipv4 = 12;
+
+    uint64 rpki_valid_ipv6 = 13;
+    uint64 rpki_invalid_ipv6 = 14;
+    uint64 rpki_not_found_ipv6 = 15;
+
+    HistFlappiestNetwork flappiest_network = 16;
+    repeated HistAlert top_alerts = 17;
+}
+
+message HistAlertLocation {
+    string city = 1;
+    string country = 2;
+    float lat = 3;
+    float lon = 4;
+    float radius_km = 5;
+}
+
+message HistAlert {
+    int32 alert_type = 1;
+    HistAlertLocation location = 2;
+    uint32 asn = 3;
+    string country = 4;
+    int32 classification = 5;
+    uint32 events_count = 6;
+    int32 delta = 7;
+    int64 timestamp = 8;
+    uint64 impacted_ipv4_ips = 9;
+    uint32 impacted_ipv6_prefixes = 10;
+    float percentage_increase = 11;
+    string as_name = 12;
+    string organization = 13;
+    uint32 asn_count = 14;
+    float anomaly_score = 15;
+}
+
+message HistFlappiestNetwork {
+    uint32 asn = 1;
+    string network_name = 2;
+    float event_rate = 3;
+    uint32 flap_count = 4;
+    string prefix = 5;
 }
 
 message HistTransitionSummary {

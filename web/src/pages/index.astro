@@ -1,0 +1,67 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { ReportCard } from '../components/ReportCard';
+---
+
+<Layout title="BGP Report Card">
+  <main class="min-h-screen bg-slate-50">
+    {/* Header */}
+    <header class="bg-indigo-900 text-white shadow-md">
+      <div class="container mx-auto px-4 py-6">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight">BGP Report Card</h1>
+            <p class="text-indigo-200 mt-1">Daily snapshot of global routing stability</p>
+          </div>
+          <div class="mt-4 md:mt-0 text-sm bg-indigo-800/50 rounded-lg px-4 py-2 border border-indigo-700">
+            Real-time telemetry via <span class="font-semibold text-indigo-300">BGP-Stream</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+      {/* RPKI Educational Section */}
+      <section class="mb-10 bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+        <div class="max-w-4xl">
+          <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            🛡️ What is RPKI and Why is it Important?
+          </h2>
+          <div class="prose text-gray-600 space-y-4">
+            <p>
+              The Border Gateway Protocol (BGP) was designed without built-in security, meaning any network can accidentally or maliciously claim to own IP addresses they don't actually control. This leads to severe outages and traffic interception known as <strong>BGP Hijacking</strong> or <strong>Route Leaks</strong>.
+            </p>
+            <p>
+              <strong>RPKI (Resource Public Key Infrastructure)</strong> solves this by adding cryptographic signatures to routing data. It allows network operators to verify that the Autonomous System (ASN) announcing a block of IP addresses is officially authorized to do so.
+            </p>
+            <p>
+              The visualizations below act as a report card to show how secure BGP currently is based on ASN-to-IP validations. However, securing the internet requires ISPs and network operators to actively <em>enforce</em> RPKI filtering (Route Origin Validation) and drop invalid announcements.
+            </p>
+          </div>
+          <div class="mt-6 flex flex-wrap gap-4">
+            <a
+              href="https://isbgpsafeyet.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              Check "Is BGP Safe Yet?"
+            </a>
+            <a
+              href="https://blog.cloudflare.com/is-bgp-safe-yet-rpki-routing-security-initiative/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-800 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Read Cloudflare's RPKI Initiative
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* React Dashboard Component */}
+      <ReportCard client:only="react" />
+
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+    let summary_path = day_path.join("summary.pb");
+    let mut day_summary = if summary_path.exists() {
+        let data = fs::read(&summary_path).await?;
+        DaySummary::decode(data.as_slice())?
+    } else {
+        DaySummary {
+            date: now
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .timestamp(),
+            total_transitions: 0,
+            unique_asns: 0,
+            unique_prefixes: 0,
+            latest_events: vec![],
+            unique_orgs: 0,
+        }
+    };
+=======
+    let summary_path = day_path.join("summary.pb");
+    let mut day_summary = if summary_path.exists() {
+        let data = fs::read(&summary_path).await?;
+        DaySummary::decode(data.as_slice())?
+    } else {
+        DaySummary {
+            date: now
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .timestamp(),
+            total_transitions: 0,
+            unique_asns: 0,
+            unique_prefixes: 0,
+            latest_events: vec![],
+            unique_orgs: 0,
+            ipv4_prefix_count: 0,
+            ipv6_prefix_count: 0,
+            ipv4_count: 0,
+            rpki_valid_ipv4: 0,
+            rpki_invalid_ipv4: 0,
+            rpki_not_found_ipv4: 0,
+            rpki_valid_ipv6: 0,
+            rpki_invalid_ipv6: 0,
+            rpki_not_found_ipv6: 0,
+            flappiest_network: None,
+        }
+    };
+>>>>>>> REPLACE

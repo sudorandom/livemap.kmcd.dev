@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+        let file_path = shard_path.join(format!("{}.pb", asn));
+
+        let mut archive = if file_path.exists() {
+            let data = fs::read(&file_path).await?;
+            DailyAsnArchive::decode(data.as_slice())?
+=======
+        let file_path = shard_path.join(format!("{}.pb", asn));
+
+        let mut archive = if file_path.exists() {
+            let data = fs::read(&file_path).await?;
+            DailyAsnArchive::decode(data.as_slice())?
+>>>>>>> REPLACE

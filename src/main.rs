@@ -45,8 +45,8 @@ use livemap_proto::{
     AggregatedEvent, Alert, AlertType, Classification as ProtoClassification, ClassificationCount,
     GeoData as ProtoGeoData, GetSummaryRequest, GetSummaryResponse, StateTransition,
     StreamAlertsRequest, StreamAlertsResponse, StreamPrefixSnapshotsRequest,
-    StreamPrefixSnapshotsResponse, StreamStateTransitionsRequest,
-    StreamStateTransitionsResponse, SubscribeEventsRequest, SubscribeEventsResponse,
+    StreamPrefixSnapshotsResponse, StreamStateTransitionsRequest, StreamStateTransitionsResponse,
+    SubscribeEventsRequest, SubscribeEventsResponse,
 };
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};

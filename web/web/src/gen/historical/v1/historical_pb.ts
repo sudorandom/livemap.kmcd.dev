@@ -628,4 +628,3 @@ export type GlobalPrefixShard = Message<"historical.v1.GlobalPrefixShard"> & {
  */
 export const GlobalPrefixShardSchema: GenMessage<GlobalPrefixShard> = /*@__PURE__*/
   messageDesc(file_historical_v1_historical, 14);
-
