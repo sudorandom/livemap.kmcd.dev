@@ -39,6 +39,14 @@ const RPKI_COLORS = {
   unknown: '#828282'
 };
 
+const RPKI_ORDER: Record<string, number> = {
+  'Valid': 1,
+  'Not Found': 2,
+  'Invalid': 3
+};
+
+const rpkiSorter = (item: any) => RPKI_ORDER[item.value] || 99;
+
 export function ReportCard({ date, children }: { date?: string, children?: React.ReactNode }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -175,7 +183,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
               <div className="group flex flex-col">
                 <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                   <span className="w-1.5 h-1.5 bg-emerald-500"></span>
-                  RPKI STATUS [IPv4]
+                  RPKI STATUS IPv4
                 </h2>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Unique IP Addresses</p>
                 <div className="h-80">
@@ -195,6 +203,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                         align="left" 
                         iconType="circle" 
                         wrapperStyle={{ fontSize: '12px' }}
+                        itemSorter={rpkiSorter}
                         formatter={(value, entry: any) => (
                           <span className="text-slate-700 dark:text-slate-300 ml-2">
                             {value}: <span className="font-mono font-bold text-slate-900 dark:text-white">{formatHumanNumber(entry.payload.value)}</span>
@@ -210,7 +219,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
               <div className="group flex flex-col">
                 <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                   <span className="w-1.5 h-1.5 bg-emerald-500"></span>
-                  RPKI STATUS [IPv6]
+                  RPKI STATUS IPv6
                 </h2>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Announced Prefixes</p>
                 <div className="h-80">
@@ -230,6 +239,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                         align="left" 
                         iconType="circle" 
                         wrapperStyle={{ fontSize: '12px' }}
+                        itemSorter={rpkiSorter}
                         formatter={(value, entry: any) => (
                           <span className="text-slate-700 dark:text-slate-300 ml-2">
                             {value}: <span className="font-mono font-bold text-slate-900 dark:text-white">{formatHumanNumber(entry.payload.value)}</span>
@@ -288,7 +298,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                       <Search size={16} /> PATH HUNTING
                     </h4>
                     <p className="text-xs">
-                      When a route is withdrawn, routers don't always give up immediately. <strong>Path Hunting</strong> is the "echo" as routers cycle through backup paths before finally realizing the destination is unreachable.
+                      When a route is withdrawn, routers don't always give up immediately. <strong>Path Hunting</strong> is the "echo" as routers cycle through increasingly worse backup paths before finally realizing the destination is unreachable.
                     </p>
                   </div>
                </div>
@@ -520,7 +530,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
             </p>
             <div className="pt-4 flex flex-wrap gap-4">
               <a href="https://www.google.com/intl/en/ipv6/statistics.html" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-2 rounded border border-blue-500/20 hover:bg-blue-500/20 transition-colors">Google IPv6 Stats &rarr;</a>
-              <a href="https://pulse.internetsociety.org/en/technologies/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">ISOC Adoption Pulse &rarr;</a>
+              <a href="https://pulse.internetsociety.org/adoption" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">ISOC Adoption Pulse &rarr;</a>
             </div>
           </div>
           

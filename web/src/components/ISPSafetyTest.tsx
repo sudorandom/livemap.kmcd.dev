@@ -103,7 +103,7 @@ export function ISPSafetyTest() {
           'bg-slate-500/10 border-slate-500/40'
         }`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-            <div className={`flex items-center gap-4 ${
+            <div className={`flex flex-col gap-2 ${
               status === 'safe' ? 'text-emerald-500' : 
               status === 'unsafe' ? 'text-red-500' : 
               'text-slate-500'
@@ -111,10 +111,9 @@ export function ISPSafetyTest() {
               <div className="text-3xl font-cyber font-bold tracking-wider uppercase leading-none">
                 {status === 'safe' ? 'SECURE' : status === 'unsafe' ? 'VULNERABLE' : 'PROBE ERROR'}
               </div>
-              <div className="h-4 w-px bg-slate-500/20 hidden md:block"></div>
               {ispInfo && (
-                <div className="text-xs font-mono opacity-80 uppercase tracking-tighter">
-                  <span className="opacity-50 font-bold">ISP:</span> {ispInfo.org} <span className="opacity-40">[{ispInfo.asn}]</span>
+                <div className="text-xs font-mono opacity-80 uppercase tracking-tighter mt-1">
+                  <span className="opacity-50 font-bold">Network:</span> {ispInfo.org} <span className="opacity-40">[{ispInfo.asn}]</span>
                 </div>
               )}
             </div>
