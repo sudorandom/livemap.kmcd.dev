@@ -104,7 +104,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
       <div className="text-cyan-500 text-xs font-bold tracking-[0.2em] animate-pulse uppercase">Synchronizing Telemetry...</div>
     </div>
   );
-  
+
   if (!data) return (
     <div className="p-12 text-center cyber-box rounded-lg">
       <div className="text-red-500 font-bold mb-2">ERROR: DATA_NOT_FOUND</div>
@@ -150,7 +150,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
 
   return (
     <div className="space-y-20">
-      
+
       {/* BGP SECURITY SECTION */}
       <section className="space-y-8">
         <div className="flex items-center gap-4">
@@ -192,16 +192,16 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                       <Pie data={rpkiData4} dataKey="value" nameKey="name" cx="60%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={5}>
                         {rpkiData4.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
                         itemStyle={{ color: '#fff' }}
-                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Addresses`, 'Count']} 
+                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Addresses`, 'Count']}
                       />
-                      <Legend 
-                        layout="vertical" 
-                        verticalAlign="middle" 
-                        align="left" 
-                        iconType="circle" 
+                      <Legend
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="left"
+                        iconType="circle"
                         wrapperStyle={{ fontSize: '12px' }}
                         itemSorter={rpkiSorter}
                         formatter={(value, entry: any) => (
@@ -228,16 +228,16 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                       <Pie data={rpkiData6} dataKey="value" nameKey="name" cx="60%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={5}>
                         {rpkiData6.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
                         itemStyle={{ color: '#fff' }}
-                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Prefixes`, 'Count']} 
+                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Prefixes`, 'Count']}
                       />
-                      <Legend 
-                        layout="vertical" 
-                        verticalAlign="middle" 
-                        align="left" 
-                        iconType="circle" 
+                      <Legend
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="left"
+                        iconType="circle"
                         wrapperStyle={{ fontSize: '12px' }}
                         itemSorter={rpkiSorter}
                         formatter={(value, entry: any) => (
@@ -303,7 +303,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                   </div>
                </div>
              </div>
-             
+
              <div className="border-t border-slate-500/10 pt-10">
                <h3 className="text-xl font-cyber font-bold mb-6 text-slate-900 dark:text-white uppercase">Global Status Summary</h3>
                <div className="h-96 flex-grow">
@@ -349,7 +349,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
               <div className="space-y-4 mb-4">
                 {data.flappiestNetworks.slice(0, 5).map((network: any, idx: number) => {
                   const cleanName = network.networkName && network.networkName !== `AS${network.asn}` ? network.networkName : '';
-                  
+
                   return (
                     <div key={idx} className="bg-orange-500/5 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 transition-all hover:bg-orange-500/10 dark:hover:bg-orange-500/20 group/row">
                       <div className="flex justify-between items-start">
@@ -361,7 +361,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                             </h3>
                           </div>
                           <p className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <span className="opacity-50 font-bold tracking-tighter uppercase text-[9px]">Prefix:</span> 
+                            <span className="opacity-50 font-bold tracking-tighter uppercase text-[9px]">Prefix:</span>
                             <span className="text-orange-600/80 dark:text-orange-400/80">{network.prefix}</span>
                           </p>
                         </div>
@@ -418,14 +418,14 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                     .map((alert: any, i: number) => {
                     const info = CLASSIFICATION_INFO[alert.classification] || { name: 'UNKNOWN', color: 'text-slate-500 bg-slate-500/10', icon: Info, hex: '#666' };
                     const Icon = info.icon;
-                    
+
                     return (
                       <li key={i} className="group/alert relative p-3 rounded-lg hover:bg-slate-500/5 transition-colors border border-transparent hover:border-slate-500/10">
                         <div className="flex items-start gap-4">
                           <div className={`flex-shrink-0 w-10 h-10 rounded-lg border flex items-center justify-center transition-colors ${info.color}`}>
                             <Icon size={20} />
                           </div>
-                          
+
                           <div className="min-w-0 flex-1">
                             <div className="flex justify-between items-start mb-1 gap-4">
                               <div className="min-w-0 flex-1">
@@ -433,8 +433,8 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                                   {info.name}
                                 </div>
                                 <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight break-words">
-                                  {alert.asn > 0 
-                                    ? (alert.asName || `AS${alert.asn}`) 
+                                  {alert.asn > 0
+                                    ? (alert.asName || `AS${alert.asn}`)
                                     : (alert.organization || (alert.country ? `Regional Anomaly (${alert.country})` : 'Distributed Anomaly'))
                                   }
                                 </h4>
@@ -443,7 +443,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                                 <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                                   {new Date(Number(alert.timestamp)*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second: '2-digit'})}
                                 </div>
-                                <div 
+                                <div
                                   className={`text-[10px] font-bold mt-1 uppercase cursor-help ${alert.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}
                                   title="Routing Shift: Percentage change in BGP update volume compared to the 1-hour moving average baseline."
                                 >
@@ -451,10 +451,10 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 font-sans">
                               {alert.asn > 0 && (
-                                <a 
+                                <a
                                   href={`https://bgp.he.net/AS${alert.asn}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -463,7 +463,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                                   AS{alert.asn}
                                 </a>
                               )}
-                              
+
                               <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
                                 {(Number(alert.impactedIpv4Ips) > 0 || Number(alert.impactedIpv6Prefixes) > 0) && (
                                   <div className="flex items-center gap-2.5 font-medium">
@@ -490,7 +490,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
                                     {alert.location?.city ? `${alert.location.city}, ` : ''}{alert.location?.country || alert.country || 'GLOBAL'}
                                   </span>
                               </div>
-                              
+
                               <div className="ml-auto text-[9px] font-bold text-slate-500 dark:text-slate-600 uppercase tracking-widest">
                                 {alert.events_count || alert.eventsCount} EVENTS
                               </div>
@@ -532,7 +532,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
               <a href="https://pulse.internetsociety.org/adoption" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">ISOC Adoption Pulse &rarr;</a>
             </div>
           </div>
-          
+
           <div className="w-full lg:w-1/3 space-y-6">
             <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest text-center lg:text-left">Protocol Distribution</h4>
             <div className="h-64">
@@ -565,10 +565,10 @@ export function ReportCard({ date, children }: { date?: string, children?: React
       {/* FOOTER */}
       <footer className="pt-12 pb-8 border-t border-slate-500/10 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
-           <a 
-             href="https://kmcd.dev" 
-             target="_blank" 
-             rel="noopener noreferrer" 
+           <a
+             href="https://kmcd.dev"
+             target="_blank"
+             rel="noopener noreferrer"
              className="text-xs font-cyber font-bold tracking-widest text-slate-400 hover:text-cyan-500 transition-colors uppercase"
            >
              kmcd.dev &rarr;

@@ -14,7 +14,7 @@ const { title } = Astro.props;
     <meta name="description" content="Real-time global BGP routing telemetry and security report card. Monitor hijacking, route leaks, and RPKI adoption across the internet." />
     <meta name="keywords" content="BGP, RPKI, Routing Security, Internet Health, BGP Hijacking, Route Leaks, ASN, IP Telemetry, Network Security" />
     <meta name="author" content="livemap.kmcd.dev" />
-    
+
     {/* Open Graph / Facebook */}
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://livemap.kmcd.dev/" />
@@ -41,7 +41,7 @@ const { title } = Astro.props;
         }
         return 'light';
       })();
-    
+
       if (theme === 'light') {
         document.documentElement.classList.remove('dark');
       } else {
