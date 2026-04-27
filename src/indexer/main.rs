@@ -458,12 +458,12 @@ async fn flush_buffer(out_path: &Path, state: Arc<Mutex<IndexerState>>, addr: &s
 
     // Sort and truncate recent events
     let mut all_events = new_summaries;
-    all_events.sort_by(|a, b| b.ts.cmp(&a.ts));
+    all_events.sort_by_key(|b| std::cmp::Reverse(b.ts));
     day_summary.latest_events.splice(0..0, all_events);
     day_summary.latest_events.truncate(100);
 
     let mut all_alerts = std::mem::take(&mut s.alerts);
-    all_alerts.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    all_alerts.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
     day_summary.top_alerts.splice(0..0, all_alerts);
     day_summary.top_alerts.truncate(100);
 
