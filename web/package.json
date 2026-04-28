@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "tsc": "tsc",
+    "check": "tsc --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {

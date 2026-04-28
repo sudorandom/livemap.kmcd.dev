@@ -14,7 +14,7 @@ web-install:
 
 web-check:
 	cd web && mise exec -- pnpm run astro sync
-	cd web && mise exec -- pnpm run tsc -- --noEmit
+	cd web && mise exec -- pnpm run check
 
 
 web-dev:
