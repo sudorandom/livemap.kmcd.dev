@@ -245,7 +245,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
       <div className="text-cyan-500 text-xs font-bold tracking-[0.2em] animate-pulse uppercase">Synchronizing Telemetry...</div>
     </div>
   );
-  
+
   if (!data) return (
     <div className="p-12 text-center cyber-box rounded-lg">
       <div className="text-red-500 font-bold mb-2">ERROR: DATA_NOT_FOUND</div>
@@ -291,7 +291,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
 
   return (
     <div className="space-y-20">
-      
+
       {/* BGP SECURITY SECTION */}
       <section className="space-y-8">
         <div className="flex items-center gap-4">
@@ -333,16 +333,16 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                       <Pie data={rpkiData4} dataKey="value" nameKey="name" cx="60%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={5}>
                         {rpkiData4.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
                         itemStyle={{ color: '#fff' }}
-                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Addresses`, 'Count']} 
+                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Addresses`, 'Count']}
                       />
-                      <Legend 
-                        layout="vertical" 
-                        verticalAlign="middle" 
-                        align="left" 
-                        iconType="circle" 
+                      <Legend
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="left"
+                        iconType="circle"
                         wrapperStyle={{ fontSize: '12px' }}
                         itemSorter={rpkiSorter}
                         formatter={(value, entry: any) => (
@@ -369,16 +369,16 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                       <Pie data={rpkiData6} dataKey="value" nameKey="name" cx="60%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={5}>
                         {rpkiData6.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
                         itemStyle={{ color: '#fff' }}
-                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Prefixes`, 'Count']} 
+                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Prefixes`, 'Count']}
                       />
-                      <Legend 
-                        layout="vertical" 
-                        verticalAlign="middle" 
-                        align="left" 
-                        iconType="circle" 
+                      <Legend
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="left"
+                        iconType="circle"
                         wrapperStyle={{ fontSize: '12px' }}
                         itemSorter={rpkiSorter}
                         formatter={(value, entry: any) => (
@@ -444,7 +444,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                   </div>
                </div>
              </div>
-             
+
              <div className="border-t border-slate-500/10 pt-10">
                <h3 className="text-xl font-cyber font-bold mb-6 text-slate-900 dark:text-white uppercase">Global Status Summary</h3>
                <div className="h-96 flex-grow">
@@ -490,7 +490,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
               <div className="space-y-4 mb-4">
                 {data.flappiestNetworks.slice(0, 5).map((network: any, idx: number) => {
                   const cleanName = network.networkName && network.networkName !== `AS${network.asn}` ? network.networkName : '';
-                  
+
                   return (
                     <div key={idx} className="bg-orange-500/5 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 transition-all hover:bg-orange-500/10 dark:hover:bg-orange-500/20 group/row">
                       <div className="flex justify-between items-start">
@@ -502,7 +502,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                             </h3>
                           </div>
                           <p className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <span className="opacity-50 font-bold tracking-tighter uppercase text-[9px]">Prefix:</span> 
+                            <span className="opacity-50 font-bold tracking-tighter uppercase text-[9px]">Prefix:</span>
                             <span className="text-orange-600/80 dark:text-orange-400/80">{network.prefix}</span>
                           </p>
                         </div>
@@ -568,7 +568,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
               <a href="https://pulse.internetsociety.org/adoption" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">ISOC Adoption Pulse &rarr;</a>
             </div>
           </div>
-          
+
           <div className="w-full lg:w-1/3 space-y-6">
             <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest text-center lg:text-left">Protocol Distribution</h4>
             <div className="h-64">
@@ -601,10 +601,10 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
       {/* FOOTER */}
       <footer className="pt-12 pb-8 border-t border-slate-500/10 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
-           <a 
-             href="https://kmcd.dev" 
-             target="_blank" 
-             rel="noopener noreferrer" 
+           <a
+             href="https://kmcd.dev"
+             target="_blank"
+             rel="noopener noreferrer"
              className="text-xs font-cyber font-bold tracking-widest text-slate-400 hover:text-cyan-500 transition-colors uppercase"
            >
              kmcd.dev &rarr;
