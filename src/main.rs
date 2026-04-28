@@ -243,7 +243,12 @@ impl LiveMap for LiveMapService {
         &self,
         _req: Request<GetRecentAlertsRequest>,
     ) -> Result<Response<GetRecentAlertsResponse>, Status> {
-        let alerts = self.classifier.state_db.as_ref().map(|db: &Arc<Db>| db.get_recent_alerts()).unwrap_or_default();
+        let alerts = self
+            .classifier
+            .state_db
+            .as_ref()
+            .map(|db: &Arc<Db>| db.get_recent_alerts())
+            .unwrap_or_default();
         Ok(Response::new(GetRecentAlertsResponse { alerts }))
     }
 
@@ -771,7 +776,10 @@ fn get_alert_key(alert: &Alert) -> String {
     };
     // Use a 4-hour window for de-duplication
     let window = alert.timestamp / (4 * 3600);
-    format!("{}:{}:{}:{}", alert.alert_type, alert.classification, target, window)
+    format!(
+        "{}:{}:{}:{}",
+        alert.alert_type, alert.classification, target, window
+    )
 }
 
 #[tokio::main]
@@ -1606,7 +1614,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: String::new(),
                             asn_count: unique_asns.len() as u32,
                             anomaly_score: anomaly_score as f32,
-                            sample_events: v.iter().rev().take(5).map(|e| entry_to_transition(e, class)).collect(),
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, class))
+                                .collect(),
                         });
                     }
                 }
@@ -1715,7 +1728,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: String::new(),
                             asn_count: 1,
                             anomaly_score: anomaly_score as f32,
-                            sample_events: v.iter().rev().take(5).map(|e| entry_to_transition(e, class)).collect(),
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, class))
+                                .collect(),
                         });
                     }
                 }
@@ -1813,7 +1831,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: String::new(),
                             asn_count: unique_asns.len() as u32,
                             anomaly_score: anomaly_score as f32,
-                            sample_events: v.iter().rev().take(5).map(|e| entry_to_transition(e, *class)).collect(),
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, *class))
+                                .collect(),
                         });
                     }
                 }
@@ -1920,7 +1943,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: org.clone(),
                             asn_count: unique_asns.len() as u32,
                             anomaly_score: anomaly_score as f32,
-                            sample_events: v.iter().rev().take(5).map(|e| entry_to_transition(e, *class)).collect(),
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, *class))
+                                .collect(),
                         });
                     }
                 }

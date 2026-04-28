@@ -1,5 +1,5 @@
-use crate::livemap_proto::Alert;
 use crate::classifier::ClassificationType;
+use crate::livemap_proto::Alert;
 use ipnet::IpNet;
 use prost::Message;
 use r2d2::Pool;
@@ -365,9 +365,7 @@ impl Db {
                 }
             }
         }
-        TopStats {
-            flappiest_networks,
-        }
+        TopStats { flappiest_networks }
     }
 
     pub fn get_classification_stats(&self) -> HashMap<ClassificationType, ClassificationStats> {

@@ -16,14 +16,12 @@ pub mod summary {
     }
 }
 
+use livemap::v1::live_map_service_client::LiveMapServiceClient;
+use livemap::v1::{GetRecentAlertsRequest, GetSummaryRequest};
 use prost::Message;
 use summary::v1::{
     DaySummary, HistAlert, HistAlertLocation, HistClassificationCount, HistFlappiestNetwork,
     HistLeakDetail, HistTransitionSummary,
-};
-use livemap::v1::live_map_service_client::LiveMapServiceClient;
-use livemap::v1::{
-    GetSummaryRequest, GetRecentAlertsRequest,
 };
 
 #[derive(Parser, Debug)]
@@ -60,7 +58,10 @@ async fn flush_buffer(out_path: &Path, addr: &str) -> Result<()> {
         match DaySummary::decode(&*data) {
             Ok(ds) => ds,
             Err(e) => {
-                log::warn!("Failed to decode existing summary.pb: {}. Starting fresh.", e);
+                log::warn!(
+                    "Failed to decode existing summary.pb: {}. Starting fresh.",
+                    e
+                );
                 DaySummary {
                     date: Utc::now().timestamp(),
                     unique_asns: 0,
@@ -118,74 +119,90 @@ async fn flush_buffer(out_path: &Path, addr: &str) -> Result<()> {
         day_summary.unique_prefixes = res.prefix_count;
         day_summary.unique_asns = res.asn_count;
 
-        day_summary.classification_counts = res.classification_counts.into_iter().map(|c| HistClassificationCount {
-            classification: c.classification,
-            count: c.count,
-            messages_per_second: c.messages_per_second,
-            asn_count: c.asn_count,
-            prefix_count: c.prefix_count,
-            ipv4_prefix_count: c.ipv4_prefix_count,
-            ipv6_prefix_count: c.ipv6_prefix_count,
-            ipv4_count: c.ipv4_count,
-            total_count: c.total_count,
-        }).collect();
+        day_summary.classification_counts = res
+            .classification_counts
+            .into_iter()
+            .map(|c| HistClassificationCount {
+                classification: c.classification,
+                count: c.count,
+                messages_per_second: c.messages_per_second,
+                asn_count: c.asn_count,
+                prefix_count: c.prefix_count,
+                ipv4_prefix_count: c.ipv4_prefix_count,
+                ipv6_prefix_count: c.ipv6_prefix_count,
+                ipv4_count: c.ipv4_count,
+                total_count: c.total_count,
+            })
+            .collect();
 
-        day_summary.flappiest_networks = res.flappiest_network_stats.into_iter().map(|f| HistFlappiestNetwork {
-            asn: f.asn,
-            network_name: f.network_name,
-            event_rate: f.event_rate,
-            flap_count: f.flap_count,
-            prefix: f.prefix,
-        }).collect();
+        day_summary.flappiest_networks = res
+            .flappiest_network_stats
+            .into_iter()
+            .map(|f| HistFlappiestNetwork {
+                asn: f.asn,
+                network_name: f.network_name,
+                event_rate: f.event_rate,
+                flap_count: f.flap_count,
+                prefix: f.prefix,
+            })
+            .collect();
     }
 
     log::info!("Fetching GetRecentAlerts...");
     if let Ok(resp) = client.get_recent_alerts(GetRecentAlertsRequest {}).await {
         let res = resp.into_inner();
-        day_summary.top_alerts = res.alerts.into_iter().map(|a| HistAlert {
-            alert_type: a.alert_type,
-            location: a.location.map(|l| HistAlertLocation {
-                city: l.city,
-                country: l.country,
-                lat: l.lat,
-                lon: l.lon,
-                radius_km: l.radius_km,
-            }),
-            asn: a.asn,
-            country: a.country,
-            classification: a.classification,
-            events_count: a.events_count,
-            delta: a.delta,
-            timestamp: a.timestamp,
-            impacted_ipv4_ips: a.impacted_ipv4_ips,
-            impacted_ipv6_prefixes: a.impacted_ipv6_prefixes,
-            percentage_increase: a.percentage_increase,
-            as_name: a.as_name,
-            organization: a.organization,
-            asn_count: a.asn_count,
-            anomaly_score: a.anomaly_score,
-            sample_events: a.sample_events.into_iter().map(|t| HistTransitionSummary {
-                asn: t.asn,
-                asn_name: t.as_name,
-                org: t.organization,
-                prefix: t.prefix,
-                old_state: t.old_state,
-                new_state: t.new_state,
-                ts: t.start_time,
-                rpki_status: t.rpki_status,
-                incident_id: t.incident_id,
-                anomaly_details: t.anomaly_details,
-                leak_detail: t.leak_detail.map(|ld| HistLeakDetail {
-                    leak_type: ld.leak_type.to_string(),
-                    leaker_asn: ld.leaker_asn,
-                    leaker_name: ld.leaker_as_name,
-                    victim_asn: ld.victim_asn,
-                    victim_name: ld.victim_as_name,
-                    leaker_rpki_status: ld.leaker_rpki_status,
-                    victim_rpki_status: ld.victim_rpki_status,
+        day_summary.top_alerts = res
+            .alerts
+            .into_iter()
+            .map(|a| HistAlert {
+                alert_type: a.alert_type,
+                location: a.location.map(|l| HistAlertLocation {
+                    city: l.city,
+                    country: l.country,
+                    lat: l.lat,
+                    lon: l.lon,
+                    radius_km: l.radius_km,
                 }),
-            }).collect(),
-        }).collect();
+                asn: a.asn,
+                country: a.country,
+                classification: a.classification,
+                events_count: a.events_count,
+                delta: a.delta,
+                timestamp: a.timestamp,
+                impacted_ipv4_ips: a.impacted_ipv4_ips,
+                impacted_ipv6_prefixes: a.impacted_ipv6_prefixes,
+                percentage_increase: a.percentage_increase,
+                as_name: a.as_name,
+                organization: a.organization,
+                asn_count: a.asn_count,
+                anomaly_score: a.anomaly_score,
+                sample_events: a
+                    .sample_events
+                    .into_iter()
+                    .map(|t| HistTransitionSummary {
+                        asn: t.asn,
+                        asn_name: t.as_name,
+                        org: t.organization,
+                        prefix: t.prefix,
+                        old_state: t.old_state,
+                        new_state: t.new_state,
+                        ts: t.start_time,
+                        rpki_status: t.rpki_status,
+                        incident_id: t.incident_id,
+                        anomaly_details: t.anomaly_details,
+                        leak_detail: t.leak_detail.map(|ld| HistLeakDetail {
+                            leak_type: ld.leak_type.to_string(),
+                            leaker_asn: ld.leaker_asn,
+                            leaker_name: ld.leaker_as_name,
+                            victim_asn: ld.victim_asn,
+                            victim_name: ld.victim_as_name,
+                            leaker_rpki_status: ld.leaker_rpki_status,
+                            victim_rpki_status: ld.victim_rpki_status,
+                        }),
+                    })
+                    .collect(),
+            })
+            .collect();
     }
 
     let mut out_data = Vec::new();
