@@ -304,10 +304,10 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
               <div className="space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed">
                 <h3 className="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Routing Security & RPKI</h3>
                 <p className="text-base text-slate-700 dark:text-slate-300">
-                  The internet relies on <a href="https://www.cloudflare.com/learning/network-layer/what-is-bgp/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-semibold">BGP (Border Gateway Protocol)</a> to facilitate global traffic routing. Designed in the 1980s, it has no built-in way to verify that a network actually owns the IP addresses it claims to represent.
+                  The internet relies on <a href="https://www.cloudflare.com/learning/security/glossary/what-is-bgp/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-semibold">BGP (Border Gateway Protocol)</a> to facilitate global traffic routing. Designed in the 1980s, it has no built-in way to verify that a network actually owns the IP addresses it claims to represent.
                 </p>
                 <p>
-                  <a href="https://www.cloudflare.com/learning/dns/dns-security/rpki/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">RPKI</a> fixes this by adding digital signatures to IP blocks, allowing internet providers to automatically ignore unauthorized routes using <a href="https://rpki.readthedocs.io/" target="_blank" rel="noopener noreferrer" className="text-slate-800 dark:text-slate-200 font-bold hover:underline">Route Origin Validation (ROV)</a>.
+                  <a href="https://blog.cloudflare.com/is-bgp-safe-yet-rpki-routing-security-initiative/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">RPKI</a> fixes this by adding digital signatures to IP blocks, allowing internet providers to automatically ignore unauthorized routes using <a href="https://rpki.readthedocs.io/" target="_blank" rel="noopener noreferrer" className="text-slate-800 dark:text-slate-200 font-bold hover:underline">Route Origin Validation (ROV)</a>.
                 </p>
                 <div className="pt-4 flex flex-wrap gap-4">
                    <a href="https://blog.cloudflare.com/aspa-secure-internet/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">Latest Security Roadmap &rarr;</a>
@@ -565,7 +565,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
             </p>
             <div className="pt-4 flex flex-wrap gap-4">
               <a href="https://www.google.com/intl/en/ipv6/statistics.html" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-2 rounded border border-blue-500/20 hover:bg-blue-500/20 transition-colors">Google IPv6 Stats &rarr;</a>
-              <a href="https://pulse.internetsociety.org/adoption" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">ISOC Adoption Pulse &rarr;</a>
+              <a href="https://pulse.internetsociety.org/en/technologies/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">ISOC Adoption Pulse &rarr;</a>
             </div>
           </div>
 
