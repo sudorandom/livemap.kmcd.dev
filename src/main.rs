@@ -43,10 +43,10 @@ use livemap_proto::live_map_service_server::{
 };
 use livemap_proto::{
     AggregatedEvent, Alert, AlertType, Classification as ProtoClassification, ClassificationCount,
-    GeoData as ProtoGeoData, GetSummaryRequest, GetSummaryResponse, StateTransition,
-    StreamAlertsRequest, StreamAlertsResponse, StreamPrefixSnapshotsRequest,
-    StreamPrefixSnapshotsResponse, StreamStateTransitionsRequest, StreamStateTransitionsResponse,
-    SubscribeEventsRequest, SubscribeEventsResponse,
+    GeoData as ProtoGeoData, GetRecentAlertsRequest, GetRecentAlertsResponse, GetSummaryRequest,
+    GetSummaryResponse, StateTransition, StreamAlertsRequest, StreamAlertsResponse,
+    StreamPrefixSnapshotsRequest, StreamPrefixSnapshotsResponse, StreamStateTransitionsRequest,
+    StreamStateTransitionsResponse, SubscribeEventsRequest, SubscribeEventsResponse,
 };
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
@@ -239,6 +239,19 @@ impl LiveMap for LiveMapService {
             .push((tx, target_states));
         Ok(Response::new(ReceiverStream::new(rx)))
     }
+    async fn get_recent_alerts(
+        &self,
+        _req: Request<GetRecentAlertsRequest>,
+    ) -> Result<Response<GetRecentAlertsResponse>, Status> {
+        let alerts = self
+            .classifier
+            .state_db
+            .as_ref()
+            .map(|db: &Arc<Db>| db.get_recent_alerts())
+            .unwrap_or_default();
+        Ok(Response::new(GetRecentAlertsResponse { alerts }))
+    }
+
     async fn get_summary(
         &self,
         _req: Request<GetSummaryRequest>,
@@ -722,6 +735,51 @@ struct Args {
     /// Listen address for the gRPC server
     #[arg(short, long, default_value = "127.0.0.1:50051")]
     listen: String,
+}
+
+fn entry_to_transition(e: &WindowEntry, class: ClassificationType) -> StateTransition {
+    StateTransition {
+        incident_id: String::new(), // incident_id is not stored in WindowEntry
+        prefix: e.prefix.clone(),
+        asn: e.asn,
+        as_name: e.as_name.clone(),
+        geo: Some(ProtoGeoData {
+            lat: e.lat,
+            lon: e.lon,
+        }),
+        city: e.city.clone().unwrap_or_default(),
+        country: e.country.clone().unwrap_or_default(),
+        new_state: map_classification(class).into(),
+        old_state: map_classification(ClassificationType::None).into(),
+        start_time: e.ts,
+        end_time: e.ts,
+        leak_detail: None,
+        organization: e.org_name.clone().unwrap_or_default(),
+        anomaly_details: String::new(),
+        rpki_status: 0, // rpki_status is not stored in WindowEntry
+    }
+}
+
+fn get_alert_key(alert: &Alert) -> String {
+    let target = match AlertType::try_from(alert.alert_type) {
+        Ok(AlertType::ByLocation) => {
+            if let Some(loc) = &alert.location {
+                format!("{:.1}:{:.1}", loc.lat, loc.lon)
+            } else {
+                "unknown".to_string()
+            }
+        }
+        Ok(AlertType::ByAsn) => alert.asn.to_string(),
+        Ok(AlertType::ByCountry) => alert.country.clone(),
+        Ok(AlertType::ByOrganization) => alert.organization.clone(),
+        _ => "unknown".to_string(),
+    };
+    // Use a 4-hour window for de-duplication
+    let window = alert.timestamp / (4 * 3600);
+    format!(
+        "{}:{}:{}:{}",
+        alert.alert_type, alert.classification, target, window
+    )
 }
 
 #[tokio::main]
@@ -1412,10 +1470,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     let s_cp = app_state.clone();
+    let db_cp = db.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(300));
         loop {
             interval.tick().await;
+            db_cp.cleanup_old_data();
             let mut class_snaps = HashMap::new();
             for (k, v) in &s_cp.class_stats {
                 class_snaps.insert(*k as i32, v.to_snapshot());
@@ -1432,7 +1492,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     let s_ingest = app_state.clone();
-    let c_ingest = classifier.clone();
+    let c_alert = classifier.clone();
     let rolling_windows = Arc::new(RwLock::new(RollingWindows::default()));
     let rw_ingest = rolling_windows.clone();
     let rw_alert = rolling_windows.clone();
@@ -1554,6 +1614,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: String::new(),
                             asn_count: unique_asns.len() as u32,
                             anomaly_score: anomaly_score as f32,
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, class))
+                                .collect(),
                         });
                     }
                 }
@@ -1662,6 +1728,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: String::new(),
                             asn_count: 1,
                             anomaly_score: anomaly_score as f32,
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, class))
+                                .collect(),
                         });
                     }
                 }
@@ -1759,6 +1831,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: String::new(),
                             asn_count: unique_asns.len() as u32,
                             anomaly_score: anomaly_score as f32,
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, *class))
+                                .collect(),
                         });
                     }
                 }
@@ -1865,6 +1943,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             organization: org.clone(),
                             asn_count: unique_asns.len() as u32,
                             anomaly_score: anomaly_score as f32,
+                            sample_events: v
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .map(|e| entry_to_transition(e, *class))
+                                .collect(),
                         });
                     }
                 }
@@ -1925,6 +2009,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if !filtered_alerts.is_empty() {
                     let mut alert_subs = s_alert.alert_subscribers.write();
+                    if let Some(db) = &c_alert.state_db {
+                        for alert in &filtered_alerts {
+                            db.record_alert(get_alert_key(alert), alert.clone());
+                        }
+                    }
                     for alert in filtered_alerts {
                         alert_subs.retain(|sub| {
                             sub.try_send(Ok(StreamAlertsResponse {
@@ -1944,6 +2033,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let research_set: HashSet<u32> = EXCLUDED_ASNS.iter().cloned().collect();
     let db_ingest = db.clone();
+    let c_ingest = classifier.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();

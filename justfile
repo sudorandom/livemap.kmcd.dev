@@ -13,7 +13,8 @@ web-install:
 	cd web && mise exec -- pnpm install
 
 web-check:
-	cd web && mise exec -- pnpm exec tsc --noEmit
+	cd web && mise exec -- pnpm run astro sync
+	cd web && mise exec -- pnpm run check
 
 
 web-dev:
@@ -26,7 +27,7 @@ collector:
 	RUST_BACKTRACE=1 cargo run --bin bgp-collector -- --mmdb ./assets/dbip-city-lite-2026-03.mmdb
 
 indexer:
-	RUST_LOG=info RUST_BACKTRACE=1 cargo run --bin bgp-indexer -- --out-dir ./web/public/data --flush-interval 30
+	RUST_LOG=info RUST_BACKTRACE=1 cargo run --bin bgp-indexer -- ./web/public/data
 
 fauxrpc:
     fauxrpc run \

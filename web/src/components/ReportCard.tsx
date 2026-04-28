@@ -1,23 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { fromBinary } from '@bufbuild/protobuf';
-import { DaySummarySchema } from '../gen/historical/v1/historical_pb';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Cell as ReCell } from 'recharts';
 import { AlertTriangle, WifiOff, ShieldAlert, Activity, Search, Info, Globe, CheckCircle2, Clock, ShieldCheck, HeartPulse, ExternalLink } from 'lucide-react';
-import { getRelativeTime, formatHumanNumber } from '../dataService';
-
-// Data fetching helper
-async function fetchDaySummary(date: string) {
-  const url = `/data/${date}/summary.pb`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const arrayBuffer = await response.arrayBuffer();
-    return fromBinary(DaySummarySchema, new Uint8Array(arrayBuffer));
-  } catch (err) {
-    console.error("Protobuf decoding error:", err);
-    return null;
-  }
-}
+import { getRelativeTime, formatHumanNumber, getClassificationName, fetchDaySummary } from '../dataService';
 
 // Colors aligned with pkg/bgpengine/colors.go
 const CLASSIFICATION_INFO: Record<number, { name: string, color: string, icon: any, hex: string }> = {
@@ -47,7 +31,179 @@ const RPKI_ORDER: Record<string, number> = {
 
 const rpkiSorter = (item: any) => RPKI_ORDER[item.value] || 99;
 
-export function ReportCard({ date, children }: { date?: string, children?: React.ReactNode }) {
+const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([2, 3, 4]);
+
+  const toggleCategory = (cat: number) => {
+    setSelectedCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const filteredAlerts = React.useMemo(() => {
+    return alerts
+      .filter((a: any) => selectedCategories.includes(a.classification))
+      .sort((a: any, b: any) => b.anomalyScore - a.anomalyScore);
+  }, [alerts, selectedCategories]);
+
+  return (
+    <div className="cyber-box p-6 rounded-lg flex flex-col group shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-500/10 pb-4 mb-6">
+        <h2 className="text-xl font-cyber font-bold flex items-center gap-2">
+          <span className="w-2 h-2 bg-red-500 animate-pulse"></span>
+          CRITICAL ALERTS
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {[2, 3, 4].map(cat => {
+            const info = CLASSIFICATION_INFO[cat];
+            const isActive = selectedCategories.includes(cat);
+            return (
+              <button
+                key={cat}
+                onClick={() => toggleCategory(cat)}
+                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded border transition-all ${
+                  isActive 
+                    ? `${info.color} border-current opacity-100` 
+                    : 'text-slate-500 border-slate-500/20 opacity-40 hover:opacity-60'
+                }`}
+              >
+                {info.name.replace('ROUTE ', '')}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="overflow-y-auto flex-grow h-[550px] pr-2 custom-scrollbar mb-4">
+        {filteredAlerts.length > 0 ? (
+          <ul className="space-y-2">
+            {filteredAlerts.map((alert: any, i: number) => {
+              const info = CLASSIFICATION_INFO[alert.classification] || { name: 'UNKNOWN', color: 'text-slate-500 bg-slate-500/10', icon: Info, hex: '#666' };
+              const Icon = info.icon;
+              
+              return (
+                <li key={i} className="group/alert relative p-3 rounded-lg hover:bg-slate-500/5 transition-colors border border-transparent hover:border-slate-500/10">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg border flex items-center justify-center transition-colors ${info.color}`}>
+                      <Icon size={20} />
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <div className="flex justify-between items-start mb-1 gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5 ${info.color.split(' ')[0]}`}>
+                            {info.name}
+                          </div>
+                          <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight break-words">
+                            {alert.asn > 0 
+                              ? (alert.asName || `AS${alert.asn}`) 
+                              : (alert.organization || (alert.country ? `Regional Anomaly (${alert.country})` : 'Distributed Anomaly'))
+                            }
+                          </h4>
+                        </div>
+                        <div className="text-right whitespace-nowrap">
+                          <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                            {new Date(Number(alert.timestamp)*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second: '2-digit'})}
+                          </div>
+                          <div 
+                            className={`text-[10px] font-bold mt-1 uppercase cursor-help ${alert.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}
+                            title="Routing Shift: Percentage change in BGP update volume compared to the 1-hour moving average baseline."
+                          >
+                            {alert.delta > 0 ? '+' : ''}{alert.delta}% SHIFT
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 font-sans">
+                        {alert.asn > 0 && (
+                          <a 
+                            href={`https://bgp.he.net/AS${alert.asn}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/5 dark:bg-indigo-500/10 rounded border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors text-[9px] font-bold text-indigo-400 font-mono uppercase group/link"
+                          >
+                            AS{alert.asn}
+                          </a>
+                        )}
+                        
+                        <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                          {(Number(alert.impactedIpv4Ips) > 0 || Number(alert.impactedIpv6Prefixes) > 0) && (
+                            <div className="flex items-center gap-2.5 font-medium">
+                              {Number(alert.impactedIpv4Ips) > 0 && (
+                                <span className="text-[11px] text-slate-600 dark:text-slate-300">
+                                  {formatHumanNumber(Number(alert.impactedIpv4Ips))} <span className="text-[9px] opacity-60 uppercase font-bold tracking-tighter">IPv4 Addrs</span>
+                                </span>
+                              )}
+                              {Number(alert.impactedIpv4Ips) > 0 && Number(alert.impactedIpv6Prefixes) > 0 && (
+                                <span className="w-px h-2 bg-slate-400/30"></span>
+                              )}
+                              {Number(alert.impactedIpv6Prefixes) > 0 && (
+                                <span className="text-[11px] text-slate-600 dark:text-slate-300">
+                                  {formatHumanNumber(Number(alert.impactedIpv6Prefixes))} <span className="text-[9px] opacity-60 uppercase font-bold tracking-tighter">IPv6 Prefixes</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                            <Globe size={10} className="opacity-50" aria-hidden="true" />
+                            <span className="text-[10px] font-medium">
+                              {alert.location?.city ? `${alert.location.city}, ` : ''}{alert.location?.country || alert.country || 'GLOBAL'}
+                            </span>
+                        </div>
+                        
+                        <div className="ml-auto text-[9px] font-bold text-slate-500 dark:text-slate-600 uppercase tracking-widest">
+                          {alert.eventsCount || alert.events_count} EVENTS
+                        </div>
+                      </div>
+
+                      {/* Sample Events */}
+                      {alert.sampleEvents && alert.sampleEvents.length > 0 && (
+                        <div className="mt-3 space-y-1 bg-slate-900/50 p-2 rounded border border-slate-500/10">
+                          <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-1">Sample Activity Log:</div>
+                          {alert.sampleEvents
+                            .slice()
+                            .sort((a: any, b: any) => {
+                              const maskA = parseInt(a.prefix.split('/')[1] || (a.prefix.includes(':') ? '128' : '32'));
+                              const maskB = parseInt(b.prefix.split('/')[1] || (b.prefix.includes(':') ? '128' : '32'));
+                              return maskA - maskB;
+                            })
+                            .slice(0, 5)
+                            .map((e: any, j: number) => (
+                            <div key={j} className="flex items-center gap-3 px-1 py-0.5 rounded hover:bg-slate-500/10 transition-colors group/sample">
+                              <span className="text-[10px] font-mono text-cyan-400 font-bold shrink-0">{e.prefix}</span>
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400 uppercase tracking-tighter shrink-0 border border-slate-500/10">
+                                {getClassificationName(e.newState)}
+                              </span>
+                              {e.asnName && (
+                                <span className="text-[9px] text-slate-500 truncate opacity-70 group-hover/sample:opacity-100 transition-opacity">
+                                  {e.asnName}
+                                </span>
+                              )}
+                              <span className="ml-auto text-[8px] font-mono text-slate-600">
+                                {new Date(Number(e.ts) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="py-20 text-center">
+            <p className="text-slate-500 italic font-mono text-sm uppercase tracking-widest">No critical anomalies detected in the current window.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+export function ReportCard({ children }: { children?: React.ReactNode }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -57,22 +213,9 @@ export function ReportCard({ date, children }: { date?: string, children?: React
     async function load(isInitial = false) {
       if (isInitial) setLoading(true);
       try {
-        let selectedDate = date;
-        if (!selectedDate) {
-          const res = await fetch('/data/index.json');
-          if (res.ok) {
-            const dates = await res.json();
-            if (dates.length > 0) {
-              selectedDate = dates[0];
-            }
-          }
-        }
-
-        if (selectedDate) {
-          const summary = await fetchDaySummary(selectedDate);
-          setData(summary);
-          setLastUpdated(new Date());
-        }
+        const summary = await fetchDaySummary();
+        setData(summary);
+        setLastUpdated(new Date());
       } catch (err) {
         console.error(err);
       } finally {
@@ -83,9 +226,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
     load(true);
 
     const interval = setInterval(() => {
-      if (!date) {
-        load();
-      }
+      load();
     }, 30000);
 
     const timer = setInterval(() => {
@@ -96,7 +237,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
       clearInterval(interval);
       clearInterval(timer);
     };
-  }, [date]);
+  }, []);
 
   if (loading) return (
     <div className="p-12 text-center">
@@ -402,112 +543,7 @@ export function ReportCard({ date, children }: { date?: string, children?: React
           </div>
 
           {/* Anomalous Events */}
-          <div className="cyber-box p-6 rounded-lg flex flex-col group shadow-xl">
-            <h2 className="text-xl font-cyber font-bold mb-6 flex items-center justify-between border-b border-slate-500/10 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-red-500 animate-pulse"></span>
-                CRITICAL ALERTS
-              </div>
-            </h2>
-            <div className="overflow-y-auto flex-grow h-[550px] pr-2 custom-scrollbar mb-4">
-              {data.topAlerts && data.topAlerts.length > 0 ? (
-                <ul className="space-y-2">
-                  {data.topAlerts
-                    .filter((a: any) => a.classification !== 10) // Filter out Minor Leaks
-                    .slice(0, 100)
-                    .map((alert: any, i: number) => {
-                    const info = CLASSIFICATION_INFO[alert.classification] || { name: 'UNKNOWN', color: 'text-slate-500 bg-slate-500/10', icon: Info, hex: '#666' };
-                    const Icon = info.icon;
-
-                    return (
-                      <li key={i} className="group/alert relative p-3 rounded-lg hover:bg-slate-500/5 transition-colors border border-transparent hover:border-slate-500/10">
-                        <div className="flex items-start gap-4">
-                          <div className={`flex-shrink-0 w-10 h-10 rounded-lg border flex items-center justify-center transition-colors ${info.color}`}>
-                            <Icon size={20} />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex justify-between items-start mb-1 gap-4">
-                              <div className="min-w-0 flex-1">
-                                <div className={`text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5 ${info.color.split(' ')[0]}`}>
-                                  {info.name}
-                                </div>
-                                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight break-words">
-                                  {alert.asn > 0
-                                    ? (alert.asName || `AS${alert.asn}`)
-                                    : (alert.organization || (alert.country ? `Regional Anomaly (${alert.country})` : 'Distributed Anomaly'))
-                                  }
-                                </h4>
-                              </div>
-                              <div className="text-right whitespace-nowrap">
-                                <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                                  {new Date(Number(alert.timestamp)*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second: '2-digit'})}
-                                </div>
-                                <div
-                                  className={`text-[10px] font-bold mt-1 uppercase cursor-help ${alert.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}
-                                  title="Routing Shift: Percentage change in BGP update volume compared to the 1-hour moving average baseline."
-                                >
-                                  {alert.delta > 0 ? '+' : ''}{alert.delta}% SHIFT
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1.5 font-sans">
-                              {alert.asn > 0 && (
-                                <a
-                                  href={`https://bgp.he.net/AS${alert.asn}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/5 dark:bg-indigo-500/10 rounded border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors text-[9px] font-bold text-indigo-400 font-mono uppercase group/link"
-                                >
-                                  AS{alert.asn}
-                                </a>
-                              )}
-
-                              <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                                {(Number(alert.impactedIpv4Ips) > 0 || Number(alert.impactedIpv6Prefixes) > 0) && (
-                                  <div className="flex items-center gap-2.5 font-medium">
-                                    {Number(alert.impactedIpv4Ips) > 0 && (
-                                      <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                                        {formatHumanNumber(Number(alert.impactedIpv4Ips))} <span className="text-[9px] opacity-60 uppercase font-bold tracking-tighter">IPv4 Addrs</span>
-                                      </span>
-                                    )}
-                                    {Number(alert.impactedIpv4Ips) > 0 && Number(alert.impactedIpv6Prefixes) > 0 && (
-                                      <span className="w-px h-2 bg-slate-400/30"></span>
-                                    )}
-                                    {Number(alert.impactedIpv6Prefixes) > 0 && (
-                                      <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                                        {formatHumanNumber(Number(alert.impactedIpv6Prefixes))} <span className="text-[9px] opacity-60 uppercase font-bold tracking-tighter">IPv6 Prefixes</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                                  <Globe size={10} className="opacity-50" aria-hidden="true" />
-                                  <span className="text-[10px] font-medium">
-                                    {alert.location?.city ? `${alert.location.city}, ` : ''}{alert.location?.country || alert.country || 'GLOBAL'}
-                                  </span>
-                              </div>
-
-                              <div className="ml-auto text-[9px] font-bold text-slate-500 dark:text-slate-600 uppercase tracking-widest">
-                                {alert.events_count || alert.eventsCount} EVENTS
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <div className="py-20 text-center">
-                  <p className="text-slate-500 italic font-mono text-sm uppercase tracking-widest">No critical anomalies detected in the current window.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <AlertsList alerts={data.topAlerts || []} />
         </div>
       </section>
 

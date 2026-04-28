@@ -1,5 +1,7 @@
 use crate::classifier::ClassificationType;
+use crate::livemap_proto::Alert;
 use ipnet::IpNet;
+use prost::Message;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::params;
@@ -25,6 +27,10 @@ pub enum DbWriteOp {
         asn: u32,
         event_type: i32,
         ts: i64,
+    },
+    RecordAlert {
+        id: String,
+        alert: Alert,
     },
 }
 
@@ -99,6 +105,16 @@ impl Db {
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_type ON prefix_state(classified_type);
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_asn ON prefix_state(origin_asn);
                  CREATE INDEX IF NOT EXISTS idx_prefix_state_stats ON prefix_state(classified_type, origin_asn, prefix);
+                 CREATE TABLE IF NOT EXISTS recent_alerts (
+                     id TEXT PRIMARY KEY,
+                     alert_type INTEGER,
+                     classification INTEGER,
+                     timestamp INTEGER,
+                     anomaly_score REAL,
+                     data BLOB
+                 );
+                 CREATE INDEX IF NOT EXISTS idx_recent_alerts_ts ON recent_alerts(timestamp);
+                 CREATE INDEX IF NOT EXISTS idx_recent_alerts_score ON recent_alerts(classification, anomaly_score);
                  ",
             )
             .expect("Failed to initialize SQLite schema");
@@ -184,6 +200,16 @@ impl Db {
                             "INSERT INTO events (prefix, asn, event_type, ts) VALUES (?1, ?2, ?3, ?4)",
                             params![prefix, asn, event_type, ts],
                         );
+                    }
+                    DbWriteOp::RecordAlert { id, alert } => {
+                        let mut buf = Vec::new();
+                        if alert.encode(&mut buf).is_ok() {
+                            let _ = tx.execute(
+                                "INSERT INTO recent_alerts (id, alert_type, classification, timestamp, anomaly_score, data) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                                 ON CONFLICT(id) DO UPDATE SET timestamp=excluded.timestamp, anomaly_score=excluded.anomaly_score, data=excluded.data WHERE excluded.anomaly_score > recent_alerts.anomaly_score",
+                                params![id, alert.alert_type, alert.classification, alert.timestamp, alert.anomaly_score, buf],
+                            );
+                        }
                     }
                 }
             }
@@ -339,9 +365,7 @@ impl Db {
                 }
             }
         }
-        TopStats {
-            flappiest_networks,
-        }
+        TopStats { flappiest_networks }
     }
 
     pub fn get_classification_stats(&self) -> HashMap<ClassificationType, ClassificationStats> {
@@ -415,6 +439,47 @@ impl Db {
             event_type,
             ts,
         });
+    }
+
+    pub fn record_alert(&self, id: String, alert: Alert) {
+        let _ = self.write_tx.try_send(DbWriteOp::RecordAlert { id, alert });
+    }
+
+    pub fn get_recent_alerts(&self) -> Vec<Alert> {
+        let mut alerts = Vec::new();
+        if let Ok(conn) = self.pool.get() {
+            let day_ago = chrono::Utc::now().timestamp() - 86400;
+            // Get top 10 alerts per classification from the last 24 hours
+            let query = "
+                WITH RankedAlerts AS (
+                    SELECT 
+                        data,
+                        ROW_NUMBER() OVER (PARTITION BY classification ORDER BY anomaly_score DESC) as rank
+                    FROM recent_alerts
+                    WHERE timestamp >= ?1
+                )
+                SELECT data FROM RankedAlerts WHERE rank <= 10
+            ";
+            if let Ok(mut stmt) = conn.prepare_cached(query) {
+                if let Ok(mut rows) = stmt.query([day_ago]) {
+                    while let Ok(Some(row)) = rows.next() {
+                        let data: Vec<u8> = row.get(0).unwrap_or_default();
+                        if let Ok(alert) = Alert::decode(&*data) {
+                            alerts.push(alert);
+                        }
+                    }
+                }
+            }
+        }
+        alerts
+    }
+
+    pub fn cleanup_old_data(&self) {
+        if let Ok(conn) = self.pool.get() {
+            let day_ago = chrono::Utc::now().timestamp() - 86400;
+            let _ = conn.execute("DELETE FROM events WHERE ts < ?1", [day_ago]);
+            let _ = conn.execute("DELETE FROM recent_alerts WHERE timestamp < ?1", [day_ago]);
+        }
     }
 
     pub fn get_stale_prefixes(&self, stale_threshold: i64) -> Vec<(String, String)> {

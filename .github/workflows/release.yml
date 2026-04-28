@@ -139,6 +139,7 @@ jobs:
           mise exec -- cargo build --release --target ${{ matrix.rust_target }}
           mkdir -p build
           cp target/${{ matrix.rust_target }}/release/bgp-collector${{ matrix.ext }} build/
+          cp target/${{ matrix.rust_target }}/release/bgp-indexer${{ matrix.ext }} build/
 
       - name: Create Archive
         shell: bash
@@ -150,7 +151,7 @@ jobs:
           cd build
           
           # Only include README if it was copied
-          INCLUDE_FILES="bgp-viewer${{ matrix.ext }} bgp-collector${{ matrix.ext }}"
+          INCLUDE_FILES="bgp-viewer${{ matrix.ext }} bgp-collector${{ matrix.ext }} bgp-indexer${{ matrix.ext }}"
           if [ -f "README.md" ]; then INCLUDE_FILES="$INCLUDE_FILES README.md"; fi
 
           if [ "${{ runner.os }}" == "Windows" ]; then

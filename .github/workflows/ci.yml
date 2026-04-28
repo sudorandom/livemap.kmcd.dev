@@ -28,6 +28,9 @@ jobs:
       with:
         install: true
 
+    - name: Install web dependencies
+      run: just web-install
+
     - name: Cache Go modules
       uses: actions/cache@v4
       with:
