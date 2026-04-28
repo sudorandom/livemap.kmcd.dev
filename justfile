@@ -26,7 +26,7 @@ collector:
 	RUST_BACKTRACE=1 cargo run --bin bgp-collector -- --mmdb ./assets/dbip-city-lite-2026-03.mmdb
 
 indexer:
-	RUST_LOG=info RUST_BACKTRACE=1 cargo run --bin bgp-indexer -- --out-dir ./web/public/data --flush-interval 30
+	RUST_LOG=info RUST_BACKTRACE=1 cargo run --bin bgp-indexer -- ./web/public/data
 
 fauxrpc:
     fauxrpc run \

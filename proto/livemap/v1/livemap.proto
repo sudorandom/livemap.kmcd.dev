@@ -169,12 +169,19 @@ message Alert {
     string organization = 13;
     uint32 asn_count = 14;
     float anomaly_score = 15;
+    repeated StateTransition sample_events = 16;
 }
 
 message StreamAlertsRequest {}
 
 message StreamAlertsResponse {
     Alert alert = 1;
+}
+
+message GetRecentAlertsRequest {}
+
+message GetRecentAlertsResponse {
+    repeated Alert alerts = 1;
 }
 
 // StreamStateTransitionsRequest is the request for state transition updates.
@@ -194,6 +201,7 @@ service LiveMapService {
     rpc StreamStateTransitions(StreamStateTransitionsRequest) returns (stream StreamStateTransitionsResponse);
     rpc StreamAlerts(StreamAlertsRequest) returns (stream StreamAlertsResponse);
     rpc StreamPrefixSnapshots(StreamPrefixSnapshotsRequest) returns (stream StreamPrefixSnapshotsResponse);
+    rpc GetRecentAlerts(GetRecentAlertsRequest) returns (GetRecentAlertsResponse);
 }
 
 message StreamPrefixSnapshotsRequest {}
