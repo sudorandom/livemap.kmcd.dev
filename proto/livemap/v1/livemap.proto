@@ -78,7 +78,7 @@ message GetSummaryResponse {
     RPKIStatus last_rpki_status = 14;
 
     // Top stats
-    FlappiestNetworkStats flappiest_network_stats = 23;
+    repeated FlappiestNetworkStats flappiest_network_stats = 23;
     string largest_org_name = 18;
     uint64 largest_org_ipv4_count = 19;
     uint64 rpki_valid_ipv4 = 20;

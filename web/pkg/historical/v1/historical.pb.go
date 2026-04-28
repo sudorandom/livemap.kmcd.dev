@@ -326,27 +326,26 @@ func (x *HistLeakDetail) GetVictimRpkiStatus() int32 {
 }
 
 type DaySummary struct {
-	state                protoimpl.MessageState     `protogen:"open.v1"`
-	Date                 int64                      `protobuf:"varint,1,opt,name=date,proto3" json:"date,omitempty"` // Unix timestamp for start of day
-	TotalTransitions     uint32                     `protobuf:"varint,2,opt,name=total_transitions,json=totalTransitions,proto3" json:"total_transitions,omitempty"`
-	UniqueAsns           uint32                     `protobuf:"varint,3,opt,name=unique_asns,json=uniqueAsns,proto3" json:"unique_asns,omitempty"`
-	UniquePrefixes       uint32                     `protobuf:"varint,4,opt,name=unique_prefixes,json=uniquePrefixes,proto3" json:"unique_prefixes,omitempty"`
-	LatestEvents         []*HistTransitionSummary   `protobuf:"bytes,5,rep,name=latest_events,json=latestEvents,proto3" json:"latest_events,omitempty"`
-	UniqueOrgs           uint32                     `protobuf:"varint,6,opt,name=unique_orgs,json=uniqueOrgs,proto3" json:"unique_orgs,omitempty"`
-	Ipv4PrefixCount      uint32                     `protobuf:"varint,7,opt,name=ipv4_prefix_count,json=ipv4PrefixCount,proto3" json:"ipv4_prefix_count,omitempty"`
-	Ipv6PrefixCount      uint32                     `protobuf:"varint,8,opt,name=ipv6_prefix_count,json=ipv6PrefixCount,proto3" json:"ipv6_prefix_count,omitempty"`
-	Ipv4Count            uint64                     `protobuf:"varint,9,opt,name=ipv4_count,json=ipv4Count,proto3" json:"ipv4_count,omitempty"`
-	RpkiValidIpv4        uint64                     `protobuf:"varint,10,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
-	RpkiInvalidIpv4      uint64                     `protobuf:"varint,11,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
-	RpkiNotFoundIpv4     uint64                     `protobuf:"varint,12,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
-	RpkiValidIpv6        uint64                     `protobuf:"varint,13,opt,name=rpki_valid_ipv6,json=rpkiValidIpv6,proto3" json:"rpki_valid_ipv6,omitempty"`
-	RpkiInvalidIpv6      uint64                     `protobuf:"varint,14,opt,name=rpki_invalid_ipv6,json=rpkiInvalidIpv6,proto3" json:"rpki_invalid_ipv6,omitempty"`
-	RpkiNotFoundIpv6     uint64                     `protobuf:"varint,15,opt,name=rpki_not_found_ipv6,json=rpkiNotFoundIpv6,proto3" json:"rpki_not_found_ipv6,omitempty"`
-	FlappiestNetworks    []*HistFlappiestNetwork    `protobuf:"bytes,16,rep,name=flappiest_networks,json=flappiestNetworks,proto3" json:"flappiest_networks,omitempty"`
-	TopAlerts            []*HistAlert               `protobuf:"bytes,17,rep,name=top_alerts,json=topAlerts,proto3" json:"top_alerts,omitempty"`
-	ClassificationCounts []*HistClassificationCount `protobuf:"bytes,18,rep,name=classification_counts,json=classificationCounts,proto3" json:"classification_counts,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state            protoimpl.MessageState   `protogen:"open.v1"`
+	Date             int64                    `protobuf:"varint,1,opt,name=date,proto3" json:"date,omitempty"` // Unix timestamp for start of day
+	TotalTransitions uint32                   `protobuf:"varint,2,opt,name=total_transitions,json=totalTransitions,proto3" json:"total_transitions,omitempty"`
+	UniqueAsns       uint32                   `protobuf:"varint,3,opt,name=unique_asns,json=uniqueAsns,proto3" json:"unique_asns,omitempty"`
+	UniquePrefixes   uint32                   `protobuf:"varint,4,opt,name=unique_prefixes,json=uniquePrefixes,proto3" json:"unique_prefixes,omitempty"`
+	LatestEvents     []*HistTransitionSummary `protobuf:"bytes,5,rep,name=latest_events,json=latestEvents,proto3" json:"latest_events,omitempty"`
+	UniqueOrgs       uint32                   `protobuf:"varint,6,opt,name=unique_orgs,json=uniqueOrgs,proto3" json:"unique_orgs,omitempty"`
+	Ipv4PrefixCount  uint32                   `protobuf:"varint,7,opt,name=ipv4_prefix_count,json=ipv4PrefixCount,proto3" json:"ipv4_prefix_count,omitempty"`
+	Ipv6PrefixCount  uint32                   `protobuf:"varint,8,opt,name=ipv6_prefix_count,json=ipv6PrefixCount,proto3" json:"ipv6_prefix_count,omitempty"`
+	Ipv4Count        uint64                   `protobuf:"varint,9,opt,name=ipv4_count,json=ipv4Count,proto3" json:"ipv4_count,omitempty"`
+	RpkiValidIpv4    uint64                   `protobuf:"varint,10,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
+	RpkiInvalidIpv4  uint64                   `protobuf:"varint,11,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
+	RpkiNotFoundIpv4 uint64                   `protobuf:"varint,12,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
+	RpkiValidIpv6    uint64                   `protobuf:"varint,13,opt,name=rpki_valid_ipv6,json=rpkiValidIpv6,proto3" json:"rpki_valid_ipv6,omitempty"`
+	RpkiInvalidIpv6  uint64                   `protobuf:"varint,14,opt,name=rpki_invalid_ipv6,json=rpkiInvalidIpv6,proto3" json:"rpki_invalid_ipv6,omitempty"`
+	RpkiNotFoundIpv6 uint64                   `protobuf:"varint,15,opt,name=rpki_not_found_ipv6,json=rpkiNotFoundIpv6,proto3" json:"rpki_not_found_ipv6,omitempty"`
+	FlappiestNetwork *HistFlappiestNetwork    `protobuf:"bytes,16,opt,name=flappiest_network,json=flappiestNetwork,proto3" json:"flappiest_network,omitempty"`
+	TopAlerts        []*HistAlert             `protobuf:"bytes,17,rep,name=top_alerts,json=topAlerts,proto3" json:"top_alerts,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *DaySummary) Reset() {
@@ -484,9 +483,9 @@ func (x *DaySummary) GetRpkiNotFoundIpv6() uint64 {
 	return 0
 }
 
-func (x *DaySummary) GetFlappiestNetworks() []*HistFlappiestNetwork {
+func (x *DaySummary) GetFlappiestNetwork() *HistFlappiestNetwork {
 	if x != nil {
-		return x.FlappiestNetworks
+		return x.FlappiestNetwork
 	}
 	return nil
 }
@@ -496,121 +495,6 @@ func (x *DaySummary) GetTopAlerts() []*HistAlert {
 		return x.TopAlerts
 	}
 	return nil
-}
-
-func (x *DaySummary) GetClassificationCounts() []*HistClassificationCount {
-	if x != nil {
-		return x.ClassificationCounts
-	}
-	return nil
-}
-
-type HistClassificationCount struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Classification    int32                  `protobuf:"varint,1,opt,name=classification,proto3" json:"classification,omitempty"`
-	Count             uint32                 `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
-	MessagesPerSecond float32                `protobuf:"fixed32,3,opt,name=messages_per_second,json=messagesPerSecond,proto3" json:"messages_per_second,omitempty"`
-	AsnCount          uint32                 `protobuf:"varint,4,opt,name=asn_count,json=asnCount,proto3" json:"asn_count,omitempty"`
-	PrefixCount       uint32                 `protobuf:"varint,5,opt,name=prefix_count,json=prefixCount,proto3" json:"prefix_count,omitempty"`
-	Ipv4PrefixCount   uint32                 `protobuf:"varint,6,opt,name=ipv4_prefix_count,json=ipv4PrefixCount,proto3" json:"ipv4_prefix_count,omitempty"`
-	Ipv6PrefixCount   uint32                 `protobuf:"varint,7,opt,name=ipv6_prefix_count,json=ipv6PrefixCount,proto3" json:"ipv6_prefix_count,omitempty"`
-	Ipv4Count         uint64                 `protobuf:"varint,8,opt,name=ipv4_count,json=ipv4Count,proto3" json:"ipv4_count,omitempty"`
-	TotalCount        uint64                 `protobuf:"varint,9,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *HistClassificationCount) Reset() {
-	*x = HistClassificationCount{}
-	mi := &file_historical_v1_historical_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HistClassificationCount) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HistClassificationCount) ProtoMessage() {}
-
-func (x *HistClassificationCount) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HistClassificationCount.ProtoReflect.Descriptor instead.
-func (*HistClassificationCount) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *HistClassificationCount) GetClassification() int32 {
-	if x != nil {
-		return x.Classification
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetCount() uint32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetMessagesPerSecond() float32 {
-	if x != nil {
-		return x.MessagesPerSecond
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetAsnCount() uint32 {
-	if x != nil {
-		return x.AsnCount
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetPrefixCount() uint32 {
-	if x != nil {
-		return x.PrefixCount
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetIpv4PrefixCount() uint32 {
-	if x != nil {
-		return x.Ipv4PrefixCount
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetIpv6PrefixCount() uint32 {
-	if x != nil {
-		return x.Ipv6PrefixCount
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetIpv4Count() uint64 {
-	if x != nil {
-		return x.Ipv4Count
-	}
-	return 0
-}
-
-func (x *HistClassificationCount) GetTotalCount() uint64 {
-	if x != nil {
-		return x.TotalCount
-	}
-	return 0
 }
 
 type HistAlertLocation struct {
@@ -626,7 +510,7 @@ type HistAlertLocation struct {
 
 func (x *HistAlertLocation) Reset() {
 	*x = HistAlertLocation{}
-	mi := &file_historical_v1_historical_proto_msgTypes[6]
+	mi := &file_historical_v1_historical_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -638,7 +522,7 @@ func (x *HistAlertLocation) String() string {
 func (*HistAlertLocation) ProtoMessage() {}
 
 func (x *HistAlertLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[6]
+	mi := &file_historical_v1_historical_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -651,7 +535,7 @@ func (x *HistAlertLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistAlertLocation.ProtoReflect.Descriptor instead.
 func (*HistAlertLocation) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{6}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *HistAlertLocation) GetCity() string {
@@ -712,7 +596,7 @@ type HistAlert struct {
 
 func (x *HistAlert) Reset() {
 	*x = HistAlert{}
-	mi := &file_historical_v1_historical_proto_msgTypes[7]
+	mi := &file_historical_v1_historical_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +608,7 @@ func (x *HistAlert) String() string {
 func (*HistAlert) ProtoMessage() {}
 
 func (x *HistAlert) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[7]
+	mi := &file_historical_v1_historical_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +621,7 @@ func (x *HistAlert) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistAlert.ProtoReflect.Descriptor instead.
 func (*HistAlert) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{7}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *HistAlert) GetAlertType() int32 {
@@ -858,7 +742,7 @@ type HistFlappiestNetwork struct {
 
 func (x *HistFlappiestNetwork) Reset() {
 	*x = HistFlappiestNetwork{}
-	mi := &file_historical_v1_historical_proto_msgTypes[8]
+	mi := &file_historical_v1_historical_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -870,7 +754,7 @@ func (x *HistFlappiestNetwork) String() string {
 func (*HistFlappiestNetwork) ProtoMessage() {}
 
 func (x *HistFlappiestNetwork) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[8]
+	mi := &file_historical_v1_historical_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -883,7 +767,7 @@ func (x *HistFlappiestNetwork) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistFlappiestNetwork.ProtoReflect.Descriptor instead.
 func (*HistFlappiestNetwork) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{8}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HistFlappiestNetwork) GetAsn() uint32 {
@@ -937,7 +821,7 @@ type HistTransitionSummary struct {
 
 func (x *HistTransitionSummary) Reset() {
 	*x = HistTransitionSummary{}
-	mi := &file_historical_v1_historical_proto_msgTypes[9]
+	mi := &file_historical_v1_historical_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +833,7 @@ func (x *HistTransitionSummary) String() string {
 func (*HistTransitionSummary) ProtoMessage() {}
 
 func (x *HistTransitionSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[9]
+	mi := &file_historical_v1_historical_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -962,7 +846,7 @@ func (x *HistTransitionSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistTransitionSummary.ProtoReflect.Descriptor instead.
 func (*HistTransitionSummary) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{9}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *HistTransitionSummary) GetAsn() uint32 {
@@ -1032,7 +916,7 @@ type OrgArchive struct {
 
 func (x *OrgArchive) Reset() {
 	*x = OrgArchive{}
-	mi := &file_historical_v1_historical_proto_msgTypes[10]
+	mi := &file_historical_v1_historical_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1044,7 +928,7 @@ func (x *OrgArchive) String() string {
 func (*OrgArchive) ProtoMessage() {}
 
 func (x *OrgArchive) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[10]
+	mi := &file_historical_v1_historical_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1057,7 +941,7 @@ func (x *OrgArchive) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrgArchive.ProtoReflect.Descriptor instead.
 func (*OrgArchive) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{10}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *OrgArchive) GetOrg() string {
@@ -1093,7 +977,7 @@ type AsnMetadata struct {
 
 func (x *AsnMetadata) Reset() {
 	*x = AsnMetadata{}
-	mi := &file_historical_v1_historical_proto_msgTypes[11]
+	mi := &file_historical_v1_historical_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +989,7 @@ func (x *AsnMetadata) String() string {
 func (*AsnMetadata) ProtoMessage() {}
 
 func (x *AsnMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[11]
+	mi := &file_historical_v1_historical_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +1002,7 @@ func (x *AsnMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AsnMetadata.ProtoReflect.Descriptor instead.
 func (*AsnMetadata) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{11}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AsnMetadata) GetAsn() uint32 {
@@ -1159,7 +1043,7 @@ type OrgMetadata struct {
 
 func (x *OrgMetadata) Reset() {
 	*x = OrgMetadata{}
-	mi := &file_historical_v1_historical_proto_msgTypes[12]
+	mi := &file_historical_v1_historical_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1171,7 +1055,7 @@ func (x *OrgMetadata) String() string {
 func (*OrgMetadata) ProtoMessage() {}
 
 func (x *OrgMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[12]
+	mi := &file_historical_v1_historical_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1184,7 +1068,7 @@ func (x *OrgMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrgMetadata.ProtoReflect.Descriptor instead.
 func (*OrgMetadata) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{12}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *OrgMetadata) GetName() string {
@@ -1214,7 +1098,7 @@ type PrefixSnapshot struct {
 
 func (x *PrefixSnapshot) Reset() {
 	*x = PrefixSnapshot{}
-	mi := &file_historical_v1_historical_proto_msgTypes[13]
+	mi := &file_historical_v1_historical_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1226,7 +1110,7 @@ func (x *PrefixSnapshot) String() string {
 func (*PrefixSnapshot) ProtoMessage() {}
 
 func (x *PrefixSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[13]
+	mi := &file_historical_v1_historical_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1239,7 +1123,7 @@ func (x *PrefixSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrefixSnapshot.ProtoReflect.Descriptor instead.
 func (*PrefixSnapshot) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{13}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PrefixSnapshot) GetPrefix() string {
@@ -1287,7 +1171,7 @@ type GlobalMetadataIndex struct {
 
 func (x *GlobalMetadataIndex) Reset() {
 	*x = GlobalMetadataIndex{}
-	mi := &file_historical_v1_historical_proto_msgTypes[14]
+	mi := &file_historical_v1_historical_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1299,7 +1183,7 @@ func (x *GlobalMetadataIndex) String() string {
 func (*GlobalMetadataIndex) ProtoMessage() {}
 
 func (x *GlobalMetadataIndex) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[14]
+	mi := &file_historical_v1_historical_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1312,7 +1196,7 @@ func (x *GlobalMetadataIndex) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GlobalMetadataIndex.ProtoReflect.Descriptor instead.
 func (*GlobalMetadataIndex) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{14}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GlobalMetadataIndex) GetAsns() []*AsnMetadata {
@@ -1338,7 +1222,7 @@ type GlobalPrefixShard struct {
 
 func (x *GlobalPrefixShard) Reset() {
 	*x = GlobalPrefixShard{}
-	mi := &file_historical_v1_historical_proto_msgTypes[15]
+	mi := &file_historical_v1_historical_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1350,7 +1234,7 @@ func (x *GlobalPrefixShard) String() string {
 func (*GlobalPrefixShard) ProtoMessage() {}
 
 func (x *GlobalPrefixShard) ProtoReflect() protoreflect.Message {
-	mi := &file_historical_v1_historical_proto_msgTypes[15]
+	mi := &file_historical_v1_historical_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1363,7 +1247,7 @@ func (x *GlobalPrefixShard) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GlobalPrefixShard.ProtoReflect.Descriptor instead.
 func (*GlobalPrefixShard) Descriptor() ([]byte, []int) {
-	return file_historical_v1_historical_proto_rawDescGZIP(), []int{15}
+	return file_historical_v1_historical_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GlobalPrefixShard) GetSnapshots() []*PrefixSnapshot {
@@ -1409,7 +1293,7 @@ const file_historical_v1_historical_proto_rawDesc = "" +
 	"\vvictim_name\x18\x05 \x01(\tR\n" +
 	"victimName\x12,\n" +
 	"\x12leaker_rpki_status\x18\x06 \x01(\x05R\x10leakerRpkiStatus\x12,\n" +
-	"\x12victim_rpki_status\x18\a \x01(\x05R\x10victimRpkiStatus\"\xea\x06\n" +
+	"\x12victim_rpki_status\x18\a \x01(\x05R\x10victimRpkiStatus\"\x8b\x06\n" +
 	"\n" +
 	"DaySummary\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\x03R\x04date\x12+\n" +
@@ -1430,23 +1314,10 @@ const file_historical_v1_historical_proto_rawDesc = "" +
 	"\x13rpki_not_found_ipv4\x18\f \x01(\x04R\x10rpkiNotFoundIpv4\x12&\n" +
 	"\x0frpki_valid_ipv6\x18\r \x01(\x04R\rrpkiValidIpv6\x12*\n" +
 	"\x11rpki_invalid_ipv6\x18\x0e \x01(\x04R\x0frpkiInvalidIpv6\x12-\n" +
-	"\x13rpki_not_found_ipv6\x18\x0f \x01(\x04R\x10rpkiNotFoundIpv6\x12R\n" +
-	"\x12flappiest_networks\x18\x10 \x03(\v2#.historical.v1.HistFlappiestNetworkR\x11flappiestNetworks\x127\n" +
+	"\x13rpki_not_found_ipv6\x18\x0f \x01(\x04R\x10rpkiNotFoundIpv6\x12P\n" +
+	"\x11flappiest_network\x18\x10 \x01(\v2#.historical.v1.HistFlappiestNetworkR\x10flappiestNetwork\x127\n" +
 	"\n" +
-	"top_alerts\x18\x11 \x03(\v2\x18.historical.v1.HistAlertR\ttopAlerts\x12[\n" +
-	"\x15classification_counts\x18\x12 \x03(\v2&.historical.v1.HistClassificationCountR\x14classificationCounts\"\xdf\x02\n" +
-	"\x17HistClassificationCount\x12&\n" +
-	"\x0eclassification\x18\x01 \x01(\x05R\x0eclassification\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\rR\x05count\x12.\n" +
-	"\x13messages_per_second\x18\x03 \x01(\x02R\x11messagesPerSecond\x12\x1b\n" +
-	"\tasn_count\x18\x04 \x01(\rR\basnCount\x12!\n" +
-	"\fprefix_count\x18\x05 \x01(\rR\vprefixCount\x12*\n" +
-	"\x11ipv4_prefix_count\x18\x06 \x01(\rR\x0fipv4PrefixCount\x12*\n" +
-	"\x11ipv6_prefix_count\x18\a \x01(\rR\x0fipv6PrefixCount\x12\x1d\n" +
-	"\n" +
-	"ipv4_count\x18\b \x01(\x04R\tipv4Count\x12\x1f\n" +
-	"\vtotal_count\x18\t \x01(\x04R\n" +
-	"totalCount\"\x82\x01\n" +
+	"top_alerts\x18\x11 \x03(\v2\x18.historical.v1.HistAlertR\ttopAlerts\"\x82\x01\n" +
 	"\x11HistAlertLocation\x12\x12\n" +
 	"\x04city\x18\x01 \x01(\tR\x04city\x12\x18\n" +
 	"\acountry\x18\x02 \x01(\tR\acountry\x12\x10\n" +
@@ -1529,42 +1400,40 @@ func file_historical_v1_historical_proto_rawDescGZIP() []byte {
 	return file_historical_v1_historical_proto_rawDescData
 }
 
-var file_historical_v1_historical_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_historical_v1_historical_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_historical_v1_historical_proto_goTypes = []any{
-	(*DailyAsnArchive)(nil),         // 0: historical.v1.DailyAsnArchive
-	(*PrefixHistory)(nil),           // 1: historical.v1.PrefixHistory
-	(*Transition)(nil),              // 2: historical.v1.Transition
-	(*HistLeakDetail)(nil),          // 3: historical.v1.HistLeakDetail
-	(*DaySummary)(nil),              // 4: historical.v1.DaySummary
-	(*HistClassificationCount)(nil), // 5: historical.v1.HistClassificationCount
-	(*HistAlertLocation)(nil),       // 6: historical.v1.HistAlertLocation
-	(*HistAlert)(nil),               // 7: historical.v1.HistAlert
-	(*HistFlappiestNetwork)(nil),    // 8: historical.v1.HistFlappiestNetwork
-	(*HistTransitionSummary)(nil),   // 9: historical.v1.HistTransitionSummary
-	(*OrgArchive)(nil),              // 10: historical.v1.OrgArchive
-	(*AsnMetadata)(nil),             // 11: historical.v1.AsnMetadata
-	(*OrgMetadata)(nil),             // 12: historical.v1.OrgMetadata
-	(*PrefixSnapshot)(nil),          // 13: historical.v1.PrefixSnapshot
-	(*GlobalMetadataIndex)(nil),     // 14: historical.v1.GlobalMetadataIndex
-	(*GlobalPrefixShard)(nil),       // 15: historical.v1.GlobalPrefixShard
+	(*DailyAsnArchive)(nil),       // 0: historical.v1.DailyAsnArchive
+	(*PrefixHistory)(nil),         // 1: historical.v1.PrefixHistory
+	(*Transition)(nil),            // 2: historical.v1.Transition
+	(*HistLeakDetail)(nil),        // 3: historical.v1.HistLeakDetail
+	(*DaySummary)(nil),            // 4: historical.v1.DaySummary
+	(*HistAlertLocation)(nil),     // 5: historical.v1.HistAlertLocation
+	(*HistAlert)(nil),             // 6: historical.v1.HistAlert
+	(*HistFlappiestNetwork)(nil),  // 7: historical.v1.HistFlappiestNetwork
+	(*HistTransitionSummary)(nil), // 8: historical.v1.HistTransitionSummary
+	(*OrgArchive)(nil),            // 9: historical.v1.OrgArchive
+	(*AsnMetadata)(nil),           // 10: historical.v1.AsnMetadata
+	(*OrgMetadata)(nil),           // 11: historical.v1.OrgMetadata
+	(*PrefixSnapshot)(nil),        // 12: historical.v1.PrefixSnapshot
+	(*GlobalMetadataIndex)(nil),   // 13: historical.v1.GlobalMetadataIndex
+	(*GlobalPrefixShard)(nil),     // 14: historical.v1.GlobalPrefixShard
 }
 var file_historical_v1_historical_proto_depIdxs = []int32{
 	1,  // 0: historical.v1.DailyAsnArchive.prefixes:type_name -> historical.v1.PrefixHistory
 	2,  // 1: historical.v1.PrefixHistory.events:type_name -> historical.v1.Transition
 	3,  // 2: historical.v1.Transition.leak_detail:type_name -> historical.v1.HistLeakDetail
-	9,  // 3: historical.v1.DaySummary.latest_events:type_name -> historical.v1.HistTransitionSummary
-	8,  // 4: historical.v1.DaySummary.flappiest_networks:type_name -> historical.v1.HistFlappiestNetwork
-	7,  // 5: historical.v1.DaySummary.top_alerts:type_name -> historical.v1.HistAlert
-	5,  // 6: historical.v1.DaySummary.classification_counts:type_name -> historical.v1.HistClassificationCount
-	6,  // 7: historical.v1.HistAlert.location:type_name -> historical.v1.HistAlertLocation
-	11, // 8: historical.v1.GlobalMetadataIndex.asns:type_name -> historical.v1.AsnMetadata
-	12, // 9: historical.v1.GlobalMetadataIndex.orgs:type_name -> historical.v1.OrgMetadata
-	13, // 10: historical.v1.GlobalPrefixShard.snapshots:type_name -> historical.v1.PrefixSnapshot
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	8,  // 3: historical.v1.DaySummary.latest_events:type_name -> historical.v1.HistTransitionSummary
+	7,  // 4: historical.v1.DaySummary.flappiest_network:type_name -> historical.v1.HistFlappiestNetwork
+	6,  // 5: historical.v1.DaySummary.top_alerts:type_name -> historical.v1.HistAlert
+	5,  // 6: historical.v1.HistAlert.location:type_name -> historical.v1.HistAlertLocation
+	10, // 7: historical.v1.GlobalMetadataIndex.asns:type_name -> historical.v1.AsnMetadata
+	11, // 8: historical.v1.GlobalMetadataIndex.orgs:type_name -> historical.v1.OrgMetadata
+	12, // 9: historical.v1.GlobalPrefixShard.snapshots:type_name -> historical.v1.PrefixSnapshot
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_historical_v1_historical_proto_init() }
@@ -1578,7 +1447,7 @@ func file_historical_v1_historical_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_historical_v1_historical_proto_rawDesc), len(file_historical_v1_historical_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

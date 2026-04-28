@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    day_summary.total_transitions += total_new_events as u32;
+
+    // Sort and truncate recent events
+=======
+    day_summary.total_transitions += total_new_events as u32;
+
+    log::info!("Fetching GetSummary to update day_summary...");
+    if let Ok(mut client) = LiveMapServiceClient::connect(addr.to_string()).await {
+        if let Ok(resp) = client.get_summary(GetSummaryRequest {}).await {
+            let s = resp.into_inner();
+            day_summary.ipv4_prefix_count = s.ipv4_prefix_count;
+            day_summary.ipv6_prefix_count = s.ipv6_prefix_count;
+            day_summary.ipv4_count = s.ipv4_count;
+            day_summary.rpki_valid_ipv4 = s.rpki_valid_ipv4;
+            day_summary.rpki_invalid_ipv4 = s.rpki_invalid_ipv4;
+            day_summary.rpki_not_found_ipv4 = s.rpki_not_found_ipv4;
+            day_summary.rpki_valid_ipv6 = s.rpki_valid_ipv6;
+            day_summary.rpki_invalid_ipv6 = s.rpki_invalid_ipv6;
+            day_summary.rpki_not_found_ipv6 = s.rpki_not_found_ipv6;
+
+            if let Some(f) = s.flappiest_network_stats {
+                day_summary.flappiest_network = Some(HistFlappiestNetwork {
+                    asn: f.asn,
+                    network_name: f.network_name,
+                    event_rate: f.event_rate,
+                    flap_count: f.flap_count,
+                    prefix: f.prefix,
+                });
+            }
+        }
+    }
+
+    // Sort and truncate recent events
+>>>>>>> REPLACE

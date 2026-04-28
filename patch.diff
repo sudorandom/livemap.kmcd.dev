@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+message DaySummary {
+    int64 date = 1; // Unix timestamp for start of day
+    uint32 total_transitions = 2;
+    uint32 unique_asns = 3;
+    uint32 unique_prefixes = 4;
+    repeated HistTransitionSummary latest_events = 5;
+    uint32 unique_orgs = 6;
+}
+=======
+message DaySummary {
+    int64 date = 1; // Unix timestamp for start of day
+    uint32 total_transitions = 2;
+    uint32 unique_asns = 3;
+    uint32 unique_prefixes = 4;
+    repeated HistTransitionSummary latest_events = 5;
+    uint32 unique_orgs = 6;
+
+    uint32 ipv4_prefix_count = 7;
+    uint32 ipv6_prefix_count = 8;
+    uint64 ipv4_count = 9;
+
+    uint64 rpki_valid_ipv4 = 10;
+    uint64 rpki_invalid_ipv4 = 11;
+    uint64 rpki_not_found_ipv4 = 12;
+
+    uint64 rpki_valid_ipv6 = 13;
+    uint64 rpki_invalid_ipv6 = 14;
+    uint64 rpki_not_found_ipv6 = 15;
+
+    HistFlappiestNetwork flappiest_network = 16;
+}
+
+message HistFlappiestNetwork {
+    uint32 asn = 1;
+    string network_name = 2;
+    float event_rate = 3;
+    uint32 flap_count = 4;
+    string prefix = 5;
+}
+>>>>>>> REPLACE

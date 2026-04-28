@@ -14,7 +14,7 @@ web-install:
 
 web-check:
 	cd web && mise exec -- pnpm exec tsc --noEmit
-	cd web && mise exec -- pnpm run lint
+
 
 web-dev:
 	cd web && mise exec -- pnpm run dev

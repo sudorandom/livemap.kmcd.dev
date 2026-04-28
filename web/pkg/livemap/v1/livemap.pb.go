@@ -613,15 +613,15 @@ type GetSummaryResponse struct {
 	EventComposition     []*CompositionEntry    `protobuf:"bytes,13,rep,name=event_composition,json=eventComposition,proto3" json:"event_composition,omitempty"`
 	LastRpkiStatus       RPKIStatus             `protobuf:"varint,14,opt,name=last_rpki_status,json=lastRpkiStatus,proto3,enum=livemap.v1.RPKIStatus" json:"last_rpki_status,omitempty"`
 	// Top stats
-	FlappiestNetworkStats []*FlappiestNetworkStats `protobuf:"bytes,23,rep,name=flappiest_network_stats,json=flappiestNetworkStats,proto3" json:"flappiest_network_stats,omitempty"`
-	LargestOrgName        string                   `protobuf:"bytes,18,opt,name=largest_org_name,json=largestOrgName,proto3" json:"largest_org_name,omitempty"`
-	LargestOrgIpv4Count   uint64                   `protobuf:"varint,19,opt,name=largest_org_ipv4_count,json=largestOrgIpv4Count,proto3" json:"largest_org_ipv4_count,omitempty"`
-	RpkiValidIpv4         uint64                   `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
-	RpkiInvalidIpv4       uint64                   `protobuf:"varint,21,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
-	RpkiNotFoundIpv4      uint64                   `protobuf:"varint,22,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
-	RpkiValidIpv6         uint64                   `protobuf:"varint,24,opt,name=rpki_valid_ipv6,json=rpkiValidIpv6,proto3" json:"rpki_valid_ipv6,omitempty"`
-	RpkiInvalidIpv6       uint64                   `protobuf:"varint,25,opt,name=rpki_invalid_ipv6,json=rpkiInvalidIpv6,proto3" json:"rpki_invalid_ipv6,omitempty"`
-	RpkiNotFoundIpv6      uint64                   `protobuf:"varint,26,opt,name=rpki_not_found_ipv6,json=rpkiNotFoundIpv6,proto3" json:"rpki_not_found_ipv6,omitempty"`
+	FlappiestNetworkStats *FlappiestNetworkStats `protobuf:"bytes,23,opt,name=flappiest_network_stats,json=flappiestNetworkStats,proto3" json:"flappiest_network_stats,omitempty"`
+	LargestOrgName        string                 `protobuf:"bytes,18,opt,name=largest_org_name,json=largestOrgName,proto3" json:"largest_org_name,omitempty"`
+	LargestOrgIpv4Count   uint64                 `protobuf:"varint,19,opt,name=largest_org_ipv4_count,json=largestOrgIpv4Count,proto3" json:"largest_org_ipv4_count,omitempty"`
+	RpkiValidIpv4         uint64                 `protobuf:"varint,20,opt,name=rpki_valid_ipv4,json=rpkiValidIpv4,proto3" json:"rpki_valid_ipv4,omitempty"`
+	RpkiInvalidIpv4       uint64                 `protobuf:"varint,21,opt,name=rpki_invalid_ipv4,json=rpkiInvalidIpv4,proto3" json:"rpki_invalid_ipv4,omitempty"`
+	RpkiNotFoundIpv4      uint64                 `protobuf:"varint,22,opt,name=rpki_not_found_ipv4,json=rpkiNotFoundIpv4,proto3" json:"rpki_not_found_ipv4,omitempty"`
+	RpkiValidIpv6         uint64                 `protobuf:"varint,24,opt,name=rpki_valid_ipv6,json=rpkiValidIpv6,proto3" json:"rpki_valid_ipv6,omitempty"`
+	RpkiInvalidIpv6       uint64                 `protobuf:"varint,25,opt,name=rpki_invalid_ipv6,json=rpkiInvalidIpv6,proto3" json:"rpki_invalid_ipv6,omitempty"`
+	RpkiNotFoundIpv6      uint64                 `protobuf:"varint,26,opt,name=rpki_not_found_ipv6,json=rpkiNotFoundIpv6,proto3" json:"rpki_not_found_ipv6,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -747,7 +747,7 @@ func (x *GetSummaryResponse) GetLastRpkiStatus() RPKIStatus {
 	return RPKIStatus_RPKI_STATUS_UNSPECIFIED
 }
 
-func (x *GetSummaryResponse) GetFlappiestNetworkStats() []*FlappiestNetworkStats {
+func (x *GetSummaryResponse) GetFlappiestNetworkStats() *FlappiestNetworkStats {
 	if x != nil {
 		return x.FlappiestNetworkStats
 	}
@@ -1746,7 +1746,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x12loading_historical\x18\f \x01(\bR\x11loadingHistorical\x12I\n" +
 	"\x11event_composition\x18\r \x03(\v2\x1c.livemap.v1.CompositionEntryR\x10eventComposition\x12@\n" +
 	"\x10last_rpki_status\x18\x0e \x01(\x0e2\x16.livemap.v1.RPKIStatusR\x0elastRpkiStatus\x12Y\n" +
-	"\x17flappiest_network_stats\x18\x17 \x03(\v2!.livemap.v1.FlappiestNetworkStatsR\x15flappiestNetworkStats\x12(\n" +
+	"\x17flappiest_network_stats\x18\x17 \x01(\v2!.livemap.v1.FlappiestNetworkStatsR\x15flappiestNetworkStats\x12(\n" +
 	"\x10largest_org_name\x18\x12 \x01(\tR\x0elargestOrgName\x123\n" +
 	"\x16largest_org_ipv4_count\x18\x13 \x01(\x04R\x13largestOrgIpv4Count\x12&\n" +
 	"\x0frpki_valid_ipv4\x18\x14 \x01(\x04R\rrpkiValidIpv4\x12*\n" +
