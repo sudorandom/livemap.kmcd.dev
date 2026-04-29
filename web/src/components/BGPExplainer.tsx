@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const PanelContainer = ({ title, children, description, className = "", onPrev, onNext }: { title: string, children: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void }) => (
-  <div className="cyber-box p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
+  <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
         <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider mb-1">{title}</h3>
@@ -27,7 +27,7 @@ export const PanelContainer = ({ title, children, description, className = "", o
         </div>
       )}
     </div>
-    <div className={`flex-grow flex items-center justify-center bg-transparent rounded-lg border border-slate-200/50 dark:border-slate-500/10 p-4 relative overflow-hidden min-h-[350px] ${className}`}>
+    <div className={`flex-grow flex items-center justify-center bg-transparent rounded-lg p-0 relative overflow-hidden min-h-[350px] ${className}`}>
       {children}
     </div>
   </div>
@@ -342,7 +342,7 @@ export const BGPRoutingExplainer = () => {
       </div>
 
       {/* CONTENT AREA */}
-      <div className="lg:w-2/3 h-[700px]">
+      <div className="lg:w-2/3 min-h-[500px] lg:h-[700px]">
         {activeTab === 0 && (
           <PanelContainer 
             title="1. Announcing" 
@@ -833,7 +833,7 @@ export const BGPSecurityExplainer = () => {
       </div>
 
       {/* CONTENT AREA */}
-      <div className="lg:w-2/3 h-[700px]">
+      <div className="lg:w-2/3 min-h-[500px] lg:h-[700px]">
         {activeTab === 0 && (
           <PanelContainer 
             title="1. Route Hijack" 
