@@ -412,14 +412,18 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
               </div>
             </div>
 
-            <div className="space-y-4 pt-8 border-t border-slate-500/10">
-              <h4 className="text-xl font-bold text-slate-900 dark:text-slate-200 uppercase tracking-tight">How to fix this</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-4xl">
-                <strong>Route Origin Validation (ROV)</strong> uses RPKI signatures to prove route ownership. If a received route does not match the cryptographic signature, the router marks it as <span className="text-red-600 font-bold uppercase">Invalid</span> and drops it. ROV is the primary defense against policy errors and malicious path stealing.
+            <div className="space-y-4 pt-12 border-t border-slate-500/10">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <ShieldAlert className="text-red-500" size={24} />
+                </div>
+                <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Threats and Defenses</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed mb-8">
+                Understanding the theory of BGP security is one thing; seeing a hijack in action is another. Use the simulation below to witness how malicious actors exploit the protocol and how modern defenses like <strong>Route Origin Validation (ROV)</strong> use RPKI signatures to identify and drop invalid paths in real-time.
               </p>
+              <BGPSecurityExplainer />
             </div>
-
-            <BGPSecurityExplainer />
 
             <div className="space-y-6 pt-12 border-t border-slate-500/10">
               <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Global RPKI Adoption</h3>
@@ -636,7 +640,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">RANK {idx+1}</span>
                               <h3 className="font-bold text-slate-900 dark:text-white truncate uppercase tracking-tight">
-                                AS{network.asn}{cleanName && ` — ${cleanName}`}
+                                AS{network.asn}{cleanName && ` - ${cleanName}`}
                               </h3>
                             </div>
                             <p className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2">

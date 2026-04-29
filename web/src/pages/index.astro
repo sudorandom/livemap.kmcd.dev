@@ -361,7 +361,18 @@ try {
           </div>
         </div>
 
-        <BGPRoutingExplainer client:load />
+        <div class="mt-16 border-t border-slate-500/10 pt-16">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+              <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>
+            </div>
+            <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">BGP in Action</h3>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 mb-8 max-w-3xl leading-relaxed">
+            To truly understand BGP, you must see it in motion. Use the simulation below to walk through the lifecycle of a route. Starting from its initial announcement and path selection across the global internet mesh, to handling failures and anycast failover.
+          </p>
+          <BGPRoutingExplainer client:load />
+        </div>
       </section>
 
       {/* Main Integrated Dashboard */}
