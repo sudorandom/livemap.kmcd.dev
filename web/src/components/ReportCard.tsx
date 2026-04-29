@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Cell as ReCell } from 'recharts';
 import { AlertTriangle, WifiOff, ShieldAlert, Activity, Search, Info, Globe, CheckCircle2, Clock, ShieldCheck, HeartPulse, ExternalLink } from 'lucide-react';
 import { getRelativeTime, formatHumanNumber, getClassificationName, fetchDaySummary } from '../dataService';
+import { BGPSecurityExplainer } from './BGPExplainer';
 
 // Colors aligned with pkg/bgpengine/colors.go
 const CLASSIFICATION_INFO: Record<number, { name: string, color: string, icon: any, hex: string }> = {
@@ -421,6 +422,8 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                 </div>
               </div>
             </div>
+            
+            <BGPSecurityExplainer />
         </div>
       </section>
 

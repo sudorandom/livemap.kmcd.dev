@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { ReportCard } from '../components/ReportCard';
 import { ISPSafetyTest } from '../components/ISPSafetyTest';
+import { BGPRoutingExplainer } from '../components/BGPExplainer';
 ---
 
 <Layout title="BGP Live Report Card">
@@ -61,6 +62,20 @@ import { ISPSafetyTest } from '../components/ISPSafetyTest';
             allowfullscreen>
           </iframe>
         </div>
+      </section>
+
+      {/* BGP Interactive Explainer */}
+      <section class="mb-16">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+            <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </div>
+          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Understanding BGP</h2>
+        </div>
+        <p class="text-slate-600 dark:text-slate-400 mb-8 max-w-4xl leading-relaxed">
+          The <strong>Border Gateway Protocol (BGP)</strong> is the routing protocol of the internet. It acts like the postal service for the web, allowing different networks (Autonomous Systems or ASes) to announce which IP addresses they control and discover the most efficient paths to send data to each other. Because BGP relies on trust, it is vulnerable to misconfigurations or malicious attacks known as Route Hijacks.
+        </p>
+        <BGPRoutingExplainer client:load />
       </section>
 
       {/* Main Integrated Dashboard */}
