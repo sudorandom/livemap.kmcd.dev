@@ -2,7 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import { ReportCard } from '../components/ReportCard';
 import { ISPSafetyTest } from '../components/ISPSafetyTest';
-import { BGPRoutingExplainer } from '../components/BGPExplainer';
+import { BGPRoutingExplainer, BGPAdvancedTopics } from '../components/BGPExplainer';
+import { Clock } from 'lucide-react';
 ---
 
 <Layout title="BGP Live Report Card">
@@ -82,6 +83,41 @@ import { BGPRoutingExplainer } from '../components/BGPExplainer';
       <ReportCard client:only="react">
          <ISPSafetyTest client:only="react" />
       </ReportCard>
+
+      {/* Advanced Topics Section */}
+      <section class="mt-20">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+            <svg class="w-6 h-6 text-cyan-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
+          </div>
+          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Reference & Standards</h2>
+        </div>
+        <div class="cyber-box p-8 rounded-xl shadow-2xl">
+          <BGPAdvancedTopics client:load />
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer class="mt-20 pt-12 pb-8 border-t border-slate-500/10 flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
+        <div class="flex items-center gap-4">
+           <a
+             href="https://kmcd.dev"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="text-xs font-cyber font-bold tracking-widest text-slate-400 hover:text-cyan-500 transition-colors uppercase"
+           >
+             kmcd.dev &rarr;
+           </a>
+        </div>
+
+        <div class="flex justify-center items-center gap-3">
+          <Clock size={14} class="text-cyan-500 animate-pulse" aria-hidden="true" />
+          <div class="text-[11px] font-mono text-slate-500 uppercase tracking-[0.2em]">
+            GLOBAL ROUTING TELEMETRY <span class="mx-2 opacity-30">/</span>
+            <span class="text-cyan-600 dark:text-cyan-400">REAL-TIME FEED</span>
+          </div>
+        </div>
+      </footer>
 
     </div>
   </main>

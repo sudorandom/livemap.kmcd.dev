@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe } from 'lucide-react';
 
 export const PanelContainer = ({ title, children, description, className = "" }: { title: string, children: React.ReactNode, description: string, className?: string }) => (
@@ -120,19 +120,21 @@ const spawnPulse = (setter: React.Dispatch<React.SetStateAction<any[]>>, duratio
 };
 
 // DataPulse component using CSS Motion Paths for reliable replaying
-const DataPulse = ({ path, color = "white", duration = "3s" }: { path: string, color?: string, duration?: string }) => {
+const DataPulse = ({ path, color = "white", duration = "3s", delay = "0s" }: { path: string, color?: string, duration?: string, delay?: string }) => {
   const isRed = color === 'red';
   const isCyan = color === 'cyan';
-  const fillColor = isRed ? 'fill-red-500' : (isCyan ? 'fill-cyan-400' : 'fill-white');
-  const glowClass = isRed ? 'shadow-glow-red' : (isCyan ? 'shadow-glow-cyan' : 'shadow-glow-white');
+  const isPurple = color === 'purple';
+  const fillColor = isRed ? 'fill-red-500' : (isCyan ? 'fill-cyan-400' : (isPurple ? 'fill-purple-500' : 'fill-white'));
+  const glowClass = isRed ? 'shadow-glow-red' : (isCyan ? 'shadow-glow-cyan' : (isPurple ? 'shadow-glow-purple' : 'shadow-glow-white'));
 
   return (
     <circle 
       r="4" 
-      className={`fill-current ${fillColor} ${glowClass} animate-pulse-path`}
+      className={`fill-current ${fillColor} ${glowClass} animate-pulse-path opacity-0`}
       style={{ 
         offsetPath: `path('${path}')`,
         animationDuration: duration,
+        animationDelay: delay,
       } as any}
     />
   );
@@ -140,6 +142,8 @@ const DataPulse = ({ path, color = "white", duration = "3s" }: { path: string, c
 
 export const BGPRoutingExplainer = () => {
   const [announcing, setAnnouncing] = useState(false);
+  const [midLearned, setMidLearned] = useState(false);
+  const [entryLearned, setEntryLearned] = useState(false);
   const [announcementComplete, setAnnouncementComplete] = useState(false);
   const [routingActive, setRoutingActive] = useState(false);
   const [routingPulses, setRoutingPulses] = useState<{id: number}[]>([]);
@@ -150,18 +154,29 @@ export const BGPRoutingExplainer = () => {
   const [asymmetricPulses, setAsymmetricPulses] = useState<{id: number}[]>([]);
   const [multipathActive, setMultipathActive] = useState(false);
   const [multipathPulses, setMultipathPulses] = useState<{id: number, color: string, path: string}[]>([]);
+  const [anycastLocation, setAnycastLocation] = useState(false);
+  const [anycastPulses, setAnycastPulses] = useState<{id: number, path: string}[]>([]);
 
   useEffect(() => {
     if (announcing) {
-      const t = setTimeout(() => setAnnouncementComplete(true), 2000);
-      return () => clearTimeout(t);
+      setMidLearned(true);
+      const t1 = setTimeout(() => setEntryLearned(true), 1000);
+      const t2 = setTimeout(() => setAnnouncementComplete(true), 2000);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
     } else {
+      setMidLearned(false);
+      setEntryLearned(false);
       setAnnouncementComplete(false);
     }
   }, [announcing]);
 
-  const fullPathL = `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`;
-  const fullPathR = `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`;
+  const fullPathL = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
+  const fullPathR = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
+  const outboundPath = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y}`, []);
+  const returnPath = useMemo(() => `M${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
 
   useEffect(() => {
     if (withdrawn) {
@@ -204,6 +219,7 @@ export const BGPRoutingExplainer = () => {
         .shadow-glow-white { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9)); }
         .shadow-glow-cyan { filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.9)); }
         .shadow-glow-red { filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.9)); }
+        .shadow-glow-purple { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9)); }
 
         @keyframes pulse-motion {
           0% { offset-distance: 0%; opacity: 0; }
@@ -225,20 +241,22 @@ export const BGPRoutingExplainer = () => {
         description="The Origin AS 'announces' its IP space. Routers propagate this information so that every network knows the path back to the origin."
       >
         <svg viewBox="0 0 400 350" className="w-full h-full">
+          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
           <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={announcing ? 'announcing' : 'idle'} />
           <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={announcing ? 'announcing' : 'idle'} />
           <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={announcing ? 'announcing' : 'idle'} delay={announcing ? 1000 : 0} />
           <Path from={COORDS.MID_R} to={COORDS.ENTRY} state={announcing ? 'announcing' : 'idle'} delay={announcing ? 1000 : 0} />
 
-          <Node x={COORDS.ENTRY.x} y={COORDS.ENTRY.y} type="router" />
-          <Node x={COORDS.MID_L.x} y={COORDS.MID_L.y} type="router" />
-          <Node x={COORDS.MID_R.x} y={COORDS.MID_R.y} type="router" />
+          <Node x={COORDS.USER.x} y={COORDS.USER.y} type="user" label="User" color="emerald" />
+          <Node x={COORDS.ENTRY.x} y={COORDS.ENTRY.y} type="router" color={entryLearned ? "emerald" : "slate"} />
+          <Node x={COORDS.MID_L.x} y={COORDS.MID_L.y} type="router" color={midLearned ? "emerald" : "slate"} />
+          <Node x={COORDS.MID_R.x} y={COORDS.MID_R.y} type="router" color={midLearned ? "emerald" : "slate"} />
           <Node x={COORDS.ORIGIN.x} y={COORDS.ORIGIN.y} type="router" label="Origin AS" color="indigo" />
 
           {announcementComplete && (
             <g className="transition-opacity duration-500 opacity-100">
-               <rect x={COORDS.ENTRY.x - 45} y={COORDS.ENTRY.y - 45} width={90} height={18} rx={9} className="fill-cyan-500/20 stroke-cyan-400 stroke-1" />
-               <text x={COORDS.ENTRY.x} y={COORDS.ENTRY.y - 33} textAnchor="middle" className="fill-cyan-400 text-[8px] font-bold uppercase tracking-tighter">Route Learned</text>
+               <rect x={COORDS.ENTRY.x + 30} y={COORDS.ENTRY.y - 9} width={90} height={18} rx={9} className="fill-cyan-500/20 stroke-cyan-400 stroke-1" />
+               <text x={COORDS.ENTRY.x + 75} y={COORDS.ENTRY.y + 3} textAnchor="middle" className="fill-cyan-400 text-[8px] font-bold uppercase tracking-tighter">Route Learned</text>
             </g>
           )}
         </svg>
@@ -258,7 +276,7 @@ export const BGPRoutingExplainer = () => {
         description="Data follows the established paths. BGP selects the shortest route to reach the destination AS."
       >
         <svg viewBox="0 0 400 350" className="w-full h-full">
-          <Path from={COORDS.USER} to={COORDS.ENTRY} state={routingActive ? 'primary' : 'idle'} />
+          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
           <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={routingActive ? 'primary' : 'announcing'} />
           <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={routingActive ? 'primary' : 'announcing'} />
           
@@ -332,7 +350,7 @@ export const BGPRoutingExplainer = () => {
         description="In BGP, the path taken to reach a destination may differ from the path taken for return traffic. This is normal but can complicate troubleshooting."
       >
         <svg viewBox="0 0 400 350" className="w-full h-full">
-          <Path from={COORDS.USER} to={COORDS.ENTRY} state={asymmetricActive ? 'primary' : 'idle'} />
+          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
           <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={asymmetricActive ? 'primary' : 'announcing'} />
           <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={asymmetricActive ? 'primary' : 'announcing'} />
           
@@ -346,7 +364,10 @@ export const BGPRoutingExplainer = () => {
           <Node x={COORDS.ORIGIN.x} y={COORDS.ORIGIN.y} type="router" label="Destination" color="indigo" />
 
           {asymmetricPulses.map(pulse => (
-            <DataPulse key={pulse.id} path={`M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`} />
+            <React.Fragment key={pulse.id}>
+              <DataPulse path={outboundPath} color="cyan" duration="1.5s" />
+              <DataPulse path={returnPath} color="purple" duration="1.5s" delay="1.5s" />
+            </React.Fragment>
           ))}
         </svg>
 
@@ -368,7 +389,7 @@ export const BGPRoutingExplainer = () => {
         description="Equal-Cost Multi-Path (ECMP) allows a router to distribute traffic across multiple best-paths simultaneously for better load balancing."
       >
         <svg viewBox="0 0 400 350" className="w-full h-full">
-          <Path from={COORDS.USER} to={COORDS.ENTRY} state={multipathActive ? 'primary' : 'idle'} />
+          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
           
           <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={multipathActive ? 'primary' : 'announcing'} />
           <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={multipathActive ? 'primary' : 'announcing'} />
@@ -407,8 +428,61 @@ export const BGPRoutingExplainer = () => {
         </button>
       </PanelContainer>
 
-      {/* Panel 6: Advanced Topics */}
-      <BGPAdvancedTopics />
+      {/* Panel 6: Anycast */}
+      <PanelContainer 
+        title="6. Anycast Routing" 
+        description="Multiple servers announce the exact same IP address. BGP naturally routes user traffic to the topologically closest destination, enabling global CDNs and root DNS."
+      >
+        <svg viewBox="0 0 400 350" className="w-full h-full">
+          {/* Transit Link */}
+          <path 
+            d={`M100,150 L300,150`} 
+            stroke="currentColor" 
+            fill="none" 
+            strokeWidth="2"
+            strokeDasharray="5,5"
+            className="text-slate-700 opacity-30"
+          />
+          <text x="200" y="140" textAnchor="middle" className="fill-slate-600 text-[7px] uppercase font-bold tracking-widest">Global Transit (Longer Path)</text>
+
+          {/* Local Paths */}
+          <Path from={{x: 100, y: 150}} to={{x: 100, y: 270}} state="primary" />
+          <Path from={{x: 300, y: 150}} to={{x: 300, y: 270}} state="primary" />
+
+          {/* User Connections */}
+          <path d="M100,50 L100,150" stroke="currentColor" fill="none" strokeWidth="3" className="text-cyan-500" />
+          <path d="M300,50 L300,150" stroke="currentColor" fill="none" strokeWidth="3" className="text-cyan-500" />
+
+          <Node x={100} y={50} type="user" label="User (EU)" color="emerald" />
+          <Node x={300} y={50} type="user" label="User (Asia)" color="emerald" />
+          
+          <Node x={100} y={150} type="router" />
+          <Node x={300} y={150} type="router" />
+          
+          <Node x={100} y={270} type="router" label="Origin (1.1.1.1)" color="indigo" />
+          <Node x={300} y={270} type="router" label="Origin (1.1.1.1)" color="indigo" />
+
+          {anycastPulses.map(pulse => (
+            <DataPulse 
+              key={pulse.id} 
+              path={pulse.path}
+              duration="3s"
+              color="white"
+            />
+          ))}
+        </svg>
+
+        <button 
+          onClick={() => {
+            spawnPulse(setAnycastPulses, 3000, { path: `M100,50 L100,150 L100,270 L100,150 L100,50` });
+            spawnPulse(setAnycastPulses, 3000, { path: `M300,50 L300,150 L300,270 L300,150 L300,50` });
+          }}
+          className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
+        >
+          Trace Route
+          <Activity size={12} />
+        </button>
+      </PanelContainer>
 
     </div>
   );
@@ -518,8 +592,8 @@ export const BGPSecurityExplainer = () => {
   const [hijackPulses, setHijackPulses] = useState<{id: number, path: string, color: string}[]>([]);
   const [filterPulses, setFilteredPulses] = useState<{id: number, path: string, color: string}[]>([]);
 
-  const fullPathR = `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`;
-  const hijackPath = `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.MALICIOUS.x},${COORDS.MALICIOUS.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`;
+  const fullPathR = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
+  const hijackPath = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.MALICIOUS.x},${COORDS.MALICIOUS.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
 
   // Snapshot refs for security panels
   const securitySettings = useRef({ hijacked: false, filtered: false });
@@ -582,7 +656,7 @@ export const BGPSecurityExplainer = () => {
           
           <Path from={COORDS.MALICIOUS} to={COORDS.MID_L} state={hijacked ? 'announcing' : 'idle'} color="red" />
           
-          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" color={hijacked ? "red" : "cyan"} />
+          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
 
           <Node x={COORDS.USER.x} y={COORDS.USER.y} type="user" label="User" color="emerald" />
           <Node x={COORDS.ENTRY.x} y={COORDS.ENTRY.y} type="router" />

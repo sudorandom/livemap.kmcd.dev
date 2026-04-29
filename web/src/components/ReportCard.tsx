@@ -104,8 +104,8 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
   }, [alerts, selectedCategories]);
 
   return (
-    <div className="cyber-box p-6 rounded-lg flex flex-col group shadow-xl">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-500/10 pb-4 mb-6">
+    <div className="cyber-box p-6 rounded-lg flex flex-col group shadow-xl h-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-500/10 pb-4 mb-6 shrink-0">
         <h2 className="text-xl font-cyber font-bold flex items-center gap-2">
           <span className="w-2 h-2 bg-red-500 animate-pulse"></span>
           CRITICAL ALERTS
@@ -130,7 +130,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
           })}
         </div>
       </div>
-      <div className="overflow-y-auto flex-grow h-[550px] pr-2 custom-scrollbar mb-4">
+      <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar mb-4">
         {filteredAlerts.length > 0 ? (
           <ul className="space-y-2">
             {filteredAlerts.map((alert: any, i: number) => {
@@ -435,147 +435,155 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
         </div>
 
         <div className="grid grid-cols-1 gap-8">
-           <div className="cyber-box p-8 md:p-12 rounded-xl flex flex-col space-y-8 shadow-2xl">
-             <div className="space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
-               <h3 className="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Observing Global Instability</h3>
-               <p>
-                 BGP telemetry reveals the constant, chaotic "heartbeat" of the global internet. While most of the network is stable, we can infer significant technical failures through specific behaviors:
+          <div className="cyber-box p-8 md:p-12 rounded-xl flex flex-col space-y-12 shadow-2xl">
+            <div className="space-y-8 text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
+              <div>
+               <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4">Internet Routing Dynamics</h3>
+               <p className="text-lg">
+                 BGP telemetry reveals the constant, chaotic "heartbeat" of the global internet. While most of the network is stable, technical failures and malicious actors create a background radiation of routing anomalies.
                </p>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <WifiOff size={16} className="text-[#FF3232]" /> OUTAGES & FLAPPING
-                    </h4>
-                    <p className="text-xs">
-                      An <strong>Outage</strong> appears as a mass withdrawal of routes, causing a prefix to vanish from the global table. <strong>Flapping</strong> occurs when a network repeatedly fails and recovers, causing a "yo-yo" effect that forces global path re-calculation.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-[#FF0000] flex items-center gap-2">
-                      <AlertTriangle size={16} /> ROUTE LEAKS
-                    </h4>
-                    <p className="text-xs">
-                      These are the most common BGP events. A <strong>Route Leak</strong> is typically a technical mistake where a network re-broadcasts routes learned from one provider to another, accidentally turning itself into an overwhelmed transit hub.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-[#9400D3] flex items-center gap-2">
-                      <Activity size={16} /> DDOS PROTECTION
-                    </h4>
-                    <p className="text-xs">
-                      Networks defend against attacks using <strong>Remote Triggered Black Holes (RTBH)</strong> and <strong>BGP Flowspec</strong>. By announcing discard routes, they drop malicious traffic at the network edge, thousands of miles from the target.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-[#9400D3] flex items-center gap-2">
-                      <Search size={16} /> PATH HUNTING
-                    </h4>
-                    <p className="text-xs">
-                      When a route is withdrawn, routers don't always give up immediately. <strong>Path Hunting</strong> is the "echo" as routers cycle through increasingly worse backup paths before finally realizing the destination is unreachable.
-                    </p>
-                  </div>
-               </div>
-             </div>
+              </div>
 
-             <div className="border-t border-slate-500/10 pt-10">
-               <h3 className="text-xl font-cyber font-bold mb-6 text-slate-900 dark:text-white uppercase">Global Status Summary</h3>
-               <div className="h-96 flex-grow">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={healthChartData} layout="vertical" margin={{ left: 40, right: 40 }} accessibilityLayer={false}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={120} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
-                      itemStyle={{ color: '#fff' }}
-                      formatter={(val: any) => [formatHumanNumber(val), 'Prefixes']}
-                    />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                      {healthChartData.map((entry: any, index: number) => (
-                        <ReCell key={`cell-${index}`} fill={entry.fill} tabIndex={-1} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-               </div>
-             </div>
-           </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 pt-4">
+                 <div className="space-y-4 border-l-2 border-red-500 pl-6 relative">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-red-500 rounded-full"></div>
+                   <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
+                     <ShieldAlert size={20} className="text-[#FF0000]" /> Route Hijacks
+                   </h4>
+                   <p className="opacity-90 leading-relaxed">
+                     A <strong>Hijack</strong> occurs when an <a href="https://www.cloudflare.com/learning/network-layer/what-is-an-autonomous-system/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Autonomous System (AS)</a> announces an <a href="https://community.cisco.com/t5/routing-and-sd-wan/bgp-prefix-concept/td-p/500111" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">IP prefix</a> it does not own. This can be a malicious attempt to intercept traffic or a simple "fat-finger" typo. Because BGP prefers the "most specific" route, a hijacker announcing a /24 can steal traffic from a legitimate /23 announcement globally.
+                   </p>
+                 </div>
+
+                 <div className="space-y-4 border-l-2 border-orange-500 pl-6 relative">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-orange-500 rounded-full"></div>
+                   <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
+                     <AlertTriangle size={20} className="text-orange-500" /> Route Leaks
+                   </h4>
+                   <p className="opacity-90 leading-relaxed">
+                     A <strong>Route Leak</strong> is typically a configuration error where an AS (often a customer) re-broadcasts routes from one upstream provider to another. This accidentally turns a small network into a <a href="https://en.wikipedia.org/wiki/Internet_transit" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">transit hub</a> for global traffic, quickly overwhelming its links and causing massive regional slowdowns or outages.
+                   </p>
+                 </div>
+
+                 <div className="space-y-4 border-l-2 border-[#FF3232] pl-6 relative">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-[#FF3232] rounded-full"></div>
+                   <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
+                     <WifiOff size={20} className="text-[#FF3232]" /> Mass Outages
+                   </h4>
+                   <p className="opacity-90 leading-relaxed">
+                     When a large network or data center loses power or fiber connectivity, it issues <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
+                   </p>
+                 </div>
+
+                 <div className="space-y-4 border-l-2 border-[#9400D3] pl-6 relative">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-[#9400D3] rounded-full"></div>
+                   <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
+                     <Activity size={20} className="text-[#9400D3]" /> BGP Flapping
+                   </h4>
+                   <p className="opacity-90 leading-relaxed">
+                     <strong>Flapping</strong> is a high-frequency "up-down" cycle of a route. If a hardware link is loose, it forces every other router on the internet to repeatedly recalculate its best path. To protect themselves, routers use <a href="https://en.wikipedia.org/wiki/Route_flapping#Route_flap_damping" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Route Dampening</a> to temporarily ignore networks that flap too often.
+                   </p>
+                 </div>
+
+                 <div className="space-y-4 border-l-2 border-cyan-500 pl-6 relative opacity-75">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-cyan-500 rounded-full"></div>
+                   <h4 className="font-cyber font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
+                     <ShieldCheck size={18} className="text-cyan-500" /> RPKI Enforcement
+                   </h4>
+                   <p className="text-sm">
+                     As ISPs deploy RPKI, we see an increase in "Invalid" drops. This is a <strong>good</strong> sign—it means the security system is working. We monitor the ratio of valid to invalid routes to track the global progress of the <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">"Is BGP Safe Yet?"</a> initiative.
+                   </p>
+                 </div>
+
+                 <div className="space-y-4 border-l-2 border-indigo-500 pl-6 relative opacity-75">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-indigo-500 rounded-full"></div>
+                   <h4 className="font-cyber font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
+                     <Activity size={18} className="text-indigo-500" /> DDoS FlowSpec
+                   </h4>
+                   <p className="text-sm">
+                     When a network is under a massive <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">DDoS attack</a>, it may use <strong>BGP FlowSpec</strong> to propagate firewall rules to its neighbors. This allows the network to "surgical strike" malicious traffic across the entire internet.
+                   </p>
+                 </div>
+              </div>
+            </div>          </div>
         </div>
 
-        {/* Flappiest Networks & Anomalies */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-          {/* Flappiest */}
-          <div className="cyber-box p-6 rounded-lg group flex flex-col shadow-xl">
-            <div className="mb-6 border-b border-slate-500/10 pb-4">
-              <h2 className="text-xl font-cyber font-bold flex items-center justify-between">
+        {/* Live Monitoring Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          {/* Flappiest Networks */}
+          <div className="cyber-box p-6 rounded-lg group flex flex-col shadow-xl h-[750px]">
+            <div className="mb-6 border-b border-slate-500/10 pb-4 shrink-0">
+              <h2 className="text-xl font-cyber font-bold flex items-center justify-between uppercase">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-orange-500"></span>
-                  TOP FLAPPY NETWORKS
+                  Top Flappy Networks
                 </div>
                 <span className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Last 24 Hours</span>
               </h2>
-              <p className="text-[10px] font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Network Hall of Shame</p>
+              <p className="text-[10px] font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Global Instability Leaders</p>
             </div>
-            {data.flappiestNetworks && data.flappiestNetworks.length > 0 ? (
-              <div className="space-y-4 mb-4">
-                {data.flappiestNetworks.slice(0, 5).map((network: any, idx: number) => {
-                  const cleanName = network.networkName && network.networkName !== `AS${network.asn}` ? network.networkName : '';
+            <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar">
+              {data.flappiestNetworks && data.flappiestNetworks.length > 0 ? (
+                <div className="space-y-4 mb-4">
+                  {data.flappiestNetworks.slice(0, 5).map((network: any, idx: number) => {
+                    const cleanName = network.networkName && network.networkName !== `AS${network.asn}` ? network.networkName : '';
 
-                  return (
-                    <div key={idx} className="bg-orange-500/5 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 transition-all hover:bg-orange-500/10 dark:hover:bg-orange-500/20 group/row">
-                      <div className="flex justify-between items-start">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">RANK {idx+1}</span>
-                            <h3 className="font-bold text-slate-900 dark:text-white truncate">
-                              AS{network.asn}{cleanName && ` — ${cleanName}`}
-                            </h3>
+                    return (
+                      <div key={idx} className="bg-orange-500/5 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 transition-all hover:bg-orange-500/10 dark:hover:bg-orange-500/20 group/row">
+                        <div className="flex justify-between items-start">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">RANK {idx+1}</span>
+                              <h3 className="font-bold text-slate-900 dark:text-white truncate uppercase tracking-tight">
+                                AS{network.asn}{cleanName && ` — ${cleanName}`}
+                              </h3>
+                            </div>
+                            <p className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                              <span className="opacity-50 font-bold tracking-tighter uppercase text-[9px]">Prefix:</span>
+                              <span className="text-orange-600/80 dark:text-orange-400/80">{network.prefix}</span>
+                            </p>
                           </div>
-                          <p className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <span className="opacity-50 font-bold tracking-tighter uppercase text-[9px]">Prefix:</span>
-                            <span className="text-orange-600/80 dark:text-orange-400/80">{network.prefix}</span>
-                          </p>
+                          <div className="text-right ml-4">
+                            <div className="text-2xl font-mono font-bold text-orange-600 dark:text-orange-500 leading-none">{formatHumanNumber(Number(network.flapCount))}</div>
+                            <div className="text-[10px] font-bold text-orange-500/70 dark:text-orange-500/50 uppercase tracking-widest mt-1">FLAPS</div>
+                          </div>
                         </div>
-                        <div className="text-right ml-4">
-                          <div className="text-2xl font-mono font-bold text-orange-600 dark:text-orange-500 leading-none">{formatHumanNumber(Number(network.flapCount))}</div>
-                          <div className="text-[10px] font-bold text-orange-500/70 dark:text-orange-500/50 uppercase tracking-widest mt-1">FLAPS</div>
-                        </div>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-orange-500/10 flex justify-end items-center">
-                        <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
-                          <a
-                            href={`https://bgp.he.net/AS${network.asn}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-orange-600 dark:text-orange-400 hover:text-orange-400"
-                          >
-                            HE.NET &rarr;
-                          </a>
-                          <a
-                            href={`https://radar.cloudflare.com/routing/as${network.asn}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-indigo-500 hover:text-indigo-400"
-                          >
-                            RADAR &rarr;
-                          </a>
+                        <div className="mt-3 pt-3 border-t border-orange-500/10 flex justify-end items-center">
+                          <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                            <a
+                              href={`https://bgp.he.net/AS${network.asn}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-orange-600 dark:text-orange-400 hover:text-orange-400"
+                            >
+                              HE.NET &rarr;
+                            </a>
+                            <a
+                              href={`https://radar.cloudflare.com/routing/as${network.asn}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-indigo-500 hover:text-indigo-400"
+                            >
+                              RADAR &rarr;
+                            </a>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="py-12 text-center border border-dashed border-slate-700 rounded-lg mb-4">
-                <p className="text-slate-500 italic font-mono text-sm uppercase tracking-widest">No significant flap telemetry detected.</p>
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-12 text-center border border-dashed border-slate-700 rounded-lg mb-4">
+                  <p className="text-slate-500 italic font-mono text-sm uppercase tracking-widest">No significant flap telemetry detected.</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Anomalous Events */}
-          <AlertsList alerts={data.topAlerts || []} />
+          <div className="h-[750px]">
+            <AlertsList alerts={data.topAlerts || []} />
+          </div>
         </div>
       </section>
 
@@ -629,31 +637,6 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
           </div>
         </div>
       </section>
-
-      {/* FOOTER */}
-      <footer className="pt-12 pb-8 border-t border-slate-500/10 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-4">
-           <a
-             href="https://kmcd.dev"
-             target="_blank"
-             rel="noopener noreferrer"
-             className="text-xs font-cyber font-bold tracking-widest text-slate-400 hover:text-cyan-500 transition-colors uppercase"
-           >
-             kmcd.dev &rarr;
-           </a>
-        </div>
-
-        {lastUpdated && (
-          <div className="flex justify-center items-center gap-3">
-            <Clock size={14} className="text-cyan-500 animate-pulse" aria-hidden="true" />
-            <div className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.2em]">
-              SYSTEM SYNC: <span className="text-slate-900 dark:text-slate-100 font-bold">{lastUpdated.toLocaleTimeString()}</span>
-              <span className="mx-2 opacity-30">/</span>
-              <span className="text-cyan-600 dark:text-cyan-400">{getRelativeTime(lastUpdated)}</span>
-            </div>
-          </div>
-        )}
-      </footer>
     </div>
   );
 }
