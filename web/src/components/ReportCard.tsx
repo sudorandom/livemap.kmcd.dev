@@ -494,20 +494,20 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                  <div className="space-y-4 border-l-2 border-indigo-600 dark:border-cyan-500 pl-6 relative">
                    <div className="absolute -left-1 top-0 w-2 h-2 bg-indigo-600 dark:bg-cyan-500 rounded-full"></div>
                    <h4 className="font-cyber font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
-                     <ShieldCheck size={18} className="text-indigo-600 dark:text-cyan-500" /> RPKI Enforcement
+                     <ShieldCheck size={18} className="text-indigo-600 dark:text-cyan-500" /> RPKI Propagation
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                     As ISPs deploy RPKI, we see an increase in "Invalid" drops. This is a <strong>good</strong> sign—it means the security system is working. We monitor the ratio of valid to invalid routes to track the global progress of the <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">"Is BGP Safe Yet?"</a> initiative.
+                     While we cannot directly measure ISP-level filtering (enforcement), we track the global propagation of "Invalid" and "Unknown" prefixes. Reducing the visibility of invalid routes is a key goal of the <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">"Is BGP Safe Yet?"</a> initiative.
                    </p>
                  </div>
 
                  <div className="space-y-4 border-l-2 border-indigo-500 pl-6 relative">
                    <div className="absolute -left-1 top-0 w-2 h-2 bg-indigo-500 rounded-full"></div>
                    <h4 className="font-cyber font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
-                     <Activity size={18} className="text-indigo-500" /> DDoS FlowSpec
+                     <Activity size={18} className="text-indigo-500" /> DDoS Mitigation
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                     When a network is under a massive <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">DDoS attack</a>, it may use <strong>BGP FlowSpec</strong> to propagate firewall rules to its neighbors. This allows the network to "surgical strike" malicious traffic across the entire internet.
+                     During a <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">DDoS attack</a>, networks use <a href="https://datatracker.ietf.org/doc/html/rfc5575" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline font-bold">BGP FlowSpec</a> for surgical traffic filtering or <a href="https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/213286-remote-triggered-black-hole-filtering.html" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline font-bold">Remote Triggered Black Hole (RTBH)</a> to quickly drop all traffic to an IP at the network edge.
                    </p>
                  </div>
               </div>

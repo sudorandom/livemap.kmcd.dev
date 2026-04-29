@@ -73,9 +73,30 @@ import { Clock } from 'lucide-react';
           </div>
           <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Understanding BGP</h2>
         </div>
-        <p class="text-slate-600 dark:text-slate-400 mb-8 max-w-4xl leading-relaxed">
-          The <strong>Border Gateway Protocol (BGP)</strong> is the routing protocol of the internet. It acts like the postal service for the web, allowing different networks (Autonomous Systems or ASes) to announce which IP addresses they control and discover the most efficient paths to send data to each other. Because BGP relies on trust, it is vulnerable to misconfigurations or malicious attacks known as Route Hijacks.
-        </p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+          <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed">
+            <h3 class="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">The Postal Service of the Web</h3>
+            <p>
+              The <strong>Border Gateway Protocol (BGP)</strong> is the routing protocol of the internet. It acts like the postal service for the web, allowing different networks (Autonomous Systems or ASes) to announce which IP addresses they control and discover the most efficient paths to send data to each other. Because BGP relies on trust, it is vulnerable to misconfigurations or malicious attacks known as Route Hijacks.
+            </p>
+          </div>
+
+          <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed border-l-2 border-indigo-500/20 pl-8">
+            <h3 class="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">IP Prefixes & Subnetting</h3>
+            <p class="text-sm">
+              In BGP, we don't route individual IPs, but <strong>Prefixes</strong> (blocks of addresses). A prefix like <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-600 dark:text-cyan-400 font-bold">192.0.2.0/24</code> represents 256 addresses.
+            </p>
+            <ul class="text-xs space-y-2 list-disc pl-4">
+              <li><strong>Specific (/24):</strong> A "small" prefix. BGP always prefers the most specific route. A hijacker announcing a /24 can "steal" traffic from a larger /23 announcement.</li>
+              <li><strong>Aggregate (/8):</strong> A "large" prefix covering millions of IPs. Used to keep the global routing table manageable.</li>
+            </ul>
+            <div class="pt-2">
+              <a href="https://www.cloudflare.com/learning/network-layer/what-is-a-subnet/" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-indigo-600 dark:text-cyan-400 hover:underline">Learn about Subnetting &rarr;</a>
+            </div>
+          </div>
+        </div>
+
         <BGPRoutingExplainer client:load />
       </section>
 
