@@ -596,7 +596,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                 </div>
                 <span className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Last 24 Hours</span>
               </h2>
-              <p className="text-[10px] font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Global Instability Leaders</p>
+              <p className="text-[10px] font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Networking Hall of Shame</p>
             </div>
             <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar">
               {data.flappiestNetworks && data.flappiestNetworks.length > 0 ? (
