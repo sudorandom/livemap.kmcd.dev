@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const PanelContainer = ({ title, children, description, className = "", onPrev, onNext }: { title: string, children: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void }) => (
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
@@ -375,7 +375,7 @@ export const BGPRoutingExplainer = () => {
               onClick={() => setAnnouncing(!announcing)}
               className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
             >
-              {announcing ? 'Reset' : 'Start Announcement'}
+              {announcing ? 'Reset' : 'Start'}
               <Share2 size={12} />
             </button>
           </PanelContainer>
@@ -458,7 +458,7 @@ export const BGPRoutingExplainer = () => {
               }}
               className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
             >
-              {withdrawn ? 'Restore Path' : 'Send Withdrawal'}
+              {withdrawn ? 'Restore Path' : 'Start'}
               <Ban size={12} />
             </button>
           </PanelContainer>
@@ -923,9 +923,9 @@ export const BGPSecurityExplainer = () => {
               onClick={() => {
                 setFiltered(!filtered);
               }}
-              className="absolute bottom-4 right-4 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
+              className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
             >
-              {filtered ? 'Reset' : 'Simulate Hijack'}
+              {filtered ? 'Reset' : 'Trigger Hijack'}
               <ShieldCheck size={12} />
             </button>
           </PanelContainer>
