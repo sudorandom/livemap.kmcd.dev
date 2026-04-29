@@ -82,7 +82,7 @@ export const COORDS = {
   MALICIOUS: { x: 40, y: 200 }
 };
 
-export const Node = ({ x, y, type, label, color = "slate", offline = false }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean }) => {
+export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom' }) => {
   const isRouter = type === 'router';
   const hasDarkBg = color === 'indigo' || color === 'emerald' || color === 'red';
   
@@ -95,6 +95,10 @@ export const Node = ({ x, y, type, label, color = "slate", offline = false }: { 
     baseColor = 'fill-slate-100 dark:fill-slate-800 stroke-red-500';
   }
 
+  const defaultPos = type === 'user' ? 'top' : 'bottom';
+  const finalPos = labelPos || defaultPos;
+  const labelY = finalPos === 'top' ? y - 25 : y + 30;
+
   return (
     <g className="transition-opacity duration-500 opacity-100">
       <circle cx={x} cy={y} r={isRouter ? 15 : 18} className={`${baseColor} stroke-2 transition-colors duration-500`} />
@@ -104,7 +108,7 @@ export const Node = ({ x, y, type, label, color = "slate", offline = false }: { 
         <User x={x - 9} y={y - 9} size={18} className="text-white pointer-events-none" />
       )}
       {label && (
-        <text x={x} y={type === 'user' ? y - 25 : y + 30} textAnchor="middle" className={`fill-slate-500 dark:fill-slate-400 text-[9px] font-bold uppercase tracking-tighter ${offline ? 'text-red-500' : ''}`}>
+        <text x={x} y={labelY} textAnchor="middle" className={`fill-slate-500 dark:fill-slate-400 text-[9px] font-bold uppercase tracking-tighter ${offline ? 'text-red-500' : ''}`}>
           {label}
         </text>
       )}
@@ -226,6 +230,8 @@ export const BGPRoutingExplainer = () => {
   const [multipathActive, setMultipathActive] = useState(false);
   const [multipathPulses, setMultipathPulses] = useState<{id: number, color: string, path: string}[]>([]);
   const [anycastLocation, setAnycastLocation] = useState(false);
+  const [anycastNode1Offline, setAnycastNode1Offline] = useState(false);
+  const [anycastNode2Offline, setAnycastNode2Offline] = useState(false);
   const [anycastPulses, setAnycastPulses] = useState<{id: number, path: string}[]>([]);
 
   const tabs = [
@@ -657,30 +663,83 @@ export const BGPRoutingExplainer = () => {
 
         {activeTab === 5 && (
           <PanelContainer 
-            title="6. Anycast Routing" 
-            description="Multiple servers announce the exact same IP address. BGP naturally routes user traffic to the topologically closest destination, enabling global CDNs and root DNS."
+            title="6. Anycast Routing & Failover" 
+            description="Multiple servers announce the same IP. BGP routes to the closest one. If one goes offline, BGP automatically reroutes traffic to the next closest instance, often via longer transit paths."
             onPrev={handlePrev}
             onNext={handleNext}
             footer={
-              <>
+              <div className="flex flex-wrap justify-center gap-3">
                 <ActionButton 
                   onClick={() => {
-                    spawnPulse(setAnycastPulses, 3000, { path: `M100,50 L100,150 L100,270 L100,150 L100,50` });
-                    spawnPulse(setAnycastPulses, 3000, { path: `M300,50 L300,150 L300,270 L300,150 L300,50` });
+                    setAnycastNode1Offline(!anycastNode1Offline);
+                    setAnycastPulses([]);
+                  }}
+                  label={anycastNode1Offline ? "Restore EU Node" : "Take EU Offline"}
+                  icon={anycastNode1Offline ? Activity : Ban}
+                  color={anycastNode1Offline ? "red" : "indigo"}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setAnycastNode2Offline(!anycastNode2Offline);
+                    setAnycastPulses([]);
+                  }}
+                  label={anycastNode2Offline ? "Restore Asia Node" : "Take Asia Offline"}
+                  icon={anycastNode2Offline ? Activity : Ban}
+                  color={anycastNode2Offline ? "red" : "indigo"}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    const node1Offline = anycastNode1Offline;
+                    const node2Offline = anycastNode2Offline;
+                    
+                    let path1 = "";
+                    let path2 = "";
+                    let dur1 = 3000;
+                    let dur2 = 3000;
+
+                    if (node1Offline && node2Offline) {
+                      // Both offline: stop at first hop (very fast)
+                      path1 = `M100,50 L100,150`;
+                      path2 = `M300,50 L300,150`;
+                      dur1 = dur2 = 800;
+                    } else {
+                      // EU User Path
+                      if (node1Offline) {
+                        path1 = `M100,50 L100,150 L300,150 L300,270 L300,150 L100,150 L100,50`;
+                        dur1 = 4500; // Longer path is slower
+                      } else {
+                        path1 = `M100,50 L100,150 L100,270 L100,150 L100,50`;
+                        dur1 = 3000;
+                      }
+
+                      // Asia User Path
+                      if (node2Offline) {
+                        path2 = `M300,50 L300,150 L100,150 L100,270 L100,150 L300,150 L300,50`;
+                        dur2 = 4500; // Longer path is slower
+                      } else {
+                        path2 = `M300,50 L300,150 L300,270 L300,150 L300,50`;
+                        dur2 = 3000;
+                      }
+                    }
+
+                    spawnPulse(setAnycastPulses, dur1, { path: path1, duration: `${dur1}ms` });
+                    spawnPulse(setAnycastPulses, dur2, { path: path2, duration: `${dur2}ms` });
                   }}
                   label="Trace Route"
                   icon={Zap}
                 />
                 <ActionButton 
                   onClick={() => {
+                    setAnycastNode1Offline(false);
+                    setAnycastNode2Offline(false);
                     setAnycastPulses([]);
                   }}
                   label="Reset"
                   icon={RotateCcw}
                   color="slate"
-                  disabled={anycastPulses.length === 0}
+                  disabled={!anycastNode1Offline && !anycastNode2Offline && anycastPulses.length === 0}
                 />
-              </>
+              </div>
             }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
@@ -690,24 +749,30 @@ export const BGPRoutingExplainer = () => {
                 fill="none" 
                 strokeWidth="2"
                 strokeDasharray="5,5"
-                className="text-slate-700 opacity-30"
+                className={`transition-opacity duration-500 ${ (anycastNode1Offline || anycastNode2Offline) ? 'text-indigo-500 opacity-60' : 'text-slate-700 opacity-30'}`}
               />
-              <text x="200" y="140" textAnchor="middle" className="fill-slate-500 dark:fill-slate-600 text-[7px] uppercase font-bold tracking-widest">Global Transit (Longer Path)</text>
-              <Path from={{x: 100, y: 150}} to={{x: 100, y: 270}} state="primary" />
-              <Path from={{x: 300, y: 150}} to={{x: 300, y: 270}} state="primary" />
+              <text x="200" y="140" textAnchor="middle" className="fill-slate-500 dark:fill-slate-600 text-[7px] uppercase font-bold tracking-widest">
+                {(anycastNode1Offline || anycastNode2Offline) ? 'Rerouting via Transit' : 'Global Transit (Longer Path)'}
+              </text>
+              <Path from={{x: 100, y: 150}} to={{x: 100, y: 270}} state={anycastNode1Offline ? "idle" : "primary"} />
+              <Path from={{x: 300, y: 150}} to={{x: 300, y: 270}} state={anycastNode2Offline ? "idle" : "primary"} />
               <path d="M100,50 L100,150" stroke="currentColor" fill="none" strokeWidth="3" className="text-indigo-600 dark:text-cyan-500" />
               <path d="M300,50 L300,150" stroke="currentColor" fill="none" strokeWidth="3" className="text-indigo-600 dark:text-cyan-500" />
               <Node x={100} y={50} type="user" label="User (EU)" color="emerald" />
               <Node x={300} y={50} type="user" label="User (Asia)" color="emerald" />
               <Node x={100} y={150} type="router" />
               <Node x={300} y={150} type="router" />
-              <Node x={100} y={270} type="router" label="Origin (1.1.1.1)" color="indigo" />
-              <Node x={300} y={270} type="router" label="Origin (1.1.1.1)" color="indigo" />
+              <Node x={100} y={270} type="router" label="Origin (1.1.1.1)" color={anycastNode1Offline ? "slate" : "indigo"} offline={anycastNode1Offline} />
+              <Node x={300} y={270} type="router" label="Origin (1.1.1.1)" color={anycastNode2Offline ? "slate" : "indigo"} offline={anycastNode2Offline} />
+              
+              {anycastNode1Offline && <Ban x={100 - 10} y={270 - 10} size={20} className="text-red-500/50" />}
+              {anycastNode2Offline && <Ban x={300 - 10} y={270 - 10} size={20} className="text-red-500/50" />}
+
               {anycastPulses.map(pulse => (
                 <DataPulse 
                   key={pulse.id} 
                   path={pulse.path}
-                  duration="3s"
+                  duration={pulse.duration || "3s"}
                   color="white"
                 />
               ))}
@@ -820,27 +885,32 @@ export const BGPSecurityExplainer = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [hijacked, setHijacked] = useState(false);
   const [filtered, setFiltered] = useState(false);
+  const [leaked, setLeaked] = useState(false);
   
   const [hijackPulses, setHijackPulses] = useState<{id: number, path: string, color: string}[]>([]);
   const [filterPulses, setFilteredPulses] = useState<{id: number, path: string, color: string}[]>([]);
+  const [leakPulses, setLeakPulses] = useState<{id: number, path: string, color: string}[]>([]);
 
   const fullPathR = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
   const hijackPath = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.MALICIOUS.x},${COORDS.MALICIOUS.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
+  const leakPathIntended = useMemo(() => `M300,80 L100,80`, []); // Provider B -> Provider A (Direct)
+  const leakPathLeaked = useMemo(() => `M300,80 L200,220 L100,80`, []); // Provider B -> Customer -> Provider A
 
   const tabs = [
     { title: "Route Hijack", icon: ShieldAlert, description: "Path stealing via malicious announcements" },
-    { title: "RPKI Filtering", icon: ShieldCheck, description: "Automated mitigation of invalid routes" }
+    { title: "RPKI Filtering", icon: ShieldCheck, description: "Automated mitigation of invalid routes" },
+    { title: "Route Leak", icon: Activity, description: "Unintentional transit via misconfiguration" }
   ];
 
   // Snapshot refs for security panels
-  const securitySettings = useRef({ hijacked: false, filtered: false });
+  const securitySettings = useRef({ hijacked: false, filtered: false, leaked: false });
   useEffect(() => {
-    securitySettings.current = { hijacked, filtered };
-  }, [hijacked, filtered]);
+    securitySettings.current = { hijacked, filtered, leaked };
+  }, [hijacked, filtered, leaked]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const { hijacked: isH, filtered: isF } = securitySettings.current;
+      const { hijacked: isH, filtered: isF, leaked: isL } = securitySettings.current;
       
       // Hijack Panel Pulse
       spawnPulse(setHijackPulses, 3000, {
@@ -853,9 +923,18 @@ export const BGPSecurityExplainer = () => {
         path: fullPathR,
         color: "cyan"
       });
+
+      // Leak Panel Pulse
+      if (isL) {
+         // Traffic from B leaks through Customer to A
+         spawnPulse(setLeakPulses, 3000, { path: leakPathLeaked, color: "red" });
+      } else {
+         // Normal: Traffic from B goes directly to A
+         spawnPulse(setLeakPulses, 3000, { path: leakPathIntended, color: "white" });
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [fullPathR, hijackPath]);
+  }, [fullPathR, hijackPath, leakPathIntended, leakPathLeaked]);
 
   const handlePrev = () => setActiveTab(prev => (prev - 1 + tabs.length) % tabs.length);
   const handleNext = () => setActiveTab(prev => (prev + 1) % tabs.length);
@@ -1036,6 +1115,7 @@ export const BGPSecurityExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setFiltered(false);
+                    setFilteredPulses([]);
                   }}
                   label="Reset"
                   icon={RotateCcw}
@@ -1066,12 +1146,79 @@ export const BGPSecurityExplainer = () => {
               {filtered && (
                 <g>
                   <circle cx={COORDS.MID_L.x} cy={COORDS.MID_L.y} r={22} className="fill-slate-900 stroke-emerald-500 stroke-[3px]" />
-                  <ShieldCheck x={COORDS.MID_L.x - 14} y={COORDS.MID_L.y - 14} size={28} className="text-emerald-400 absolute" />
-                  <text x={COORDS.MID_L.x} y={COORDS.MID_L.y - 30} textAnchor="middle" className="fill-emerald-600 dark:fill-emerald-400 text-[10px] font-bold uppercase">Dropped</text>
+                  <g transform={`translate(${COORDS.MID_L.x - 14}, ${COORDS.MID_L.y - 14})`}>
+                    <ShieldCheck size={28} className="text-emerald-400" />
+                  </g>
+                  <text x={COORDS.MID_L.x} y={COORDS.MID_L.y - 35} textAnchor="middle" className="fill-emerald-600 dark:fill-emerald-400 text-[10px] font-bold uppercase">Dropped</text>
                 </g>
               )}
 
               {filterPulses.map(pulse => (
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} />
+              ))}
+            </svg>
+          </PanelContainer>
+        )}
+
+        {activeTab === 2 && (
+          <PanelContainer 
+            title="3. Route Leak (Valley-Free Violation)" 
+            description="A Customer AS accidentally announces routes learned from Provider A to Provider B. This creates a 'valley' where Provider B sends backbone traffic through the customer's limited link to reach Provider A."
+            onPrev={handlePrev}
+            onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setLeaked(true);
+                    setLeakPulses([]);
+                  }}
+                  label="Trigger Leak"
+                  icon={Activity}
+                  color="red"
+                  disabled={leaked}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setLeaked(false);
+                    setLeakPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!leaked}
+                />
+              </>
+            }
+          >
+            <svg viewBox="0 0 400 350" className="w-full h-full">
+              {/* Main Provider-to-Provider intended path */}
+              <Path from={{x: 300, y: 80}} to={{x: 100, y: 80}} state={leaked ? "secondary" : "primary"} />
+              
+              {/* Customer Links */}
+              <Path from={{x: 200, y: 220}} to={{x: 100, y: 80}} state="primary" />
+              <Path from={{x: 300, y: 80}} to={{x: 200, y: 220}} state={leaked ? "announcing" : "primary"} color={leaked ? "red" : "white"} />
+              
+              <Node x={100} y={80} type="router" label="Provider A" color="emerald" labelPos="top" />
+              <Node x={300} y={80} type="router" label="Provider B" color="emerald" labelPos="top" />
+              <Node x={200} y={220} type="router" label="Customer AS" color="indigo" labelPos="bottom" />
+
+              <text x="200" y="55" textAnchor="middle" className="fill-slate-500 text-[8px] uppercase font-bold tracking-tighter">High-Speed Backbone</text>
+              
+              {leaked && (
+                <g className="animate-pulse">
+                   <rect x={155} y={270} width={90} height={16} rx={8} className="fill-red-500/20 stroke-red-500 stroke-1" />
+                   <text x={200} y={281} textAnchor="middle" className="fill-red-600 dark:fill-red-400 text-[8px] font-bold uppercase">Congested Leak</text>
+                   
+                   <g transform="translate(0, 20)">
+                      <text x={200} y={285} textAnchor="middle" className="fill-red-500/80 text-[7px] font-bold uppercase">High Latency</text>
+                      <text x={200} y={295} textAnchor="middle" className="fill-red-500/80 text-[7px] font-bold uppercase">Packet Loss</text>
+                      <text x={200} y={305} textAnchor="middle" className="fill-red-500/80 text-[7px] font-bold uppercase">Service Outage</text>
+                   </g>
+                </g>
+              )}
+
+              {leakPulses.map(pulse => (
                 <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} />
               ))}
             </svg>
