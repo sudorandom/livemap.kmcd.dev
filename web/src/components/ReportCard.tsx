@@ -471,9 +471,8 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                      <WifiOff size={20} className="text-[#FF3232]" /> Mass Outages
                    </h4>
                    <p className="opacity-90 leading-relaxed">
-                     When a large network or data center loses power or fiber connectivity, it issues <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
-                   </p>
-                 </div>
+                     When a large network or data center loses power or fiber connectivity, its upstream peers detect the lost session and issue <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
+                   </p>                 </div>
 
                  <div className="space-y-4 border-l-2 border-[#9400D3] pl-6 relative">
                    <div className="absolute -left-1 top-0 w-2 h-2 bg-[#9400D3] rounded-full"></div>

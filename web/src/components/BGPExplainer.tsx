@@ -309,15 +309,21 @@ export const BGPRoutingExplainer = () => {
       {/* Panel 3: Withdrawals */}
       <PanelContainer 
         title="3. Withdrawals" 
-        description="When an origin AS goes offline, it sends a 'withdrawal' message. Routers propagate this to stop traffic from being sent down the dead path."
+        description="When a prefix is no longer reachable, a 'withdrawal' message is sent. If an origin AS goes dark, its upstream peers detect the lost session and propagate the withdrawal to the rest of the internet."
       >
         <svg viewBox="0 0 400 350" className="w-full h-full">
-          <Path from={COORDS.USER} to={COORDS.ENTRY} state={withdrawn ? 'primary' : 'primary'} />
-          <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={withdrawn ? 'withdrawing' : 'announcing'} />
-          <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={withdrawn ? 'withdrawing' : 'announcing'} />
+          <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
           
-          <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={withdrawn ? 'withdrawing' : 'announcing'} delay={1000} />
-          <Path from={COORDS.MID_R} to={COORDS.ENTRY} state={withdrawn ? 'withdrawing' : 'announcing'} delay={1000} />
+          {/* Connection is lost when withdrawn */}
+          {!withdrawn && (
+            <>
+              <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state="announcing" />
+              <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state="announcing" />
+            </>
+          )}
+          
+          <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={withdrawn ? 'withdrawing' : 'announcing'} delay={withdrawn ? 0 : 1000} />
+          <Path from={COORDS.MID_R} to={COORDS.ENTRY} state={withdrawn ? 'withdrawing' : 'announcing'} delay={withdrawn ? 0 : 1000} />
           
           <Node x={COORDS.USER.x} y={COORDS.USER.y} type="user" label="User" color="emerald" />
           <Node x={COORDS.ENTRY.x} y={COORDS.ENTRY.y} type="router" />
