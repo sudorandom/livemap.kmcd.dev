@@ -497,8 +497,9 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                      <WifiOff size={20} className="text-[#FF3232]" /> Mass Outages
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                     When a large network or data center loses power or fiber connectivity, its upstream peers detect the lost session and issue <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
-                   </p>                 </div>
+                     When a large network or data center loses power or fiber connectivity, its upstream peers detect the lost session and issue <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
+                   </p>
+                </div>
 
                  <div className="space-y-4 border-l-2 border-[#9400D3] pl-6 relative">
                    <div className="absolute -left-1 top-0 w-2 h-2 bg-[#9400D3] rounded-full"></div>
@@ -506,7 +507,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                      <Activity size={20} className="text-[#9400D3]" /> BGP Flapping
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                     <strong>Flapping</strong> is a high-frequency "up-down" cycle of a route. If a hardware link is loose, it forces every other router on the internet to repeatedly recalculate its best path. To protect themselves, routers use <a href="https://en.wikipedia.org/wiki/Route_flapping#Route_flap_damping" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Route Dampening</a> to temporarily ignore networks that flap too often.
+                     <strong>Flapping</strong> is a high-frequency "up-down" cycle of a route. If a hardware link is loose, it forces every other router on the internet to repeatedly recalculate its best path. To protect themselves, routers use <a href="https://en.wikipedia.org/wiki/Route_flapping#Route_flap_damping" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">route dampening</a> to temporarily ignore networks that flap too often.
                    </p>
                  </div>
 
@@ -526,11 +527,61 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                      <Activity size={18} className="text-indigo-500" /> DDoS Mitigation
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                     During a <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">DDoS attack</a>, networks use <a href="https://datatracker.ietf.org/doc/html/rfc5575" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline font-bold">BGP FlowSpec</a> for surgical traffic filtering or <a href="https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/213286-remote-triggered-black-hole-filtering.html" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline font-bold">Remote Triggered Black Hole (RTBH)</a> to quickly drop all traffic to an IP at the network edge.
+                     During a <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4 font-bold">DDoS attack</a>, networks use <a href="https://datatracker.ietf.org/doc/html/rfc5575" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline font-bold">BGP FlowSpec</a> for surgical traffic filtering or <a href="https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/213286-remote-triggered-black-hole-filtering.html" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline font-bold">Remote Triggered Black Hole (RTBH)</a> to quickly drop all traffic to an IP at the network edge.
                    </p>
                  </div>
               </div>
-            </div>          </div>
+
+              {/* LIVE TELEMETRY MAP */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-12 pt-12 border-t border-slate-500/10 items-center">
+                 <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                      <h4 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+                        Live Global Telemetry
+                      </h4>
+                    </div>
+                    <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                      This map visualizes real-time BGP routing events as they ripple across the global internet. Each pulse represents a routing update, withdrawal, or anomaly detected by the distributed route collectors.
+                    </p>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-1 h-6 bg-red-500 mt-1"></div>
+                        <p className="text-sm"><strong>Red Pulses</strong> indicate route hijacks, major leaks, or outages that require immediate validation.</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-1 h-6 bg-orange-500 mt-1"></div>
+                        <p className="text-sm"><strong>Orange Pulses</strong> show route flapping or minor instabilities in the global routing table.</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-1 h-6 bg-[#9400D3] mt-1"></div>
+                        <p className="text-sm"><strong>Purple Pulses</strong> represent active DDoS mitigations or a BGP behavior known as path hunting.</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-1 h-6 bg-indigo-500 mt-1"></div>
+                        <p className="text-sm"><strong>Blue Pulses</strong> show the background radiation of standard routing updates and peer exchanges.</p>
+                      </div>
+                    </div>
+                    <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                      The map is a poetic look at the constant, chaotic dance of the global routing of the Internet.
+                    </p>
+                 </div>
+                 <div className="cyber-box rounded-xl overflow-hidden shadow-2xl aspect-video bg-black group relative">
+                    <iframe
+                      src="https://www.youtube.com/embed/live_stream?channel=UCA9eO4Gt-Ua6lAEGzWQHQFA"
+                      title="BGP Live Telemetry Stream"
+                      className="w-full h-full"
+                      frameBorder="0"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen>
+                    </iframe>
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm border border-white/10 rounded text-[8px] font-mono text-white/70 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                      Live Stream Feed
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Live Monitoring Section */}

@@ -49,31 +49,6 @@ try {
     </header>
 
     <div class="container mx-auto px-4 py-8">
-      {/* Live Stream Section */}
-      <section class="mb-10 cyber-box rounded-xl overflow-hidden shadow-2xl">
-        <div class="bg-slate-900 text-white px-4 py-2 flex items-center justify-between border-b border-cyan-500/30">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            <span class="text-xs font-bold tracking-widest uppercase opacity-90">Live Telemetry Stream</span>
-          </div>
-          <div class="flex items-center gap-4 text-[10px] font-mono uppercase tracking-tight">
-            <div class="opacity-50">
-              CHANNEL: <a href="https://www.youtube.com/channel/UCA9eO4Gt-Ua6lAEGzWQHQFA" target="_blank" rel="noopener noreferrer" class="hover:text-cyan-400 transition-colors underline decoration-dotted">UCA9eO4Gt-Ua6lAEGzWQHQFA</a>
-            </div>
-          </div>
-        </div>
-        <div class="aspect-video bg-black">
-          <iframe
-            src="https://www.youtube.com/embed/live_stream?channel=UCA9eO4Gt-Ua6lAEGzWQHQFA"
-            title="BGP Live Telemetry Stream"
-            class="w-full h-full"
-            frameborder="0"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen>
-          </iframe>
-        </div>
-      </section>
-
       {/* BGP Interactive Explainer */}
       <section class="mb-16">
         <div class="flex items-center gap-4 mb-4">
@@ -103,6 +78,41 @@ try {
             <div class="pt-2">
               <a href="https://www.cloudflare.com/learning/network-layer/what-is-a-subnet/" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-indigo-600 dark:text-cyan-400 hover:underline">Learn about Subnetting &rarr;</a>
             </div>
+          </div>
+        </div>
+
+        {/* GLOSSARY SECTION */}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
+             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Entity</div>
+             <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">Autonomous System (AS)</h4>
+             <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+               A large network or group of networks under a single administrative control. Every major entity on the internet (Google, Comcast, CERN) is assigned a unique <strong>ASN</strong> to identify itself in the global BGP table.
+             </p>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
+             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Economics</div>
+             <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">Peering vs Transit</h4>
+             <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+               <strong>Peering</strong> is a direct, usually free connection between ASes to exchange traffic. <strong>Transit</strong> is when a smaller AS pays a larger provider to carry its traffic to the rest of the global internet.
+             </p>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
+             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Connectivity</div>
+             <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">BGP Sessions & Peering</h4>
+             <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+               Two ASes establish a <strong>Session</strong> to exchange routing information. This "peering" is the handshake that allows data to flow across the boundaries of different corporate and national networks.
+             </p>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
+             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Infrastructure</div>
+             <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">The Global Routing Table</h4>
+             <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+               Often called the <strong>Default-Free Zone (DFZ)</strong>, this is the master list of all known IP prefixes and the best paths to reach them. It currently contains over 1 million unique IPv4 and IPv6 routes.
+             </p>
           </div>
         </div>
 
