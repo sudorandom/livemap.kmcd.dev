@@ -232,7 +232,7 @@ export const BGPRoutingExplainer = () => {
   const [anycastLocation, setAnycastLocation] = useState(false);
   const [anycastNode1Offline, setAnycastNode1Offline] = useState(false);
   const [anycastNode2Offline, setAnycastNode2Offline] = useState(false);
-  const [anycastPulses, setAnycastPulses] = useState<{id: number, path: string}[]>([]);
+  const [anycastPulses, setAnycastPulses] = useState<{id: number, path: string, duration?: string}[]>([]);
 
   const tabs = [
     { title: "Announcing", icon: Share2, description: "Propagation of network reachability" },
