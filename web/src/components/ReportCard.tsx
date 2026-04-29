@@ -259,7 +259,10 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
   );
 });
 
-export function ReportCard({ children }: { children?: React.ReactNode }) {
+import { fromBinary } from '@bufbuild/protobuf';
+import { DaySummarySchema } from '../gen/summary/v1/summary_pb';
+
+export function ReportCard({ children, initialData }: { children?: React.ReactNode, initialData?: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -279,21 +282,37 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
       }
     }
 
-    load(true);
+    if (initialData) {
+      try {
+        const binary = Uint8Array.from(atob(initialData), c => c.charCodeAt(0));
+        const summary = fromBinary(DaySummarySchema, binary);
+        setData(summary);
+        setLastUpdated(new Date());
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to decode initialData:", err);
+        load(true);
+      }
+    } else {
+      load(true);
+    }
 
-    const interval = setInterval(() => {
-      load();
-    }, 30000);
+    let interval: any;
+    if (!initialData) {
+      interval = setInterval(() => {
+        load();
+      }, 30000);
+    }
 
     const timer = setInterval(() => {
       setTick(t => t + 1);
     }, 10000);
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       clearInterval(timer);
     };
-  }, []);
+  }, [initialData]);
 
   if (loading) return (
     <div className="p-12 text-center">

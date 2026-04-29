@@ -3,7 +3,16 @@ import Layout from '../layouts/Layout.astro';
 import { ReportCard } from '../components/ReportCard';
 import { ISPSafetyTest } from '../components/ISPSafetyTest';
 import { BGPRoutingExplainer, BGPAdvancedTopics } from '../components/BGPExplainer';
-import { Clock } from 'lucide-react';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const summaryPath = fileURLToPath(new URL('../../public/data/summary.pb', import.meta.url));
+let initialData = '';
+try {
+  initialData = fs.readFileSync(summaryPath).toString('base64');
+} catch (e) {
+  console.error('Could not read summary.pb:', e);
+}
 ---
 
 <Layout title="bgp.kmcd.dev | Understanding Internet Routing">
@@ -101,7 +110,7 @@ import { Clock } from 'lucide-react';
       </section>
 
       {/* Main Integrated Dashboard */}
-      <ReportCard client:only="react">
+      <ReportCard client:only="react" initialData={initialData}>
          <ISPSafetyTest client:only="react" />
       </ReportCard>
 
@@ -130,10 +139,8 @@ import { Clock } from 'lucide-react';
         </div>
 
         <div class="flex justify-center items-center gap-3">
-          <Clock size={14} class="text-indigo-600 dark:text-cyan-500 animate-pulse" aria-hidden="true" />
           <div class="text-[11px] font-mono text-slate-500 uppercase tracking-[0.2em]">
-            GLOBAL ROUTING TELEMETRY <span class="mx-2 opacity-30">/</span>
-            <span class="text-indigo-600 dark:text-cyan-400">REAL-TIME FEED</span>
+            GLOBAL ROUTING TELEMETRY
           </div>
         </div>
       </footer>

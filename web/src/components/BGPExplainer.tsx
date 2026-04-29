@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Play, Zap } from 'lucide-react';
 
-export const PanelContainer = ({ title, children, description, className = "", onPrev, onNext }: { title: string, children: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void }) => (
+export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void }) => (
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
@@ -9,20 +9,20 @@ export const PanelContainer = ({ title, children, description, className = "", o
         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{description}</p>
       </div>
       {(onPrev || onNext) && (
-        <div className="flex items-center gap-1.5 ml-4 pt-1">
+        <div className="flex items-center gap-2 ml-4 pt-1">
            <button 
              onClick={onPrev} 
-             className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm dark:shadow-lg active:scale-95"
+             className="p-2.5 md:p-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm dark:shadow-lg active:scale-95"
              aria-label="Previous Diagram"
            >
-             <ChevronLeft size={16} />
+             <ChevronLeft className="w-6 h-6" />
            </button>
            <button 
              onClick={onNext} 
-             className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm dark:shadow-lg active:scale-95"
+             className="p-2.5 md:p-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm dark:shadow-lg active:scale-95"
              aria-label="Next Diagram"
            >
-             <ChevronRight size={16} />
+             <ChevronRight className="w-6 h-6" />
            </button>
         </div>
       )}
@@ -30,8 +30,47 @@ export const PanelContainer = ({ title, children, description, className = "", o
     <div className={`flex-grow flex items-center justify-center bg-transparent rounded-lg p-0 relative overflow-hidden min-h-[350px] ${className}`}>
       {children}
     </div>
+    {footer && (
+      <div className="mt-6 flex justify-center gap-4 border-t border-slate-200 dark:border-slate-800 pt-6">
+        {footer}
+      </div>
+    )}
   </div>
 );
+
+const ActionButton = ({ onClick, active, label, activeLabel, icon: Icon, color = "indigo", disabled = false, className = "" }: { onClick: () => void, active?: boolean, label: string, activeLabel?: string, icon: any, color?: "indigo" | "red" | "slate", disabled?: boolean, className?: string }) => {
+  const isIndigo = color === "indigo";
+  const isRed = color === "red";
+  const isSlate = color === "slate";
+  
+  const bgColor = disabled 
+    ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700 cursor-not-allowed shadow-none" 
+    : (isIndigo ? "bg-indigo-600 hover:bg-indigo-500 border-indigo-400/50 shadow-xl" : 
+       isRed ? "bg-red-600 hover:bg-red-500 border-red-400/50 shadow-xl" : 
+       "bg-slate-600 hover:bg-slate-500 border-slate-400/50 shadow-xl");
+  
+  const glowColor = isIndigo ? "bg-indigo-500/40 dark:bg-cyan-500/30" : 
+                    isRed ? "bg-red-500/40 dark:bg-red-500/30" : 
+                    "bg-slate-500/40 dark:bg-slate-500/30";
+  
+  const pulseClass = (!active && !disabled && !isSlate) ? "animate-pulse-border" : "";
+
+  return (
+    <button 
+      onClick={onClick}
+      disabled={disabled}
+      className={`group relative ${bgColor} border text-[10px] font-bold py-2.5 px-6 rounded-full transition-all flex items-center gap-2 z-20 ${!disabled && 'transform hover:scale-105 active:scale-95 text-white'} ${pulseClass} ${className}`}
+    >
+      <span className="relative z-10 flex items-center gap-2 uppercase tracking-widest">
+        {active ? (activeLabel || label) : label}
+        <Icon size={14} className={(!active && !disabled && !isSlate) ? "animate-pulse" : ""} />
+      </span>
+      {!active && !disabled && !isSlate && (
+        <div className={`absolute inset-0 ${glowColor} blur-md group-hover:blur-xl transition-all rounded-full animate-pulse`}></div>
+      )}
+    </button>
+  );
+};
 
 // Shared Coordinates for Consistency
 export const COORDS = {
@@ -268,6 +307,15 @@ export const BGPRoutingExplainer = () => {
         .shadow-glow-purple { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.6)); }
         .dark .shadow-glow-purple { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9)); }
 
+        @keyframes pulse-border {
+          0% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+          50% { border-color: rgba(99, 102, 241, 0.6); box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+          100% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        .animate-pulse-border {
+          animation: pulse-border 2s ease-in-out infinite;
+        }
+
         @keyframes pulse-motion {
           0% { offset-distance: 0%; opacity: 0; }
           10% { opacity: 1; }
@@ -349,6 +397,23 @@ export const BGPRoutingExplainer = () => {
             description="The Origin AS 'announces' its IP space. Routers propagate this information so that every network knows the path back to the origin."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => setAnnouncing(true)}
+                  label="Announce"
+                  icon={Share2}
+                  disabled={announcing}
+                />
+                <ActionButton 
+                  onClick={() => setAnnouncing(false)}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!announcing}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
@@ -370,14 +435,6 @@ export const BGPRoutingExplainer = () => {
                 </g>
               )}
             </svg>
-
-            <button 
-              onClick={() => setAnnouncing(!announcing)}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              {announcing ? 'Reset' : 'Start'}
-              <Share2 size={12} />
-            </button>
           </PanelContainer>
         )}
 
@@ -387,6 +444,28 @@ export const BGPRoutingExplainer = () => {
             description="Data follows the established paths. BGP selects the shortest route to reach the destination AS."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setRoutingActive(true);
+                    spawnPulse(setRoutingPulses);
+                  }}
+                  label="Trace Route"
+                  icon={Zap}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setRoutingActive(false);
+                    setRoutingPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!routingActive && routingPulses.length === 0}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
@@ -406,17 +485,6 @@ export const BGPRoutingExplainer = () => {
                 <DataPulse key={pulse.id} path={fullPathL} />
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                setRoutingActive(true);
-                spawnPulse(setRoutingPulses);
-              }}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              Trace Route
-              <ArrowRight size={12} />
-            </button>
           </PanelContainer>
         )}
 
@@ -426,6 +494,29 @@ export const BGPRoutingExplainer = () => {
             description="When a prefix is no longer reachable, a 'withdrawal' message is sent. If an origin AS goes dark, its upstream peers detect the lost session and propagate the withdrawal to the rest of the internet."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setWithdrawn(true);
+                    setWithdrawalPulses([]);
+                  }}
+                  label="Take Offline"
+                  icon={Ban}
+                  disabled={withdrawn}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setWithdrawn(false);
+                    setWithdrawalPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!withdrawn}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
@@ -450,17 +541,6 @@ export const BGPRoutingExplainer = () => {
                 <DataPulse key={pulse.id} path={pulse.path} duration={pulse.duration} />
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                setWithdrawn(!withdrawn);
-                setWithdrawalPulses([]);
-              }}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              {withdrawn ? 'Restore Path' : 'Start'}
-              <Ban size={12} />
-            </button>
           </PanelContainer>
         )}
 
@@ -470,6 +550,28 @@ export const BGPRoutingExplainer = () => {
             description="In BGP, the path taken to reach a destination may differ from the path taken for return traffic. This is normal but can complicate troubleshooting."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setAsymmetricActive(true);
+                    spawnPulse(setAsymmetricPulses);
+                  }}
+                  label="Trace Route"
+                  icon={Zap}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setAsymmetricActive(false);
+                    setAsymmetricPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!asymmetricActive && asymmetricPulses.length === 0}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
@@ -492,17 +594,6 @@ export const BGPRoutingExplainer = () => {
                 </React.Fragment>
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                setAsymmetricActive(true);
-                spawnPulse(setAsymmetricPulses);
-              }}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              Trace Route
-              <ArrowRight size={12} />
-            </button>
           </PanelContainer>
         )}
 
@@ -512,6 +603,32 @@ export const BGPRoutingExplainer = () => {
             description="While BGP defaults to a single path, technologies like ECMP (Equal-Cost) and UCMP (Unequal-Cost) allow routers to distribute traffic across multiple paths for redundancy and throughput. Advanced steering can also be achieved via Segment Routing (SR-TE)."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setMultipathActive(true);
+                    const useLeft = Math.random() < 0.5;
+                    spawnPulse(setMultipathPulses, 3750, { 
+                      path: useLeft ? fullPathL : fullPathR,
+                      color: useLeft ? "white" : "cyan"
+                    });
+                  }}
+                  label="Trace Route"
+                  icon={Zap}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setMultipathActive(false);
+                    setMultipathPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!multipathActive && multipathPulses.length === 0}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
@@ -535,21 +652,6 @@ export const BGPRoutingExplainer = () => {
                 />
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                setMultipathActive(true);
-                const useLeft = Math.random() < 0.5;
-                spawnPulse(setMultipathPulses, 3750, { 
-                  path: useLeft ? fullPathL : fullPathR,
-                  color: useLeft ? "white" : "cyan"
-                });
-              }}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              Trace Route
-              <Activity size={12} />
-            </button>
           </PanelContainer>
         )}
 
@@ -559,6 +661,27 @@ export const BGPRoutingExplainer = () => {
             description="Multiple servers announce the exact same IP address. BGP naturally routes user traffic to the topologically closest destination, enabling global CDNs and root DNS."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    spawnPulse(setAnycastPulses, 3000, { path: `M100,50 L100,150 L100,270 L100,150 L100,50` });
+                    spawnPulse(setAnycastPulses, 3000, { path: `M300,50 L300,150 L300,270 L300,150 L300,50` });
+                  }}
+                  label="Trace Route"
+                  icon={Zap}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setAnycastPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={anycastPulses.length === 0}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <path 
@@ -589,17 +712,6 @@ export const BGPRoutingExplainer = () => {
                 />
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                spawnPulse(setAnycastPulses, 3000, { path: `M100,50 L100,150 L100,270 L100,150 L100,50` });
-                spawnPulse(setAnycastPulses, 3000, { path: `M300,50 L300,150 L300,270 L300,150 L300,50` });
-              }}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              Trace Route
-              <Activity size={12} />
-            </button>
           </PanelContainer>
         )}
       </div>
@@ -759,6 +871,15 @@ export const BGPSecurityExplainer = () => {
         .dark .shadow-glow-red { filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.9)); }
         .stroke-dash-offset-animate { animation: dash 1s linear infinite; }
 
+        @keyframes pulse-border {
+          0% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+          50% { border-color: rgba(99, 102, 241, 0.6); box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+          100% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        .animate-pulse-border {
+          animation: pulse-border 2s ease-in-out infinite;
+        }
+
         @keyframes pulse-motion-sec {
           0% { offset-distance: 0%; opacity: 0; }
           10% { opacity: 1; }
@@ -840,6 +961,30 @@ export const BGPSecurityExplainer = () => {
             description="A hijacker announces a more specific or attractive path to the legitimate Destination, stealing internet traffic."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setHijacked(true);
+                    setHijackPulses([]);
+                  }}
+                  label="Trigger Hijack"
+                  icon={ShieldAlert}
+                  color="red"
+                  disabled={hijacked}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setHijacked(false);
+                    setHijackPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!hijacked}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={hijacked ? 'secondary' : 'primary'} />
@@ -867,17 +1012,6 @@ export const BGPSecurityExplainer = () => {
                 />
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                setHijacked(!hijacked);
-                setHijackPulses([]);
-              }}
-              className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              {hijacked ? 'Reset' : 'Trigger Hijack'}
-              <ShieldAlert size={12} />
-            </button>
           </PanelContainer>
         )}
 
@@ -887,6 +1021,29 @@ export const BGPSecurityExplainer = () => {
             description="ISPs use RPKI to mathematically prove Route Hijacks are invalid. The malicious path is dropped at the border, protecting the user."
             onPrev={handlePrev}
             onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setFiltered(true);
+                    setFilteredPulses([]);
+                  }}
+                  label="Trigger Hijack"
+                  icon={ShieldCheck}
+                  color="red"
+                  disabled={filtered}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setFiltered(false);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!filtered}
+                />
+              </>
+            }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
               <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state="primary" />
@@ -918,16 +1075,6 @@ export const BGPSecurityExplainer = () => {
                 <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} />
               ))}
             </svg>
-
-            <button 
-              onClick={() => {
-                setFiltered(!filtered);
-              }}
-              className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-lg transition-all flex items-center gap-2"
-            >
-              {filtered ? 'Reset' : 'Trigger Hijack'}
-              <ShieldCheck size={12} />
-            </button>
           </PanelContainer>
         )}
       </div>
