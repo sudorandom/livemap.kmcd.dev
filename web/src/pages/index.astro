@@ -62,7 +62,7 @@ try {
           <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed">
             <h3 class="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">The Postal Service of the Web</h3>
             <p>
-              The <strong>Border Gateway Protocol (BGP)</strong> is the routing protocol of the internet. It acts like the postal service for the web, allowing different networks (Autonomous Systems or ASes) to announce which IP addresses they control and discover the most efficient paths to send data to each other. Because BGP relies on trust, it is vulnerable to misconfigurations or malicious attacks known as Route Hijacks.
+              The <a href="https://datatracker.ietf.org/doc/html/rfc4271" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Border Gateway Protocol (BGP)</a> is the routing protocol of the internet. It acts like the postal service for the web, allowing different networks (<a href="https://datatracker.ietf.org/doc/html/rfc1930" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Autonomous Systems</a> or ASes) to announce which IP addresses they control and discover the most efficient paths to send data to each other. Because BGP relies on trust, it is vulnerable to misconfigurations or malicious attacks known as Route Hijacks.
             </p>
           </div>
 
@@ -95,7 +95,7 @@ try {
              <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Economics</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">Peering vs Transit</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-               <strong>Peering</strong> is a direct, usually free connection between ASes to exchange traffic. <strong>Transit</strong> is when a smaller AS pays a larger provider to carry its traffic to the rest of the global internet.
+               <a href="https://en.wikipedia.org/wiki/Peering" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Peering</a> is a direct connection between ASes to exchange traffic. <strong>Transit</strong> is when a network pays a provider to carry its traffic to the rest of the global internet.
              </p>
           </div>
 
@@ -103,7 +103,7 @@ try {
              <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Connectivity</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">BGP Sessions & Peering</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-               Two ASes establish a <strong>Session</strong> to exchange routing information. This "peering" is the handshake that allows data to flow across the boundaries of different corporate and national networks.
+               Two ASes establish a <a href="https://datatracker.ietf.org/doc/html/rfc4271#section-8" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">session</a> to exchange routing information. This "peering" is the handshake that allows data to flow across corporate and national networks.
              </p>
           </div>
 
@@ -111,8 +111,253 @@ try {
              <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Infrastructure</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">The Global Routing Table</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-               Often called the <strong>Default-Free Zone (DFZ)</strong>, this is the master list of all known IP prefixes and the best paths to reach them. It currently contains over 1 million unique IPv4 and IPv6 routes.
+               Often called the <a href="https://en.wikipedia.org/wiki/Default-free_zone" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Default-Free Zone (DFZ)</a>, this is the master list of all known IP prefixes and the best paths to reach them globally.
              </p>
+          </div>
+        </div>
+
+        {/* DETAILED ARCHITECTURE SECTION */}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+          <div class="cyber-box p-8 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800 lg:col-span-2">
+            <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-3">
+              <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19.5 7.1 20.5a.5.5 0 0 1-.6-.5V3.5a.5.5 0 0 1 .6-.5L11 3.5"/><path d="M11 3.5 15.1 4.5a.5.5 0 0 1 .6.5V21.5a.5.5 0 0 1-.6.5L11 20.5"/><path d="M15.1 4.5 19.1 3.5a.5.5 0 0 1 .6.5V19.5a.5.5 0 0 1-.6.5L15.1 19.5"/><path d="M7.1 20.5 3.1 21.5a.5.5 0 0 1-.6-.5V5.5a.5.5 0 0 1 .6-.5L7.1 5.5"/></svg>
+              Path Selection
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div class="space-y-6">
+                <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
+                  <p>
+                    In BGP, a <strong>Path</strong> is not just a wire between two points; it is a sequence of <strong>Autonomous Systems (ASes)</strong> that data must traverse to reach its destination. Because the internet is a "network of networks," there are often dozens of possible ways to reach a single IP address.
+                  </p>
+                  <p>
+                    Unlike protocols that count every individual router (hops), BGP operates at a higher level of abstraction. It selects a single "best" path based on business relationships, geography, and network health.
+                  </p>
+                </div>
+                
+                <div class="bg-indigo-500/5 dark:bg-indigo-500/10 p-5 rounded-lg border border-indigo-500/20">
+                  <h4 class="text-[10px] font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-4">Best Path Algorithm</h4>
+                  <ol class="space-y-3 text-xs">
+                    <li class="flex gap-3">
+                      <span class="font-bold text-indigo-500">01</span>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Local Preference:</a> Prefers exit points based on internal policy.</div>
+                    </li>
+                    <li class="flex gap-3">
+                      <span class="font-bold text-indigo-500">02</span>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> Prefers the shortest chain of network hops.</div>
+                    </li>
+                    <li class="flex gap-3">
+                      <span class="font-bold text-indigo-500">03</span>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.1" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Origin Type:</a> Prefers internal routes over external ones.</div>
+                    </li>
+                    <li class="flex gap-3">
+                      <span class="font-bold text-indigo-500">04</span>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">MED:</a> Suggests an entry point to a neighbor.</div>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+
+              <div class="relative aspect-square bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner">
+                 <svg viewBox="0 0 200 200" class="w-full h-full">
+                    {/* Dotted Connections (The Mesh) */}
+                    <g class="stroke-slate-300 dark:stroke-slate-700 stroke-[0.5] fill-none" stroke-dasharray="2,2">
+                       <path d="M40,40 L100,20 L160,40 L180,100 L160,160 L100,180 L40,160 L20,100 Z" />
+                       <path d="M40,40 L100,100 L160,40" />
+                       <path d="M20,100 L100,100 L180,100" />
+                       <path d="M40,160 L100,100 L160,160" />
+                       <path d="M100,20 L100,180" />
+                       <path d="M40,40 L40,160" />
+                       <path d="M160,40 L160,160" />
+                    </g>
+
+                    {/* Nodes */}
+                    <g class="fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600 stroke-[1]">
+                       <circle cx="40" cy="40" r="4" />
+                       <circle cx="100" cy="20" r="4" />
+                       <circle cx="160" cy="40" r="4" />
+                       <circle cx="180" cy="100" r="4" />
+                       <circle cx="160" cy="160" r="4" />
+                       <circle cx="100" cy="180" r="4" />
+                       <circle cx="40" cy="160" r="4" />
+                       <circle cx="20" cy="100" r="4" />
+                       <circle cx="100" cy="100" r="4" />
+                    </g>
+
+                    {/* Selected Path */}
+                    <g class="transition-all duration-1000">
+                       <path d="M40,40 L100,20 L160,40 L100,100 L160,160" class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan" />
+                       <circle cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500" />
+                       <circle cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
+                       <circle cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
+                       <circle cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
+                       <circle cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald" />
+                    </g>
+                 </svg>
+                 <div class="absolute inset-0 bg-gradient-to-t from-slate-100/80 dark:from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-4 pointer-events-none">
+                    <span class="text-[9px] font-mono text-indigo-600 dark:text-cyan-400 font-bold uppercase tracking-widest">Route Selection</span>
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-8">
+            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+               <h3 class="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
+                 <svg class="w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                 BGP Communities
+               </h3>
+               <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
+                 <p>
+                   Metadata "tags" attached to routes that signal instructions to upstream peers. Standardized via <a href="https://datatracker.ietf.org/doc/html/rfc1997" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">RFC 1997</a> and <a href="https://datatracker.ietf.org/doc/html/rfc4360" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">RFC 4360</a>.
+                 </p>
+                 <ul class="space-y-3 list-disc pl-4">
+                   <li>
+                     <strong>Blackholing:</strong> Used for DDoS mitigation. 
+                     <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">65535:666</code> (RTBH)</span>
+                   </li>
+                   <li>
+                     <strong>Traffic Steering:</strong> Influencing path priority. 
+                     <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">ASN:70</code> (Set Local-Pref 70)</span>
+                   </li>
+                   <li>
+                     <strong>Scoping:</strong> Preventing regional leakage. 
+                     <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">NO_EXPORT</code> (RFC 1997)</span>
+                   </li>
+                 </ul>
+               </div>
+            </div>
+
+            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+               <h3 class="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
+                 <svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                 Looking Glasses
+               </h3>
+               <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
+                 <p>
+                   A <a href="https://en.wikipedia.org/wiki/Looking_glass_server" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Looking Glass</a> allows engineers to view the routing table from the perspective of a specific remote router.
+                 </p>
+                 <ul class="space-y-3">
+                   <li>
+                     <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">University of Oregon RouteViews</a>
+                     <p class="mt-1 opacity-80 leading-relaxed">A global project providing real-time BGP data to researchers since 1995. It peers with dozens of major backbones worldwide.</p>
+                   </li>
+                   <li>
+                     <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">RIPE NCC RIS</a>
+                     <p class="mt-1 opacity-80 leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions across the globe.</p>
+                   </li>
+                 </ul>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-16 border-t border-slate-500/10 pt-16">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
+              <svg class="w-6 h-6 text-purple-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Anatomy of a BGP Update</h3>
+          </div>
+
+          <div class="space-y-12">
+            <div class="flex flex-col lg:flex-row gap-8 items-center">
+              <div class="lg:w-2/3 w-full">
+                <div class="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">
+                  <span class="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest">Type: Announcement</span>
+                </div>
+                <div class="bg-slate-900 rounded-b-lg border border-slate-800 shadow-xl overflow-hidden">
+                  <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="border-b border-slate-800 bg-slate-800/50">
+                        <th class="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider w-1/3">Attribute</th>
+                        <th class="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[11px] font-mono text-cyan-50 dark:text-cyan-100">
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">TYPE</td>
+                        <td class="p-3">UPDATE (Announcement)</td>
+                      </tr>
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">PEER ASN</td>
+                        <td class="p-3 text-indigo-400">199524</td>
+                      </tr>
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">AS PATH</td>
+                        <td class="p-3">
+                          <span class="flex flex-wrap gap-1">
+                            {[199524, 1299, 7922, 46427, 64289].map(asn => (
+                              <span class="bg-indigo-500/20 text-indigo-300 px-1 rounded">AS{asn}</span>
+                            ))}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">COMMUNITIES</td>
+                        <td class="p-3 text-purple-400">1299:30000, 7922:101</td>
+                      </tr>
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">NEXT HOP</td>
+                        <td class="p-3 text-emerald-400">2001:504:1::a519:9524:1</td>
+                      </tr>
+                      <tr>
+                        <td class="p-3 text-slate-500 font-bold">PREFIXES</td>
+                        <td class="p-3 font-bold text-white">2a14:3f87:9800::/38</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="lg:w-1/3 w-full">
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  The <strong class="text-indigo-600 dark:text-cyan-400">AS PATH</strong> attribute shows the chain of networks this update traversed. In this example, traffic flows through AS199524 then AS1299 and so on until it reaches the destination. Networks use <strong class="text-indigo-600 dark:text-cyan-400">COMMUNITIES</strong> to tag routes with handling instructions. These tags can prevent advertisements to certain regions or signal DDoS mitigation. The <strong class="text-indigo-600 dark:text-cyan-400">NEXT HOP</strong> is the specific IP address used to reach the next network in the chain.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-col lg:flex-row-reverse gap-8 items-center">
+              <div class="lg:w-2/3 w-full">
+                <div class="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">
+                  <span class="text-[10px] font-mono text-red-400 font-bold uppercase tracking-widest">Type: Withdrawal</span>
+                </div>
+                <div class="bg-slate-900 rounded-b-lg border border-slate-800 shadow-xl overflow-hidden">
+                   <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="border-b border-slate-800 bg-slate-800/50">
+                        <th class="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider w-1/3">Attribute</th>
+                        <th class="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[11px] font-mono text-red-50 dark:text-red-100">
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">TYPE</td>
+                        <td class="p-3">UPDATE (Withdrawal)</td>
+                      </tr>
+                      <tr class="border-b border-slate-800/50">
+                        <td class="p-3 text-slate-500 font-bold">PEER ASN</td>
+                        <td class="p-3 text-red-400">19151</td>
+                      </tr>
+                      <tr>
+                        <td class="p-3 text-slate-500 font-bold">WITHDRAWALS</td>
+                        <td class="p-3">
+                          <div class="space-y-1">
+                            <div class="text-red-300">199.199.238.0/23</div>
+                            <div class="text-red-300">204.221.20.0/24</div>
+                            <div class="text-red-300">206.10.88.0/22</div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="lg:w-1/3 w-full">
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  A <strong class="text-indigo-600 dark:text-cyan-400">withdrawal</strong> message removes prefixes from the global routing table immediately. This happens when a network link goes down or a peering session is disconnected. Unlike an announcement that builds a path, a withdrawal lists <strong class="text-indigo-600 dark:text-cyan-400">PREFIXES</strong> that are no longer reachable through this peer. Large bursts of withdrawals are often the first sign of major fiber cuts or data center outages.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

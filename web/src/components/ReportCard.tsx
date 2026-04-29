@@ -377,21 +377,46 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
         <div className="cyber-box p-8 md:p-12 rounded-xl space-y-12 shadow-2xl">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed">
-                <h3 className="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Routing Security & RPKI</h3>
-                <p className="text-base text-slate-700 dark:text-slate-300">
-                  The internet relies on <a href="https://www.cloudflare.com/learning/security/glossary/what-is-bgp/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-semibold">BGP (Border Gateway Protocol)</a> to facilitate global traffic routing. Designed in the 1980s, it has no built-in way to verify that a network actually owns the IP addresses it claims to represent.
-                </p>
-                <p>
-                  <a href="https://blog.cloudflare.com/is-bgp-safe-yet-rpki-routing-security-initiative/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">RPKI</a> fixes this by adding digital signatures to IP blocks, allowing internet providers to automatically ignore unauthorized routes using <a href="https://rpki.readthedocs.io/" target="_blank" rel="noopener noreferrer" className="text-slate-800 dark:text-slate-200 font-bold hover:underline">Route Origin Validation (ROV)</a>.
-                </p>
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Built for an age of trust</h3>
+                  <p className="text-base">
+                    BGP was designed for an era of implicit trust. There is no built-in mechanism to verify that a network owns the IP addresses it represents. This trust by default model is the root cause of the internet's most significant routing vulnerabilities.
+                  </p>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-slate-500/10">
+                  <h4 className="text-xl font-bold text-slate-900 dark:text-slate-200 uppercase tracking-tight">How a route leak works</h4>
+                  <p className="text-sm">
+                    Misconfigurations spread because BGP propagates information quickly. A <strong>Route Leak</strong> usually begins with a policy error.
+                  </p>
+                  <div className="bg-red-500/5 border-l-4 border-red-500 p-4 space-y-3">
+                    <p className="text-xs">
+                      A small ISP accidentally re-announces routes learned from its high-speed transit provider to its other peers. It effectively tells the world it is the best way to reach a popular destination.
+                    </p>
+                    <p className="text-xs">
+                      Larger neighbors accept this false announcement because they lack strict filters. The route appears to be a valid path.
+                    </p>
+                    <p className="text-xs">
+                      Global traffic for the leaked prefix is pulled into the small ISP's network. This congests its modest links and causes a regional or global outage.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="pt-4 flex flex-wrap gap-4">
                    <a href="https://blog.cloudflare.com/aspa-secure-internet/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors">Latest Security Roadmap &rarr;</a>
                    <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">isbgpsafeyet.com &rarr;</a>
                 </div>
               </div>
-              <div className="w-full h-full">
+              <div className="w-full">
                 {children}
               </div>
+            </div>
+
+            <div className="space-y-4 pt-8 border-t border-slate-500/10">
+              <h4 className="text-xl font-bold text-slate-900 dark:text-slate-200 uppercase tracking-tight">How to fix this</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-4xl">
+                <strong>Route Origin Validation (ROV)</strong> uses RPKI signatures to prove route ownership. If a received route does not match the cryptographic signature, the router marks it as <span className="text-red-600 font-bold uppercase">Invalid</span> and drops it. ROV is the primary defense against policy errors and malicious path stealing.
+              </p>
             </div>
 
             <BGPSecurityExplainer />

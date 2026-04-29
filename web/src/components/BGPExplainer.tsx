@@ -799,8 +799,12 @@ export const BGPAdvancedTopics = () => (
           </h4>
           <ul className="space-y-3 text-sm text-slate-400">
             <li>
-              <a href="https://datatracker.ietf.org/doc/html/rfc4456" target="_blank" className="text-indigo-600 dark:text-cyan-500 hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted font-bold">Route Reflection (RFC 4456)</a>
-              <p className="text-slate-600 dark:text-slate-400 italic mt-1 text-xs">Eliminates the need for a full iBGP mesh by using reflectors to propagate internal routes.</p>
+              <a href="https://www.cloudflare.com/learning/network-layer/what-is-ebgp-ibgp/" target="_blank" className="text-indigo-600 dark:text-cyan-500 hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted font-bold">eBGP vs iBGP</a>
+              <p className="text-slate-600 dark:text-slate-400 italic mt-1 text-xs">External BGP is used between networks while Internal BGP distributes those routes within a single AS.</p>
+            </li>
+            <li>
+              <a href="https://datatracker.ietf.org/doc/html/rfc4456" target="_blank" className="text-indigo-600 dark:text-cyan-400 hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted font-bold">Route Reflection (RFC 4456)</a>
+              <p className="text-slate-600 dark:text-slate-400 italic mt-1 text-xs">A method to scale internal networks by reducing the need for every router to talk to every other router.</p>
             </li>
             <li>
               <a href="https://datatracker.ietf.org/doc/html/rfc7911" target="_blank" className="text-indigo-600 dark:text-cyan-500 hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted font-bold">BGP ADD-PATH (RFC 7911)</a>
