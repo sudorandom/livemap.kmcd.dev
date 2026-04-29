@@ -31,6 +31,62 @@ const RPKI_ORDER: Record<string, number> = {
 
 const rpkiSorter = (item: any) => RPKI_ORDER[item.value] || 99;
 
+const RPKIPieChart = ({ data, isMobile, type }: { data: any[], isMobile?: boolean, type: 'ipv4' | 'ipv6' }) => {
+  const total = data.reduce((acc, entry) => acc + (entry.value || 0), 0);
+
+  return (
+    <PieChart accessibilityLayer={false}>
+      <Pie
+        data={data}
+        dataKey="value"
+        nameKey="name"
+        cx={isMobile ? "50%" : "60%"}
+        cy={isMobile ? "40%" : "50%"}
+        innerRadius={isMobile ? 60 : 80}
+        outerRadius={isMobile ? 90 : 110}
+        paddingAngle={5}
+      >
+        {data.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
+      </Pie>
+      <Tooltip
+        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
+        itemStyle={{ color: '#fff' }}
+        formatter={(val: any) => {
+          const percentage = total > 0 ? ((Number(val) / total) * 100).toFixed(1) : '0.0';
+          return [
+            `${formatHumanNumber(Number(val))} ${type === 'ipv4' ? 'Addresses' : 'Prefixes'} (${percentage}%)`,
+            'Count'
+          ];
+        }}
+      />
+      <Legend
+        layout={isMobile ? "horizontal" : "vertical"}
+        verticalAlign={isMobile ? "bottom" : "middle"}
+        align={isMobile ? "center" : "left"}
+        iconType="circle"
+        wrapperStyle={{ fontSize: '12px', paddingBottom: isMobile ? '20px' : '0px' }}
+        itemSorter={rpkiSorter}
+        formatter={(value, entry: any) => {
+          const val = entry.payload.value;
+          const percentage = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+          return (
+            <span className="relative group/legend ml-2 cursor-help inline-block">
+              <span className="text-slate-700 dark:text-slate-300">
+                {value}: <span className="font-mono font-bold text-slate-900 dark:text-white">{percentage}%</span>
+              </span>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#0f172a] text-white text-[10px] rounded border border-[#1e293b] whitespace-nowrap opacity-0 group-hover/legend:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl font-mono">
+                {formatHumanNumber(val)} {type === 'ipv4' ? 'Addresses' : 'Prefixes'}
+                <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1e293b] -mb-4"></span>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 border-[7px] border-transparent border-t-[#0f172a] -mb-3.5"></span>
+              </span>
+            </span>
+          );
+        }}
+      />
+    </PieChart>
+  );
+};
+
 const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([2, 3, 4]);
 
@@ -319,40 +375,26 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-500/10 pt-12">
-              {/* RPKI IPv4 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-slate-500/10 pt-12">              {/* RPKI IPv4 */}
               <div className="group flex flex-col">
                 <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                   <span className="w-1.5 h-1.5 bg-emerald-500"></span>
                   RPKI STATUS IPv4
                 </h2>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Unique IP Addresses</p>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart accessibilityLayer={false}>
-                      <Pie data={rpkiData4} dataKey="value" nameKey="name" cx="60%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={5}>
-                        {rpkiData4.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
-                        itemStyle={{ color: '#fff' }}
-                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Addresses`, 'Count']}
-                      />
-                      <Legend
-                        layout="vertical"
-                        verticalAlign="middle"
-                        align="left"
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: '12px' }}
-                        itemSorter={rpkiSorter}
-                        formatter={(value, entry: any) => (
-                          <span className="text-slate-700 dark:text-slate-300 ml-2">
-                            {value}: <span className="font-mono font-bold text-slate-900 dark:text-white">{formatHumanNumber(entry.payload.value)}</span>
-                          </span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div className="h-80 md:h-80">
+                  {/* Mobile version */}
+                  <div className="md:hidden h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RPKIPieChart data={rpkiData4} type="ipv4" isMobile />
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Desktop version */}
+                  <div className="hidden md:block h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RPKIPieChart data={rpkiData4} type="ipv4" />
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
@@ -363,32 +405,19 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                   RPKI STATUS IPv6
                 </h2>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Announced Prefixes</p>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart accessibilityLayer={false}>
-                      <Pie data={rpkiData6} dataKey="value" nameKey="name" cx="60%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={5}>
-                        {rpkiData6.map((entry, index) => <Cell key={index} fill={entry.fill} stroke="transparent" tabIndex={-1} />)}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px', fontSize: '12px' }}
-                        itemStyle={{ color: '#fff' }}
-                        formatter={(val: any) => [`${formatHumanNumber(Number(val))} Prefixes`, 'Count']}
-                      />
-                      <Legend
-                        layout="vertical"
-                        verticalAlign="middle"
-                        align="left"
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: '12px' }}
-                        itemSorter={rpkiSorter}
-                        formatter={(value, entry: any) => (
-                          <span className="text-slate-700 dark:text-slate-300 ml-2">
-                            {value}: <span className="font-mono font-bold text-slate-900 dark:text-white">{formatHumanNumber(entry.payload.value)}</span>
-                          </span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div className="h-80 md:h-80">
+                  {/* Mobile version */}
+                  <div className="md:hidden h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RPKIPieChart data={rpkiData6} type="ipv6" isMobile />
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Desktop version */}
+                  <div className="hidden md:block h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RPKIPieChart data={rpkiData6} type="ipv6" />
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </div>
