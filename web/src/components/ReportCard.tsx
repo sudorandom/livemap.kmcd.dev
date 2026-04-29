@@ -216,8 +216,8 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
 
                       {/* Sample Events */}
                       {alert.sampleEvents && alert.sampleEvents.length > 0 && (
-                        <div className="mt-3 space-y-1 bg-slate-900/50 p-2 rounded border border-slate-500/10">
-                          <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-1">Sample Activity Log:</div>
+                        <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-200 dark:border-slate-500/10">
+                          <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Sample Activity Log:</div>
                           {alert.sampleEvents
                             .slice()
                             .sort((a: any, b: any) => {
@@ -227,24 +227,23 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                             })
                             .slice(0, 5)
                             .map((e: any, j: number) => (
-                            <div key={j} className="flex items-center gap-3 px-1 py-0.5 rounded hover:bg-slate-500/10 transition-colors group/sample">
-                              <span className="text-[10px] font-mono text-cyan-400 font-bold shrink-0">{e.prefix}</span>
-                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400 uppercase tracking-tighter shrink-0 border border-slate-500/10">
+                            <div key={j} className="flex items-center gap-3 px-1 py-0.5 rounded hover:bg-white dark:hover:bg-slate-500/10 transition-colors group/sample">
+                              <span className="text-[10px] font-mono text-indigo-600 dark:text-cyan-400 font-bold shrink-0">{e.prefix}</span>
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400 uppercase tracking-tighter shrink-0 border border-slate-300/30 dark:border-slate-500/10">
                                 {getClassificationName(e.newState)}
                               </span>
                               {e.asnName && (
-                                <span className="text-[9px] text-slate-500 truncate opacity-70 group-hover/sample:opacity-100 transition-opacity">
+                                <span className="text-[9px] text-slate-600 dark:text-slate-500 truncate opacity-70 group-hover/sample:opacity-100 transition-opacity">
                                   {e.asnName}
                                 </span>
                               )}
-                              <span className="ml-auto text-[8px] font-mono text-slate-600">
+                              <span className="ml-auto text-[8px] font-mono text-slate-500 dark:text-slate-600">
                                 {new Date(Number(e.ts) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      )}                    </div>
                   </div>
                 </li>
               );
@@ -298,8 +297,8 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
 
   if (loading) return (
     <div className="p-12 text-center">
-      <div className="inline-block w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <div className="text-cyan-500 text-xs font-bold tracking-[0.2em] animate-pulse uppercase">Synchronizing Telemetry...</div>
+      <div className="inline-block w-8 h-8 border-4 border-indigo-600 dark:border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="text-indigo-600 dark:text-cyan-500 text-xs font-bold tracking-[0.2em] animate-pulse uppercase">Synchronizing Telemetry...</div>
     </div>
   );
 
@@ -352,7 +351,7 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
       {/* BGP SECURITY SECTION */}
       <section className="space-y-8">
         <div className="flex items-center gap-4">
-          <ShieldCheck className="text-cyan-500" size={32} aria-hidden="true" />
+          <ShieldCheck className="text-indigo-600 dark:text-cyan-500" size={32} aria-hidden="true" />
           <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">BGP Security</h2>
         </div>
 
@@ -376,7 +375,17 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-slate-500/10 pt-12">              {/* RPKI IPv4 */}
+            <BGPSecurityExplainer />
+
+            <div className="space-y-6 pt-12 border-t border-slate-500/10">
+              <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Global RPKI Adoption</h3>
+              <p className="text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+                RPKI is heavily adopted, but there's a ways to go with adoption, both on the RPKI database and enforcement of RPKI. You can track real-world deployment progress at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* RPKI IPv4 */}
               <div className="group flex flex-col">
                 <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                   <span className="w-1.5 h-1.5 bg-emerald-500"></span>
@@ -422,8 +431,6 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                 </div>
               </div>
             </div>
-            
-            <BGPSecurityExplainer />
         </div>
       </section>
 
@@ -450,8 +457,8 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                    <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
                      <ShieldAlert size={20} className="text-[#FF0000]" /> Route Hijacks
                    </h4>
-                   <p className="opacity-90 leading-relaxed">
-                     A <strong>Hijack</strong> occurs when an <a href="https://www.cloudflare.com/learning/network-layer/what-is-an-autonomous-system/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Autonomous System (AS)</a> announces an <a href="https://community.cisco.com/t5/routing-and-sd-wan/bgp-prefix-concept/td-p/500111" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">IP prefix</a> it does not own. This can be a malicious attempt to intercept traffic or a simple "fat-finger" typo. Because BGP prefers the "most specific" route, a hijacker announcing a /24 can steal traffic from a legitimate /23 announcement globally.
+                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                     A <strong>Hijack</strong> occurs when an <a href="https://www.cloudflare.com/learning/network-layer/what-is-an-autonomous-system/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Autonomous System (AS)</a> announces an <a href="https://community.cisco.com/t5/routing-and-sd-wan/bgp-prefix-concept/td-p/500111" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">IP prefix</a> it does not own. This can be a malicious attempt to intercept traffic or a simple "fat-finger" typo. Because BGP prefers the "most specific" route, a hijacker announcing a /24 can steal traffic from a legitimate /23 announcement globally.
                    </p>
                  </div>
 
@@ -460,8 +467,8 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                    <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
                      <AlertTriangle size={20} className="text-orange-500" /> Route Leaks
                    </h4>
-                   <p className="opacity-90 leading-relaxed">
-                     A <strong>Route Leak</strong> is typically a configuration error where an AS (often a customer) re-broadcasts routes from one upstream provider to another. This accidentally turns a small network into a <a href="https://en.wikipedia.org/wiki/Internet_transit" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">transit hub</a> for global traffic, quickly overwhelming its links and causing massive regional slowdowns or outages.
+                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                     A <strong>Route Leak</strong> is typically a configuration error where an AS (often a customer) re-broadcasts routes from one upstream provider to another. This accidentally turns a small network into a <a href="https://en.wikipedia.org/wiki/Internet_transit" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">transit hub</a> for global traffic, quickly overwhelming its links and causing massive regional slowdowns or outages.
                    </p>
                  </div>
 
@@ -470,8 +477,8 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                    <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
                      <WifiOff size={20} className="text-[#FF3232]" /> Mass Outages
                    </h4>
-                   <p className="opacity-90 leading-relaxed">
-                     When a large network or data center loses power or fiber connectivity, its upstream peers detect the lost session and issue <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
+                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                     When a large network or data center loses power or fiber connectivity, its upstream peers detect the lost session and issue <a href="https://en.wikipedia.org/wiki/Border_Gateway_Protocol#BGP_withdrawals" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Withdrawals</a> for all its routes. This causes hundreds of thousands of IP addresses to vanish from the global routing table simultaneously. We track these "route drops" to identify major cloud or ISP failures in real-time.
                    </p>                 </div>
 
                  <div className="space-y-4 border-l-2 border-[#9400D3] pl-6 relative">
@@ -479,28 +486,28 @@ export function ReportCard({ children }: { children?: React.ReactNode }) {
                    <h4 className="font-cyber font-bold text-xl text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
                      <Activity size={20} className="text-[#9400D3]" /> BGP Flapping
                    </h4>
-                   <p className="opacity-90 leading-relaxed">
-                     <strong>Flapping</strong> is a high-frequency "up-down" cycle of a route. If a hardware link is loose, it forces every other router on the internet to repeatedly recalculate its best path. To protect themselves, routers use <a href="https://en.wikipedia.org/wiki/Route_flapping#Route_flap_damping" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">Route Dampening</a> to temporarily ignore networks that flap too often.
+                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                     <strong>Flapping</strong> is a high-frequency "up-down" cycle of a route. If a hardware link is loose, it forces every other router on the internet to repeatedly recalculate its best path. To protect themselves, routers use <a href="https://en.wikipedia.org/wiki/Route_flapping#Route_flap_damping" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Route Dampening</a> to temporarily ignore networks that flap too often.
                    </p>
                  </div>
 
-                 <div className="space-y-4 border-l-2 border-cyan-500 pl-6 relative opacity-75">
-                   <div className="absolute -left-1 top-0 w-2 h-2 bg-cyan-500 rounded-full"></div>
+                 <div className="space-y-4 border-l-2 border-indigo-600 dark:border-cyan-500 pl-6 relative">
+                   <div className="absolute -left-1 top-0 w-2 h-2 bg-indigo-600 dark:bg-cyan-500 rounded-full"></div>
                    <h4 className="font-cyber font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
-                     <ShieldCheck size={18} className="text-cyan-500" /> RPKI Enforcement
+                     <ShieldCheck size={18} className="text-indigo-600 dark:text-cyan-500" /> RPKI Enforcement
                    </h4>
-                   <p className="text-sm">
-                     As ISPs deploy RPKI, we see an increase in "Invalid" drops. This is a <strong>good</strong> sign—it means the security system is working. We monitor the ratio of valid to invalid routes to track the global progress of the <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">"Is BGP Safe Yet?"</a> initiative.
+                   <p className="text-slate-600 dark:text-slate-400 text-sm">
+                     As ISPs deploy RPKI, we see an increase in "Invalid" drops. This is a <strong>good</strong> sign—it means the security system is working. We monitor the ratio of valid to invalid routes to track the global progress of the <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">"Is BGP Safe Yet?"</a> initiative.
                    </p>
                  </div>
 
-                 <div className="space-y-4 border-l-2 border-indigo-500 pl-6 relative opacity-75">
+                 <div className="space-y-4 border-l-2 border-indigo-500 pl-6 relative">
                    <div className="absolute -left-1 top-0 w-2 h-2 bg-indigo-500 rounded-full"></div>
                    <h4 className="font-cyber font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-tight">
                      <Activity size={18} className="text-indigo-500" /> DDoS FlowSpec
                    </h4>
-                   <p className="text-sm">
-                     When a network is under a massive <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline decoration-dotted underline-offset-4">DDoS attack</a>, it may use <strong>BGP FlowSpec</strong> to propagate firewall rules to its neighbors. This allows the network to "surgical strike" malicious traffic across the entire internet.
+                   <p className="text-slate-600 dark:text-slate-400 text-sm">
+                     When a network is under a massive <a href="https://www.cloudflare.com/learning/ddos/what-is-a-ddos-attack/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">DDoS attack</a>, it may use <strong>BGP FlowSpec</strong> to propagate firewall rules to its neighbors. This allows the network to "surgical strike" malicious traffic across the entire internet.
                    </p>
                  </div>
               </div>
