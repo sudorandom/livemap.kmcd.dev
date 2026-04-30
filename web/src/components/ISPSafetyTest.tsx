@@ -74,18 +74,20 @@ export function ISPSafetyTest() {
   return (
     <div className="w-full transition-all duration-500 flex flex-col">
       {status === 'idle' && (
-        <div className="py-20 flex items-center justify-center w-full">
-          <button
+       <div class="py-12 flex flex-col items-center justify-center w-full max-w-xl mx-auto">
+         <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-8 leading-relaxed">
+           <strong className="text-indigo-600 dark:text-cyan-400">Verify your network's integrity.</strong> This probe attempts to connect to known <strong>RPKI-invalid</strong> prefixes. A secure ISP will drop these invalid paths, preventing a connection. If the connection succeeds, your network may be vulnerable to BGP route hijacks. <strong>Initiate the probe below to test your connection.</strong>
+         </p>
+         <button
            onClick={runTest}
            className="group relative px-10 py-5 bg-indigo-600 dark:bg-transparent border-2 border-indigo-600 dark:border-cyan-500 text-white dark:text-cyan-500 hover:bg-indigo-700 dark:hover:bg-cyan-500 hover:text-white font-bold text-xs tracking-[0.2em] rounded-sm transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-3 shadow-xl dark:shadow-none"
-          >
+         >
            <Zap size={18} className="text-white dark:text-cyan-400 group-hover:text-white animate-pulse" />
            <span className="relative z-10 uppercase text-[11px]">Initiate Security Probe</span>
            <div className="absolute inset-0 bg-indigo-500/20 dark:bg-cyan-500/10 blur-md group-hover:blur-xl transition-all"></div>
-          </button>
-        </div>
+         </button>
+       </div>
       )}
-
       {status === 'testing' && (
         <div className="py-20 flex flex-col items-center justify-center gap-4">
           <div className="relative">

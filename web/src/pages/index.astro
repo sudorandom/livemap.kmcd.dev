@@ -84,7 +84,6 @@ try {
         {/* GLOSSARY SECTION */}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
-             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Entity</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">Autonomous System (AS)</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                A large network or group of networks under a single administrative control. Every major entity on the internet (Google, Comcast, CERN) is assigned a unique <strong>ASN</strong> to identify itself in the global BGP table.
@@ -92,7 +91,6 @@ try {
           </div>
 
           <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
-             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Economics</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">Peering vs Transit</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                <a href="https://en.wikipedia.org/wiki/Peering" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Peering</a> is a direct connection between ASes to exchange traffic. <strong>Transit</strong> is when a network pays a provider to carry its traffic to the rest of the global internet.
@@ -100,7 +98,6 @@ try {
           </div>
 
           <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
-             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Connectivity</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">BGP Sessions & Peering</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                Two ASes establish a <a href="https://datatracker.ietf.org/doc/html/rfc4271#section-8" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">session</a> to exchange routing information. This "peering" is the handshake that allows data to flow across corporate and national networks.
@@ -108,7 +105,6 @@ try {
           </div>
 
           <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
-             <div class="text-indigo-600 dark:text-cyan-400 font-cyber font-bold text-xs uppercase tracking-widest">Infrastructure</div>
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">The Global Routing Table</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                Often called the <a href="https://en.wikipedia.org/wiki/Default-free_zone" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Default-Free Zone (DFZ)</a>, this is the master list of all known IP prefixes and the best paths to reach them globally.
@@ -281,12 +277,17 @@ try {
           </div>
 
           <div class="space-y-12">
-            <div class="flex flex-col lg:flex-row gap-8 items-center">
-              <div class="lg:w-2/3 w-full">
+            <div class="flex flex-col lg:flex-row gap-8 items-start">
+              <div class="lg:w-1/2 w-full sticky top-24">
                 <div class="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">
                   <span class="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest">Type: Announcement</span>
+                  <div class="flex gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                  </div>
                 </div>
-                <div class="bg-slate-900 rounded-b-lg border border-slate-800 shadow-xl overflow-hidden">
+                <div class="bg-slate-900 rounded-b-lg border border-slate-800 shadow-2xl overflow-hidden">
                   <table class="w-full text-left border-collapse">
                     <thead>
                       <tr class="border-b border-slate-800 bg-slate-800/50">
@@ -295,33 +296,33 @@ try {
                       </tr>
                     </thead>
                     <tbody class="text-[11px] font-mono text-cyan-50 dark:text-cyan-100">
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">TYPE</td>
                         <td class="p-3">UPDATE (Announcement)</td>
                       </tr>
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">PEER ASN</td>
                         <td class="p-3 text-indigo-400">199524</td>
                       </tr>
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">AS PATH</td>
                         <td class="p-3">
                           <span class="flex flex-wrap gap-1">
                             {[199524, 1299, 7922, 46427, 64289].map(asn => (
-                              <span class="bg-indigo-500/20 text-indigo-300 px-1 rounded">AS{asn}</span>
+                              <span class="bg-indigo-500/20 text-indigo-300 px-1 rounded border border-indigo-500/20">AS{asn}</span>
                             ))}
                           </span>
                         </td>
                       </tr>
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">COMMUNITIES</td>
                         <td class="p-3 text-purple-400">1299:30000, 7922:101</td>
                       </tr>
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">NEXT HOP</td>
                         <td class="p-3 text-emerald-400">2001:504:1::a519:9524:1</td>
                       </tr>
-                      <tr>
+                      <tr class="hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">PREFIXES</td>
                         <td class="p-3 font-bold text-white">2a14:3f87:9800::/38</td>
                       </tr>
@@ -329,19 +330,27 @@ try {
                   </table>
                 </div>
               </div>
-              <div class="lg:w-1/3 w-full">
+              <div class="lg:w-1/3 w-full space-y-6">
                 <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  The <strong class="text-indigo-600 dark:text-cyan-400">AS PATH</strong> attribute shows the chain of networks this update traversed. In this example, traffic flows through AS199524 then AS1299 and so on until it reaches the destination. Networks use <strong class="text-indigo-600 dark:text-cyan-400">COMMUNITIES</strong> to tag routes with handling instructions. These tags can prevent advertisements to certain regions or signal DDoS mitigation. The <strong class="text-indigo-600 dark:text-cyan-400">NEXT HOP</strong> is the specific IP address used to reach the next network in the chain.
+                  The <strong class="text-indigo-600 dark:text-cyan-400">AS PATH</strong> attribute shows the chain of networks this update traversed. Each network that receives this update will append its own <strong>ASN</strong> to the beginning of this list before passing it on. In this example, traffic flows through AS199524 then AS1299 and so on until it reaches the destination.
+                </p>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Networks use <strong class="text-indigo-600 dark:text-cyan-400">COMMUNITIES</strong> to tag routes with handling instructions. These tags can prevent advertisements to certain regions or signal DDoS mitigation. The <strong class="text-indigo-600 dark:text-cyan-400 uppercase">prefixes</strong> represent the actual IP ranges being made reachable by this announcement.
                 </p>
               </div>
             </div>
 
-            <div class="flex flex-col lg:flex-row-reverse gap-8 items-center">
-              <div class="lg:w-2/3 w-full">
+            <div class="flex flex-col lg:flex-row-reverse gap-8 items-start">
+              <div class="lg:w-2/3 w-full sticky top-24">
                 <div class="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">
                   <span class="text-[10px] font-mono text-red-400 font-bold uppercase tracking-widest">Type: Withdrawal</span>
+                  <div class="flex gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                  </div>
                 </div>
-                <div class="bg-slate-900 rounded-b-lg border border-slate-800 shadow-xl overflow-hidden">
+                <div class="bg-slate-900 rounded-b-lg border border-slate-800 shadow-2xl overflow-hidden">
                    <table class="w-full text-left border-collapse">
                     <thead>
                       <tr class="border-b border-slate-800 bg-slate-800/50">
@@ -350,21 +359,21 @@ try {
                       </tr>
                     </thead>
                     <tbody class="text-[11px] font-mono text-red-50 dark:text-red-100">
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">TYPE</td>
                         <td class="p-3">UPDATE (Withdrawal)</td>
                       </tr>
-                      <tr class="border-b border-slate-800/50">
+                      <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">PEER ASN</td>
                         <td class="p-3 text-red-400">19151</td>
                       </tr>
-                      <tr>
+                      <tr class="hover:bg-white/5 transition-colors">
                         <td class="p-3 text-slate-500 font-bold">WITHDRAWALS</td>
                         <td class="p-3">
                           <div class="space-y-1">
-                            <div class="text-red-300">199.199.238.0/23</div>
-                            <div class="text-red-300">204.221.20.0/24</div>
-                            <div class="text-red-300">206.10.88.0/22</div>
+                            <div class="text-red-300 font-bold">199.199.238.0/23</div>
+                            <div class="text-red-300 font-bold">204.221.20.0/24</div>
+                            <div class="text-red-300 font-bold">206.10.88.0/22</div>
                           </div>
                         </td>
                       </tr>
@@ -372,9 +381,12 @@ try {
                   </table>
                 </div>
               </div>
-              <div class="lg:w-1/3 w-full">
-                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  A <strong class="text-indigo-600 dark:text-cyan-400">withdrawal</strong> message removes prefixes from the global routing table immediately. This happens when a network link goes down or a peering session is disconnected. Unlike an announcement that builds a path, a withdrawal lists <strong class="text-indigo-600 dark:text-cyan-400">PREFIXES</strong> that are no longer reachable through this peer. Large bursts of withdrawals are often the first sign of major fiber cuts or data center outages.
+              <div class="lg:w-1/3 w-full space-y-6">
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                  A <strong class="text-red-500">withdrawal</strong> message removes prefixes from the global routing table immediately. This happens when a network link goes down or a peering session is disconnected.
+                </p>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-2 border-red-500/20 pl-4">
+                  Unlike an announcement that builds a path, a withdrawal lists <strong class="text-red-500 uppercase">prefixes</strong> that are no longer reachable through this peer. Large bursts of withdrawals are often the first sign of major fiber cuts or data center outages.
                 </p>
               </div>
             </div>
