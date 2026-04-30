@@ -1,25 +1,35 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Zap, Filter } from 'lucide-react';
+import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Zap, Filter, CheckCircle2 } from 'lucide-react';
 
-export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void }) => (
+export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext, isFirst, isLast, nextHighlighted }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void, isFirst?: boolean, isLast?: boolean, nextHighlighted?: boolean }) => (
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
-        <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider mb-1">{title}</h3>
+        <div className="flex items-center gap-3 mb-1">
+          <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider">{title}</h3>
+          {nextHighlighted && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500">
+              <CheckCircle2 size={12} className="animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-tighter">Step Complete</span>
+            </div>
+          )}
+        </div>
         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{description}</p>
       </div>
       {(onPrev || onNext) && (
         <div className="flex items-center gap-2 ml-4 pt-1">
            <button 
              onClick={onPrev} 
-             className="p-2.5 md:p-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm dark:shadow-lg active:scale-95"
+             disabled={isFirst}
+             className={`p-2.5 md:p-3 rounded-lg border transition-all shadow-sm dark:shadow-lg active:scale-95 ${isFirst ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700'}`}
              aria-label="Previous Diagram"
            >
              <ChevronLeft className="w-6 h-6" />
            </button>
            <button 
              onClick={onNext} 
-             className="p-2.5 md:p-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm dark:shadow-lg active:scale-95"
+             disabled={isLast}
+             className={`p-2.5 md:p-3 rounded-lg border transition-all shadow-sm dark:shadow-lg active:scale-95 ${isLast ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : (nextHighlighted ? 'bg-indigo-600 text-white border-indigo-400 animate-bounce-once shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700')}`}
              aria-label="Next Diagram"
            >
              <ChevronRight className="w-6 h-6" />
@@ -31,8 +41,17 @@ export const PanelContainer = ({ title, children, footer, description, className
       {children}
     </div>
     {footer && (
-      <div className="mt-6 flex justify-center gap-4 border-t border-slate-200 dark:border-slate-800 pt-6">
-        {footer}
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
+        <div className="flex justify-center gap-4">
+          {footer}
+        </div>
+        {nextHighlighted && (
+          <div className="sm:absolute sm:right-0 animate-in fade-in zoom-in slide-in-from-right-2 duration-700">
+            <div className="bg-emerald-500/10 dark:bg-emerald-500/20 p-2 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+               <CheckCircle2 size={22} className="text-emerald-600 dark:text-emerald-400 animate-pulse" />
+            </div>
+          </div>
+        )}
       </div>
     )}
   </div>
@@ -72,6 +91,18 @@ const ActionButton = ({ onClick, active, label, activeLabel, icon: Icon, color =
   );
 };
 
+const ToggleSwitch = ({ enabled, onChange, label, className = "" }: { enabled: boolean, onChange: (val: boolean) => void, label?: string, className?: string }) => (
+  <div className={`flex items-center gap-2 ${className}`}>
+    {label && <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400">{label}</span>}
+    <button
+      onClick={() => onChange(!enabled)}
+      className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none ${enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+    >
+      <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-300 ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+    </button>
+  </div>
+);
+
 // Shared Coordinates for Consistency
 export const COORDS = {
   USER: { x: 200, y: 50 },
@@ -82,7 +113,7 @@ export const COORDS = {
   MALICIOUS: { x: 40, y: 200 }
 };
 
-export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos, labelBg, labelOffset = 0, labelVOffset = 0 }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom', labelBg?: boolean, labelOffset?: number, labelVOffset?: number }) => {
+export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos, labelBg, labelOffset = 0, labelVOffset = 0, onClick }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom', labelBg?: boolean, labelOffset?: number, labelVOffset?: number, onClick?: () => void }) => {
   const isRouter = type === 'router';
   const hasDarkBg = color === 'indigo' || color === 'emerald' || color === 'red' || color === 'blue';
   
@@ -101,7 +132,10 @@ export const Node = ({ x, y, type, label, color = "slate", offline = false, labe
   const labelY = finalPos === 'top' ? y - 25 : y + 30;
 
   return (
-    <g className="transition-opacity duration-500 opacity-100">
+    <g 
+      className={`transition-opacity duration-500 opacity-100 ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
       <circle cx={x} cy={y} r={isRouter ? 15 : 18} className={`${baseColor} stroke-2 transition-colors duration-500`} />
       {isRouter ? (
         <Router x={x - 9} y={y - 9} size={18} className={`${offline ? 'text-red-500' : (hasDarkBg ? 'text-white' : 'text-slate-600 dark:text-white')} pointer-events-none transition-colors duration-500`} />
@@ -188,7 +222,7 @@ export const Path = ({ from, to, state, delay = 0, color, width, reverse = false
 // Shared pulse spawning logic
 const spawnPulse = (setter: React.Dispatch<React.SetStateAction<any[]>>, duration: number = 3000, data: any = {}) => {
   const id = Date.now() + Math.random();
-  setter(p => [...p, { ...data, id }]);
+  setter(p => [...p, { ...data, id, startTime: Date.now() }]);
   setTimeout(() => {
     setter(p => p.filter(x => x.id !== id));
   }, duration + 500);
@@ -226,6 +260,14 @@ const DataPulse = ({ path, color = "white", duration = "3s", delay = "0s" }: { p
 
 export const BGPRoutingExplainer = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [completedTabs, setCompletedTabs] = useState<number[]>([]);
+  
+  const markTabComplete = (idx: number) => {
+    if (!completedTabs.includes(idx)) {
+      setCompletedTabs(prev => [...prev, idx]);
+    }
+  };
+
   const [announcing, setAnnouncing] = useState(false);
   const [midLearned, setMidLearned] = useState(false);
   const [entryLearned, setEntryLearned] = useState(false);
@@ -236,13 +278,13 @@ export const BGPRoutingExplainer = () => {
   const [withdrawalPulses, setWithdrawalPulses] = useState<{id: number, path: string, duration: string}[]>([]);
   const [withdrawalStage, setWithdrawalStage] = useState(0);
   const [asymmetricActive, setAsymmetricActive] = useState(false);
-  const [asymmetricPulses, setAsymmetricPulses] = useState<{id: number}[]>([]);
+  const [asymmetricPulses, setAsymmetricPulses] = useState<{id: number, path: string}[]>([]);
   const [multipathActive, setMultipathActive] = useState(false);
-  const [multipathPulses, setMultipathPulses] = useState<{id: number, color: string, path: string}[]>([]);
+  const [multipathPulses, setMultipathPulses] = useState<{id: number, color: string, path: string, duration?: string}[]>([]);
   const [anycastLocation, setAnycastLocation] = useState(false);
   const [anycastNode1Offline, setAnycastNode1Offline] = useState(false);
   const [anycastNode2Offline, setAnycastNode2Offline] = useState(false);
-  const [anycastPulses, setAnycastPulses] = useState<{id: number, path: string, duration?: string}[]>([]);
+  const [anycastPulses, setAnycastPulses] = useState<{id: number, path: string, duration?: string, node?: number}[]>([]);
 
   const tabs = [
     { title: "Announcing", icon: Share2, description: "Propagation of network reachability" },
@@ -257,7 +299,10 @@ export const BGPRoutingExplainer = () => {
     if (announcing) {
       setMidLearned(true);
       const t1 = setTimeout(() => setEntryLearned(true), 1000);
-      const t2 = setTimeout(() => setAnnouncementComplete(true), 2000);
+      const t2 = setTimeout(() => {
+        setAnnouncementComplete(true);
+        markTabComplete(0);
+      }, 2000);
       return () => {
         clearTimeout(t1);
         clearTimeout(t2);
@@ -344,6 +389,15 @@ export const BGPRoutingExplainer = () => {
           animation-timing-function: linear;
           animation-fill-mode: forwards;
         }
+        @keyframes shake-x {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .animate-shake-x {
+          animation: shake-x 0.15s ease-in-out;
+          animation-iteration-count: 3;
+        }
       `}</style>
 
       {/* TABS SIDEBAR */}
@@ -353,18 +407,20 @@ export const BGPRoutingExplainer = () => {
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === idx;
+            const isComplete = completedTabs.includes(idx);
             return (
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${
                   isActive 
-                    ? 'bg-indigo-600/10 dark:bg-indigo-600/20 border-indigo-500 text-indigo-700 dark:text-white shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+                    ? 'bg-indigo-600/10 dark:bg-indigo-600/20 border-indigo-500 text-indigo-700 dark:text-white shadow-sm' 
                     : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                 }`}
               >
-                <Icon size={14} />
+                <Icon size={14} className={isComplete ? 'text-emerald-500' : ''} />
                 <span className="text-[10px] font-cyber font-bold uppercase tracking-wider">{tab.title}</span>
+                {isComplete && <CheckCircle2 size={10} className="text-emerald-500" />}
               </button>
             );
           })}
@@ -375,6 +431,7 @@ export const BGPRoutingExplainer = () => {
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === idx;
+            const isComplete = completedTabs.includes(idx);
             return (
               <button
                 key={idx}
@@ -385,19 +442,24 @@ export const BGPRoutingExplainer = () => {
                     : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/60'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${isActive ? 'bg-indigo-500 text-white shadow-indigo-200 dark:shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-slate-300'}`}>
-                  <Icon size={18} />
+                <div className={`p-2 rounded-lg relative ${isActive ? 'bg-indigo-500 text-white shadow-indigo-200 dark:shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-indigo-600'}`}>
+                  <Icon size={18} className={isComplete ? (isActive ? 'text-emerald-300' : 'text-emerald-500') : ''} />
+                  {isComplete && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-white dark:bg-slate-950 rounded-full border border-white dark:border-slate-900">
+                       <CheckCircle2 size={13} className="text-emerald-500 shadow-sm" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <div className={`text-sm font-cyber font-bold uppercase tracking-wider ${isActive ? 'text-indigo-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-indigo-700 dark:group-hover:text-slate-200'}`}>
+                  <div className={`text-sm font-cyber font-bold uppercase tracking-wider ${isActive ? 'text-indigo-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-indigo-700'}`}>
                     {tab.title}
                   </div>
                   <div className={`text-[10px] font-medium leading-tight mt-1 ${isActive ? 'text-indigo-600 dark:text-slate-400 opacity-90' : 'text-slate-500 dark:text-slate-500 opacity-80'}`}>
                     {tab.description}
                   </div>
                 </div>
-                {isActive && (
-                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2 animate-pulse shadow-indigo-500 dark:shadow-[0_0_8px_rgba(99,102,241,1)]"></div>
+                {isActive && !isComplete && (
+                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2 animate-pulse shadow-indigo-500"></div>
                 )}
               </button>
             );
@@ -413,6 +475,8 @@ export const BGPRoutingExplainer = () => {
             description="The Origin AS 'announces' its IP space. Routers propagate this information so that every network knows the path back to the origin."
             onPrev={handlePrev}
             onNext={handleNext}
+            isFirst
+            nextHighlighted={completedTabs.includes(0)}
             footer={
               <>
                 <ActionButton 
@@ -460,12 +524,14 @@ export const BGPRoutingExplainer = () => {
             description="Data follows the established paths. BGP selects the shortest route to reach the destination AS."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(1)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setRoutingActive(true);
                     spawnPulse(setRoutingPulses);
+                    setTimeout(() => markTabComplete(1), 3000);
                   }}
                   label="Trace Route"
                   icon={Zap}
@@ -510,12 +576,14 @@ export const BGPRoutingExplainer = () => {
             description="When a prefix is no longer reachable, a 'withdrawal' message is sent. If an origin AS goes dark, its upstream peers detect the lost session and propagate the withdrawal to the rest of the internet."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(2)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setWithdrawn(true);
                     setWithdrawalPulses([]);
+                    setTimeout(() => markTabComplete(2), 1500);
                   }}
                   label="Take Offline"
                   icon={Ban}
@@ -566,13 +634,17 @@ export const BGPRoutingExplainer = () => {
             description="In BGP, the path taken to reach a destination may differ from the path taken for return traffic. This is normal but can complicate troubleshooting."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(3)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setAsymmetricActive(true);
-                    spawnPulse(setAsymmetricPulses);
-                  }}
+                    const pulsesCount = asymmetricPulses.length;
+                    spawnPulse(setAsymmetricPulses, 3000, {
+                        path: pulsesCount % 2 === 0 ? fullPathL : fullPathR
+                    });
+                    setTimeout(() => markTabComplete(3), 3000);                  }}
                   label="Trace Route"
                   icon={Zap}
                 />
@@ -619,16 +691,22 @@ export const BGPRoutingExplainer = () => {
             description="While BGP defaults to a single path, technologies like ECMP (Equal-Cost) and UCMP (Unequal-Cost) allow routers to distribute traffic across multiple paths for redundancy and throughput. Advanced steering can also be achieved via Segment Routing (SR-TE)."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(4)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setMultipathActive(true);
-                    const useLeft = Math.random() < 0.5;
+                    const pulsesCount = multipathPulses.length;
+                    const useLeft = pulsesCount === 0 ? true : (pulsesCount === 1 ? false : Math.random() < 0.5);
                     spawnPulse(setMultipathPulses, 3750, { 
                       path: useLeft ? fullPathL : fullPathR,
-                      color: useLeft ? "white" : "cyan"
+                      color: useLeft ? "white" : "cyan",
+                      duration: "3750ms"
                     });
+                    if (pulsesCount === 1) {
+                      setTimeout(() => markTabComplete(4), 3750);
+                    }
                   }}
                   label="Trace Route"
                   icon={Zap}
@@ -677,26 +755,10 @@ export const BGPRoutingExplainer = () => {
             description="Multiple servers announce the same IP. BGP routes to the closest one. If one goes offline, BGP automatically reroutes traffic to the next closest instance, often via longer transit paths."
             onPrev={handlePrev}
             onNext={handleNext}
+            isLast
+            nextHighlighted={completedTabs.includes(5)}
             footer={
               <div className="flex flex-wrap justify-center gap-3">
-                <ActionButton 
-                  onClick={() => {
-                    setAnycastNode1Offline(!anycastNode1Offline);
-                    setAnycastPulses([]);
-                  }}
-                  label={anycastNode1Offline ? "Restore EU Node" : "Take EU Offline"}
-                  icon={anycastNode1Offline ? Activity : Ban}
-                  color={anycastNode1Offline ? "red" : "indigo"}
-                />
-                <ActionButton 
-                  onClick={() => {
-                    setAnycastNode2Offline(!anycastNode2Offline);
-                    setAnycastPulses([]);
-                  }}
-                  label={anycastNode2Offline ? "Restore Asia Node" : "Take Asia Offline"}
-                  icon={anycastNode2Offline ? Activity : Ban}
-                  color={anycastNode2Offline ? "red" : "indigo"}
-                />
                 <ActionButton 
                   onClick={() => {
                     const node1Offline = anycastNode1Offline;
@@ -732,8 +794,9 @@ export const BGPRoutingExplainer = () => {
                       }
                     }
 
-                    spawnPulse(setAnycastPulses, dur1, { path: path1, duration: `${dur1}ms` });
-                    spawnPulse(setAnycastPulses, dur2, { path: path2, duration: `${dur2}ms` });
+                    spawnPulse(setAnycastPulses, dur1, { path: path1, duration: `${dur1}ms`, node: 1 });
+                    spawnPulse(setAnycastPulses, dur2, { path: path2, duration: `${dur2}ms`, node: 2 });
+                    setTimeout(() => markTabComplete(5), Math.max(dur1, dur2));
                   }}
                   label="Trace Route"
                   icon={Zap}
@@ -772,9 +835,51 @@ export const BGPRoutingExplainer = () => {
               <Node x={300} y={50} type="user" label="User (Asia)" color="emerald" />
               <Node x={100} y={150} type="router" />
               <Node x={300} y={150} type="router" />
-              <Node x={100} y={270} type="router" label="Origin (1.1.1.1)" color={anycastNode1Offline ? "slate" : "indigo"} offline={anycastNode1Offline} />
-              <Node x={300} y={270} type="router" label="Origin (1.1.1.1)" color={anycastNode2Offline ? "slate" : "indigo"} offline={anycastNode2Offline} />
+              <Node x={100} y={270} type="router" label="Origin (EU)" color={anycastNode1Offline ? "slate" : "indigo"} offline={anycastNode1Offline} />
+              <Node x={300} y={270} type="router" label="Origin (Asia)" color={anycastNode2Offline ? "slate" : "indigo"} offline={anycastNode2Offline} />
               
+              <foreignObject x={135} y={290} width={40} height={20}>
+                <ToggleSwitch 
+                  enabled={!anycastNode1Offline} 
+                  onChange={(val) => {
+                    const wasOnline = !anycastNode1Offline;
+                    setAnycastNode1Offline(!val);
+                    // If taking offline, kill pulses that haven't made it back to the peer yet
+                    if (wasOnline && !val) {
+                      const now = Date.now();
+                      setAnycastPulses(prev => prev.filter(p => {
+                        if (p.node !== 1) return true;
+                        const elapsed = now - (p as any).startTime;
+                        const dur = parseInt(p.duration || "3000");
+                        const threshold = dur > 4000 ? 2900 : 2300;
+                        return elapsed > threshold;
+                      }));
+                    }
+                  }} 
+                />
+              </foreignObject>
+
+              <foreignObject x={335} y={290} width={40} height={20}>
+                <ToggleSwitch 
+                  enabled={!anycastNode2Offline} 
+                  onChange={(val) => {
+                    const wasOnline = !anycastNode2Offline;
+                    setAnycastNode2Offline(!val);
+                    // If taking offline, kill pulses that haven't made it back to the peer yet
+                    if (wasOnline && !val) {
+                      const now = Date.now();
+                      setAnycastPulses(prev => prev.filter(p => {
+                        if (p.node !== 2) return true;
+                        const elapsed = now - (p as any).startTime;
+                        const dur = parseInt(p.duration || "3000");
+                        const threshold = dur > 4000 ? 2900 : 2300;
+                        return elapsed > threshold;
+                      }));
+                    }
+                  }} 
+                />
+              </foreignObject>
+
               {anycastNode1Offline && <Ban x={100 - 10} y={270 - 10} size={20} className="text-red-500/50" />}
               {anycastNode2Offline && <Ban x={300 - 10} y={270 - 10} size={20} className="text-red-500/50" />}
 
@@ -897,6 +1002,14 @@ export const BGPAdvancedTopics = () => (
 
 export const BGPSecurityExplainer = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [completedTabs, setCompletedTabs] = useState<number[]>([]);
+  
+  const markTabComplete = (idx: number) => {
+    if (!completedTabs.includes(idx)) {
+      setCompletedTabs(prev => [...prev, idx]);
+    }
+  };
+
   const [hijacked, setHijacked] = useState(false);
   const [filtered, setFiltered] = useState(false);
   const [leaked, setLeaked] = useState(false);
@@ -1043,18 +1156,20 @@ export const BGPSecurityExplainer = () => {
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === idx;
+            const isComplete = completedTabs.includes(idx);
             return (
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${
                   isActive 
-                    ? 'bg-red-600/10 dark:bg-red-600/20 border-red-500 text-red-700 dark:text-white shadow-sm dark:shadow-[0_0_15px_rgba(239,68,68,0.2)]' 
+                    ? 'bg-red-600/10 dark:bg-red-600/20 border-red-500 text-red-700 dark:text-white shadow-sm' 
                     : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                 }`}
               >
-                <Icon size={14} />
-                <span className="text-[10px] font-cyber font-bold uppercase tracking-wider">{tab.title}</span>
+                <Icon size={14} className={isComplete ? 'text-emerald-500' : ''} />
+                <span className={`text-[10px] font-cyber font-bold uppercase tracking-wider ${isActive ? (isActive ? 'text-red-700 dark:text-white' : '') : ''}`}>{tab.title}</span>
+                {isComplete && <CheckCircle2 size={10} className="text-emerald-500" />}
               </button>
             );
           })}
@@ -1065,6 +1180,7 @@ export const BGPSecurityExplainer = () => {
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === idx;
+            const isComplete = completedTabs.includes(idx);
             return (
               <button
                 key={idx}
@@ -1075,19 +1191,24 @@ export const BGPSecurityExplainer = () => {
                     : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/60'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${isActive ? 'bg-red-500 text-white shadow-red-200 dark:shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-red-600 dark:group-hover:text-slate-300'}`}>
-                  <Icon size={18} />
+                <div className={`p-2 rounded-lg relative ${isActive ? 'bg-red-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-red-600'}`}>
+                  <Icon size={18} className={isComplete ? (isActive ? 'text-emerald-300' : 'text-emerald-500') : ''} />
+                  {isComplete && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-white dark:bg-slate-950 rounded-full border border-white dark:border-slate-900">
+                       <CheckCircle2 size={13} className="text-emerald-500 shadow-sm" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <div className={`text-sm font-cyber font-bold uppercase tracking-wider ${isActive ? 'text-red-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-red-700 dark:group-hover:text-slate-200'}`}>
+                  <div className={`text-sm font-cyber font-bold uppercase tracking-wider ${isActive ? 'text-red-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-red-700'}`}>
                     {tab.title}
                   </div>
                   <div className={`text-[10px] font-medium leading-tight mt-1 ${isActive ? 'text-red-600 dark:text-slate-400 opacity-90' : 'text-slate-500 dark:text-slate-500 opacity-80'}`}>
                     {tab.description}
                   </div>
                 </div>
-                {isActive && (
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 animate-pulse shadow-red-500 dark:shadow-[0_0_8px_rgba(239,68,68,1)]"></div>
+                {isActive && !isComplete && (
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 animate-pulse shadow-red-500"></div>
                 )}
               </button>
             );
@@ -1103,12 +1224,15 @@ export const BGPSecurityExplainer = () => {
             description="A hijacker announces a more specific or attractive path to the legitimate Destination, stealing internet traffic."
             onPrev={handlePrev}
             onNext={handleNext}
+            isFirst
+            nextHighlighted={completedTabs.includes(0)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setHijacked(true);
                     setHijackPulses([]);
+                    setTimeout(() => markTabComplete(0), 3000);
                   }}
                   label="Trigger Hijack"
                   icon={ShieldAlert}
@@ -1164,16 +1288,18 @@ export const BGPSecurityExplainer = () => {
             description="ISPs use RPKI to mathematically prove Route Hijacks are invalid. The malicious path is dropped at the border, protecting the user."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(1)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setFiltered(true);
                     setFilteredPulses([]);
+                    setTimeout(() => markTabComplete(1), 3000);
                   }}
-                  label="Trigger Hijack"
+                  label="Enable RPKI ROV"
                   icon={ShieldCheck}
-                  color="red"
+                  color="indigo"
                   disabled={filtered}
                 />
                 <ActionButton 
@@ -1226,16 +1352,18 @@ export const BGPSecurityExplainer = () => {
 
         {activeTab === 2 && (
           <PanelContainer 
-            title="3. Route Leak (Valley-Free Violation)" 
+            title="3. Route Leak" 
             description="A Customer AS accidentally announces routes learned from Provider A to Provider B. This creates a 'valley' where Provider B sends backbone traffic through the customer's limited link to reach Provider A."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(2)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setLeaked(true);
                     setLeakPulses([]);
+                    setTimeout(() => markTabComplete(2), 3000);
                   }}
                   label="Trigger Leak"
                   icon={Activity}
@@ -1295,12 +1423,14 @@ export const BGPSecurityExplainer = () => {
             description="Remote Triggered Black Hole (RTBH) allows a network to tell its providers to drop all traffic destined for an IP under attack. This protects the network link capacity at the cost of the target IP's reachability."
             onPrev={handlePrev}
             onNext={handleNext}
+            nextHighlighted={completedTabs.includes(3)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setRtbhActive(true);
                     setRtbhPulses([]);
+                    setTimeout(() => markTabComplete(3), 3000);
                   }}
                   label="Activate RTBH"
                   icon={Ban}
@@ -1346,8 +1476,8 @@ export const BGPSecurityExplainer = () => {
               <Node x={340} y={40} type="router" color="blue" />
 
               {/* Layer 2: Peers */}
-              <Node x={100} y={120} type="router" label="User Peer" labelOffset={-10} />
-              <Node x={300} y={120} type="router" label="Secondary Peer" labelOffset={25} />
+              <Node x={100} y={120} type="router" labelOffset={-10} />
+              <Node x={300} y={120} type="router" labelOffset={25} />
 
               {/* Layer 3: Upstream Provider */}
               <Node x={200} y={210} type="router" label={rtbhActive ? "All Dropped" : "Upstream Provider"} color={rtbhActive ? "red" : "slate"} labelBg labelVOffset={10} />
@@ -1381,12 +1511,15 @@ export const BGPSecurityExplainer = () => {
             description="BGP FlowSpec allows a victim to distribute precise filtering rules (e.g., 'drop UDP port 53 traffic to this IP') to upstream providers. Unlike RTBH, FlowSpec only drops attack traffic while allowing legitimate users through."
             onPrev={handlePrev}
             onNext={handleNext}
+            isLast
+            nextHighlighted={completedTabs.includes(4)}
             footer={
               <>
                 <ActionButton 
                   onClick={() => {
                     setFlowspecActive(true);
                     setFlowspecPulses([]);
+                    setTimeout(() => markTabComplete(4), 3000);
                   }}
                   label="Deploy FlowSpec"
                   icon={Filter}
@@ -1432,8 +1565,8 @@ export const BGPSecurityExplainer = () => {
               <Node x={340} y={40} type="router" color="blue" />
 
               {/* Layer 2: Peers */}
-              <Node x={100} y={120} type="router" label="User Peer" labelOffset={-10} />
-              <Node x={300} y={120} type="router" label="Secondary Peer" labelOffset={25} />
+              <Node x={100} y={120} type="router" labelOffset={-10} />
+              <Node x={300} y={120} type="router" labelOffset={25} />
 
               {/* Layer 3: Upstream Provider */}
               <Node x={200} y={210} type="router" label={flowspecActive ? "Attack Filtered" : "Upstream Provider"} color={flowspecActive ? "emerald" : "slate"} labelBg labelVOffset={10} />
