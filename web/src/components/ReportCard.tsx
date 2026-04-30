@@ -217,7 +217,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                       {/* Sample Events */}
                       {alert.sampleEvents && alert.sampleEvents.length > 0 && (
                         <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-200 dark:border-slate-500/10">
-                          <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Sample Activity Log:</div>
+                          <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Activity Log:</div>
                           {alert.sampleEvents
                             .slice()
                             .sort((a: any, b: any) => {
@@ -243,7 +243,8 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                             </div>
                           ))}
                         </div>
-                      )}                    </div>
+                      )}
+                    </div>
                   </div>
                 </li>
               );
@@ -428,9 +429,8 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
             <div className="space-y-6 pt-12 border-t border-slate-500/10">
               <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Global RPKI Adoption</h3>
               <p className="text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
-                RPKI is heavily adopted, but there's a ways to go with adoption, both on the RPKI database and enforcement of RPKI. You can track real-world deployment progress at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
-              </p>
-            </div>
+                While RPKI has seen significant growth, global security depends on both widespread registration and active route filtering by all ISPs. You can track real-world deployment and enforcement progress at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
+              </p>            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* RPKI IPv4 */}

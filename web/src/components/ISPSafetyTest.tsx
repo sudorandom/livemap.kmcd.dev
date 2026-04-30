@@ -74,7 +74,7 @@ export function ISPSafetyTest() {
   return (
     <div className="w-full transition-all duration-500 flex flex-col">
       {status === 'idle' && (
-       <div class="py-12 flex flex-col items-center justify-center w-full max-w-xl mx-auto">
+       <div className="py-12 flex flex-col items-center justify-center w-full max-w-xl mx-auto">
          <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-8 leading-relaxed">
            <strong className="text-indigo-600 dark:text-cyan-400">Verify your network's integrity.</strong> This probe attempts to connect to known <strong>RPKI-invalid</strong> prefixes. A secure ISP will drop these invalid paths, preventing a connection. If the connection succeeds, your network may be vulnerable to BGP route hijacks. <strong>Initiate the probe below to test your connection.</strong>
          </p>

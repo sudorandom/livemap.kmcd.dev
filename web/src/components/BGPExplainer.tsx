@@ -1350,7 +1350,7 @@ export const BGPSecurityExplainer = () => {
               <Node x={300} y={120} type="router" label="Secondary Peer" labelOffset={25} />
 
               {/* Layer 3: Upstream Provider */}
-              <Node x={200} y={210} type="router" label={rtbhActive ? "All Dropped" : "Upstream Provider"} color={rtbhActive ? "red" : "slate"} labelBg labelVOffset={5} />
+              <Node x={200} y={210} type="router" label={rtbhActive ? "All Dropped" : "Upstream Provider"} color={rtbhActive ? "red" : "slate"} labelBg labelVOffset={10} />
 
               {/* Layer 4: Victim */}
               <Node x={200} y={300} type="router" label={rtbhActive ? "Victim" : "Victim (Down)"} color={rtbhActive ? "indigo" : "red"} labelPos="bottom" offline={!rtbhActive} />
@@ -1436,7 +1436,7 @@ export const BGPSecurityExplainer = () => {
               <Node x={300} y={120} type="router" label="Secondary Peer" labelOffset={25} />
 
               {/* Layer 3: Upstream Provider */}
-              <Node x={200} y={210} type="router" label={flowspecActive ? "Attack Filtered" : "Upstream Provider"} color={flowspecActive ? "emerald" : "slate"} labelBg labelVOffset={5} />
+              <Node x={200} y={210} type="router" label={flowspecActive ? "Attack Filtered" : "Upstream Provider"} color={flowspecActive ? "emerald" : "slate"} labelBg labelVOffset={10} />
 
               {/* Layer 4: Victim */}
               <Node x={200} y={300} type="router" label={flowspecActive ? "Victim" : "Victim (Stressed)"} color={flowspecActive ? "indigo" : "red"} labelPos="bottom" offline={!flowspecActive} />
