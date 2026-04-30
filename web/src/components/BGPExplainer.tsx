@@ -799,7 +799,7 @@ export const BGPAdvancedTopics = () => (
           </h4>
           <ul className="space-y-3 text-sm text-slate-400">
             <li>
-              <a href="https://www.cloudflare.com/learning/network-layer/what-is-ebgp-ibgp/" target="_blank" className="text-indigo-600 dark:text-cyan-500 hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted font-bold">eBGP vs iBGP</a>
+              <a href="https://www.bgp.us/ibgp-and-ebgp/" target="_blank" className="text-indigo-600 dark:text-cyan-500 hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted font-bold">eBGP vs iBGP</a>
               <p className="text-slate-600 dark:text-slate-400 italic mt-1 text-xs">External BGP is used between networks while Internal BGP distributes those routes within a single AS.</p>
             </li>
             <li>
