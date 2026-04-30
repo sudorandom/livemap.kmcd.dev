@@ -420,7 +420,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                 <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Threats and Defenses</h3>
               </div>
               <p className="text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed mb-8">
-                Understanding the theory of BGP security is one thing; seeing a hijack in action is another. Use the simulation below to witness how malicious actors exploit the protocol and how modern defenses like <strong>Route Origin Validation (ROV)</strong> use RPKI signatures to identify and drop invalid paths in real-time.
+                Understanding the theory of BGP security is one thing; seeing a hijack in action is another. Use the simulation below to witness how malicious actors exploit the protocol and how modern defenses like <strong>Route Origin Validation (ROV)</strong>, <strong>RTBH</strong>, and <strong>BGP FlowSpec</strong> identify and mitigate threats in real-time.
               </p>
               <BGPSecurityExplainer />
             </div>

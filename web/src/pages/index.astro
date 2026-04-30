@@ -128,31 +128,39 @@ try {
               <div class="space-y-6">
                 <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
                   <p>
-                    In BGP, a <strong>Path</strong> is not just a wire between two points; it is a sequence of <strong>Autonomous Systems (ASes)</strong> that data must traverse to reach its destination. Because the internet is a "network of networks," there are often dozens of possible ways to reach a single IP address.
+                    A BGP <strong>Path</strong> is the specific chain of <strong>Autonomous Systems</strong> that data follows as it moves across the global internet. Since the web is a "network of networks," there are often dozens of different ways to reach the same destination. BGP's job is to evaluate all those choices and pick the single "best" route from the list.
                   </p>
                   <p>
-                    Unlike protocols that count every individual router (hops), BGP operates at a higher level of abstraction. It selects a single "best" path based on business relationships, geography, and network health.
+                    BGP makes routing decisions based on network <strong>policy</strong>. These choices are driven by business relationships, cost, and the overall health of the path. You can see these real-world routing decisions in action using <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">Cloudflare Radar</a> or by looking at the global routing table through <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">RouteViews</a>.
                   </p>
                 </div>
                 
                 <div class="bg-indigo-500/5 dark:bg-indigo-500/10 p-5 rounded-lg border border-indigo-500/20">
-                  <h4 class="text-[10px] font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-4">Best Path Algorithm</h4>
+                  <h4 class="text-[10px] font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-4">How BGP Chooses a Route</h4>
                   <ol class="space-y-3 text-xs">
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">01</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Local Preference:</a> Prefers exit points based on internal policy.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Local Preference:</a> The main way a network decides how its traffic leaves. For example, a network often prefers free peering connections over paid transit links.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">02</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> Prefers the shortest chain of network hops.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> Generally, the shorter the chain of networks, the better the path.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">03</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.1" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Origin Type:</a> Prefers internal routes over external ones.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.1" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Origin Type:</a> Routes that start from within the network are trusted more than those from outside.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">04</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">MED:</a> Suggests an entry point to a neighbor.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">MED:</a> A hint to a neighboring network about which entry point is best to use.</div>
+                    </li>
+                    <li class="flex gap-3">
+                      <span class="font-bold text-indigo-500">05</span>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">External over Internal:</a> External routes (eBGP) are usually preferred over those learned internally (iBGP).</div>
+                    </li>
+                    <li class="flex gap-3">
+                      <span class="font-bold text-indigo-500">06</span>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Router ID:</a> If all else is a tie, the router with the lowest IP address wins.</div>
                     </li>
                   </ol>
                 </div>
@@ -231,20 +239,32 @@ try {
             <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
                <h3 class="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
                  <svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                 Looking Glasses
+                 Network Tooling & Resources
                </h3>
                <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
                  <p>
                    A <a href="https://en.wikipedia.org/wiki/Looking_glass_server" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Looking Glass</a> allows engineers to view the routing table from the perspective of a specific remote router.
                  </p>
-                 <ul class="space-y-3">
+                 <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                    <li>
-                     <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">University of Oregon RouteViews</a>
-                     <p class="mt-1 opacity-80 leading-relaxed">A global project providing real-time BGP data to researchers since 1995. It peers with dozens of major backbones worldwide.</p>
+                     <a href="https://radar.cloudflare.com" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">Cloudflare Radar</a>
+                     <p class="mt-1 opacity-80 leading-relaxed">Real-time insights into internet traffic, security, and routing patterns globally.</p>
+                   </li>
+                   <li>
+                     <a href="https://peeringdb.com" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">PeeringDB</a>
+                     <p class="mt-1 opacity-80 leading-relaxed">The industry-standard database for peering locations and network interconnection data.</p>
+                   </li>
+                   <li>
+                     <a href="https://bgp.he.net" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">HE BGP Toolkit</a>
+                     <p class="mt-1 opacity-80 leading-relaxed">Extensive BGP routing information, including AS details, prefix propagation, and path history.</p>
+                   </li>
+                   <li>
+                     <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">RouteViews</a>
+                     <p class="mt-1 opacity-80 leading-relaxed">A global project providing real-time BGP data to researchers since 1995 via dozens of collectors.</p>
                    </li>
                    <li>
                      <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">RIPE NCC RIS</a>
-                     <p class="mt-1 opacity-80 leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions across the globe.</p>
+                     <p class="mt-1 opacity-80 leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions.</p>
                    </li>
                  </ul>
                </div>

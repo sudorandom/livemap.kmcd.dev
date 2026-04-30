@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Play, Zap } from 'lucide-react';
+import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Zap, Filter } from 'lucide-react';
 
 export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void }) => (
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
@@ -82,13 +82,14 @@ export const COORDS = {
   MALICIOUS: { x: 40, y: 200 }
 };
 
-export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom' }) => {
+export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos, labelBg, labelOffset = 0 }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom', labelBg?: boolean, labelOffset?: number }) => {
   const isRouter = type === 'router';
-  const hasDarkBg = color === 'indigo' || color === 'emerald' || color === 'red';
+  const hasDarkBg = color === 'indigo' || color === 'emerald' || color === 'red' || color === 'blue';
   
   let baseColor = color === 'indigo' ? 'fill-indigo-600 stroke-indigo-400' : 
                    color === 'emerald' ? 'fill-emerald-600 stroke-emerald-400' :
                    color === 'red' ? 'fill-red-600 stroke-red-400' :
+                   color === 'blue' ? 'fill-blue-600 stroke-blue-400' :
                    'fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600';
   
   if (offline) {
@@ -108,9 +109,14 @@ export const Node = ({ x, y, type, label, color = "slate", offline = false, labe
         <User x={x - 9} y={y - 9} size={18} className="text-white pointer-events-none" />
       )}
       {label && (
-        <text x={x} y={labelY} textAnchor="middle" className={`fill-slate-500 dark:fill-slate-400 text-[9px] font-bold uppercase tracking-tighter ${offline ? 'text-red-500' : ''}`}>
-          {label}
-        </text>
+        <g transform={`translate(${labelOffset}, 0)`}>
+          {labelBg && (
+            <rect x={x - 45} y={labelY - 9} width={90} height={14} rx={7} className="fill-slate-100/80 dark:fill-slate-800/80 stroke-slate-200 dark:stroke-slate-700 stroke-1" />
+          )}
+          <text x={x} y={labelY + 1} textAnchor="middle" className={`fill-slate-500 dark:fill-slate-400 text-[9px] font-bold uppercase tracking-tighter ${offline ? 'text-red-500' : ''}`}>
+            {label}
+          </text>
+        </g>
       )}
     </g>
   );
@@ -131,7 +137,9 @@ export const Path = ({ from, to, state, delay = 0, color, width, reverse = false
       opacity = 'opacity-40';
       break;
     case 'announcing':
-      strokeColor = color === 'red' ? 'text-red-500' : 'text-indigo-600 dark:text-cyan-500';
+      strokeColor = color === 'red' ? 'text-red-500' : 
+                   color === 'blue' ? 'text-blue-500' : 
+                   'text-indigo-600 dark:text-cyan-500';
       dashed = true;
       animate = true;
       opacity = 'opacity-100';
@@ -143,7 +151,9 @@ export const Path = ({ from, to, state, delay = 0, color, width, reverse = false
       opacity = 'opacity-100';
       break;
     case 'primary':
-      strokeColor = color === 'red' ? 'text-red-500' : 'text-indigo-600 dark:text-cyan-500';
+      strokeColor = color === 'red' ? 'text-red-500' : 
+                   color === 'blue' ? 'text-blue-500' : 
+                   'text-indigo-600 dark:text-cyan-500';
       dashed = false;
       animate = false;
       opacity = 'opacity-100';
@@ -325,7 +335,7 @@ export const BGPRoutingExplainer = () => {
         @keyframes pulse-motion {
           0% { offset-distance: 0%; opacity: 0; }
           10% { opacity: 1; }
-          90% { opacity: 1; }
+          98% { opacity: 1; }
           100% { offset-distance: 100%; opacity: 0; }
         }
         .animate-pulse-path {
@@ -890,55 +900,104 @@ export const BGPSecurityExplainer = () => {
   const [hijacked, setHijacked] = useState(false);
   const [filtered, setFiltered] = useState(false);
   const [leaked, setLeaked] = useState(false);
+  const [rtbhActive, setRtbhActive] = useState(false);
+  const [flowspecActive, setFlowspecActive] = useState(false);
   
   const [hijackPulses, setHijackPulses] = useState<{id: number, path: string, color: string}[]>([]);
   const [filterPulses, setFilteredPulses] = useState<{id: number, path: string, color: string}[]>([]);
   const [leakPulses, setLeakPulses] = useState<{id: number, path: string, color: string}[]>([]);
+  const [rtbhPulses, setRtbhPulses] = useState<{id: number, path: string, color: string}[]>([]);
+  const [flowspecPulses, setFlowspecPulses] = useState<{id: number, path: string, color: string}[]>([]);
 
   const fullPathR = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
   const hijackPath = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.MALICIOUS.x},${COORDS.MALICIOUS.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
   const leakPathIntended = useMemo(() => `M300,80 L100,80`, []); // Provider B -> Provider A (Direct)
   const leakPathLeaked = useMemo(() => `M300,80 L200,220 L100,80`, []); // Provider B -> Customer -> Provider A
 
+  const pathUserToProvider = useMemo(() => `M100,40 L100,120 L200,210`, []);
+  const pathAttackerToProvider1 = useMemo(() => `M300,40 L100,120 L200,210`, []);
+  const pathAttackerToProvider2 = useMemo(() => `M300,40 L300,120 L200,210`, []);
+  
+  const pathFullUser = useMemo(() => `M100,40 L100,120 L200,210 L200,300`, []);
+  const pathFullAttacker1 = useMemo(() => `M300,40 L100,120 L200,210 L200,300`, []);
+  const pathFullAttacker2 = useMemo(() => `M300,40 L300,120 L200,210 L200,300`, []);
+
   const tabs = [
     { title: "Route Hijack", icon: ShieldAlert, description: "Path stealing via malicious announcements" },
     { title: "RPKI Filtering", icon: ShieldCheck, description: "Automated mitigation of invalid routes" },
-    { title: "Route Leak", icon: Activity, description: "Unintentional transit via misconfiguration" }
+    { title: "Route Leak", icon: Activity, description: "Unintentional transit via misconfiguration" },
+    { title: "BGP RTBH", icon: Ban, description: "Remote Triggered Black Hole for DDoS mitigation" },
+    { title: "BGP FlowSpec", icon: Filter, description: "Granular traffic filtering across AS boundaries" }
   ];
 
   // Snapshot refs for security panels
-  const securitySettings = useRef({ hijacked: false, filtered: false, leaked: false });
+  const securitySettings = useRef({ hijacked: false, filtered: false, leaked: false, rtbh: false, flowspec: false });
   useEffect(() => {
-    securitySettings.current = { hijacked, filtered, leaked };
-  }, [hijacked, filtered, leaked]);
+    securitySettings.current = { hijacked, filtered, leaked, rtbh: rtbhActive, flowspec: flowspecActive };
+  }, [hijacked, filtered, leaked, rtbhActive, flowspecActive]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const { hijacked: isH, filtered: isF, leaked: isL } = securitySettings.current;
+      const { hijacked: isH, filtered: isF, leaked: isL, rtbh: isR, flowspec: isFS } = securitySettings.current;
       
       // Hijack Panel Pulse
       spawnPulse(setHijackPulses, 3000, {
         path: isH ? hijackPath : fullPathR,
-        color: isH ? "red" : "white"
+        color: isH ? "red" : "white",
+        duration: "3000ms"
       });
 
       // Filter Panel Pulse (always safe path since malicious is dropped)
       spawnPulse(setFilteredPulses, 3000, {
         path: fullPathR,
-        color: "cyan"
+        color: "cyan",
+        duration: "3000ms"
       });
 
       // Leak Panel Pulse
       if (isL) {
          // Traffic from B leaks through Customer to A
-         spawnPulse(setLeakPulses, 3000, { path: leakPathLeaked, color: "red" });
+         spawnPulse(setLeakPulses, 3000, { path: leakPathLeaked, color: "red", duration: "3000ms" });
       } else {
          // Normal: Traffic from B goes directly to A
-         spawnPulse(setLeakPulses, 3000, { path: leakPathIntended, color: "white" });
+         spawnPulse(setLeakPulses, 3000, { path: leakPathIntended, color: "white", duration: "3000ms" });
+      }
+
+      // RTBH Panel Pulses
+      const rtbhState = securitySettings.current.rtbh;
+      spawnPulse(setRtbhPulses, rtbhState ? 1500 : 3000, { 
+        path: rtbhState ? pathUserToProvider : pathFullUser, 
+        color: "white", 
+        duration: rtbhState ? "1500ms" : "3000ms" 
+      });
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const active = securitySettings.current.rtbh;
+          const usePath1 = Math.random() < 0.5;
+          spawnPulse(setRtbhPulses, active ? 2000 : 3000, { 
+            path: active ? (usePath1 ? pathAttackerToProvider1 : pathAttackerToProvider2) : (usePath1 ? pathFullAttacker1 : pathFullAttacker2), 
+            color: "red", 
+            duration: active ? "2000ms" : "3000ms" 
+          });
+        }, Math.random() * 800);
+      }
+
+      // FlowSpec Panel Pulses
+      spawnPulse(setFlowspecPulses, 3000, { path: pathFullUser, color: "white", duration: "3000ms" });
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const active = securitySettings.current.flowspec;
+          const usePath1 = Math.random() < 0.5;
+          spawnPulse(setFlowspecPulses, active ? 2000 : 3000, { 
+            path: active ? (usePath1 ? pathAttackerToProvider1 : pathAttackerToProvider2) : (usePath1 ? pathFullAttacker1 : pathFullAttacker2), 
+            color: "red", 
+            duration: active ? "2000ms" : "3000ms" 
+          });
+        }, Math.random() * 800);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [fullPathR, hijackPath, leakPathIntended, leakPathLeaked]);
+  }, [fullPathR, hijackPath, leakPathIntended, leakPathLeaked, pathUserToProvider, pathAttackerToProvider1, pathAttackerToProvider2, pathFullUser, pathFullAttacker1, pathFullAttacker2]);
 
   const handlePrev = () => setActiveTab(prev => (prev - 1 + tabs.length) % tabs.length);
   const handleNext = () => setActiveTab(prev => (prev + 1) % tabs.length);
@@ -966,7 +1025,7 @@ export const BGPSecurityExplainer = () => {
         @keyframes pulse-motion-sec {
           0% { offset-distance: 0%; opacity: 0; }
           10% { opacity: 1; }
-          90% { opacity: 1; }
+          98% { opacity: 1; }
           100% { offset-distance: 100%; opacity: 0; }
         }
         .animate-pulse-path-sec {
@@ -1091,7 +1150,8 @@ export const BGPSecurityExplainer = () => {
                 <DataPulse 
                   key={pulse.id} 
                   color={pulse.color}
-                  path={pulse.path} 
+                  path={pulse.path}
+                  duration={pulse.duration}
                 />
               ))}
             </svg>
@@ -1158,7 +1218,7 @@ export const BGPSecurityExplainer = () => {
               )}
 
               {filterPulses.map(pulse => (
-                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} />
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} />
               ))}
             </svg>
           </PanelContainer>
@@ -1223,7 +1283,179 @@ export const BGPSecurityExplainer = () => {
               )}
 
               {leakPulses.map(pulse => (
-                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} />
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} />
+              ))}
+            </svg>
+          </PanelContainer>
+        )}
+
+        {activeTab === 3 && (
+          <PanelContainer 
+            title="4. BGP RTBH (Black-Hole)" 
+            description="Remote Triggered Black Hole (RTBH) allows a network to tell its providers to drop all traffic destined for an IP under attack. This protects the network link capacity at the cost of the target IP's reachability."
+            onPrev={handlePrev}
+            onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setRtbhActive(true);
+                    setRtbhPulses([]);
+                  }}
+                  label="Activate RTBH"
+                  icon={Ban}
+                  color="red"
+                  disabled={rtbhActive}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setRtbhActive(false);
+                    setRtbhPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!rtbhActive}
+                />
+              </>
+            }
+          >
+            <svg viewBox="0 0 400 350" className="w-full h-full">
+              {/* Layout: Layer 1 (y=40), Layer 2 (y=120), Layer 3 (y=210), Layer 4 (y=300) */}
+              
+              {/* Paths from Layer 1 to Layer 2 */}
+              <Path from={{x: 100, y: 40}} to={{x: 100, y: 120}} state="primary" />
+              <Path from={{x: 300, y: 40}} to={{x: 100, y: 120}} state="primary" color="blue" />
+              <Path from={{x: 300, y: 40}} to={{x: 300, y: 120}} state="primary" color="blue" />
+
+              {/* Paths from Layer 2 to Layer 3 (Upstream) */}
+              <Path from={{x: 100, y: 120}} to={{x: 200, y: 210}} state="primary" color="white" />
+              <Path from={{x: 300, y: 120}} to={{x: 200, y: 210}} state="primary" color="white" />
+
+              {/* Path from Layer 3 to Layer 4 (Victim) */}
+              <Path from={{x: 200, y: 210}} to={{x: 200, y: 300}} state={rtbhActive ? "idle" : "primary"} color={rtbhActive ? "white" : "red"} />
+
+              {rtbhActive && (
+                <Path from={{x: 200, y: 300}} to={{x: 200, y: 210}} state="announcing" color="indigo" />
+              )}
+
+              {/* Layer 1: Clients */}
+              <Node x={100} y={40} type="user" label="User" color="emerald" labelPos="top" />
+              <Node x={260} y={40} type="router" color="blue" />
+              <Node x={300} y={40} type="router" label="Botnet" color="blue" labelPos="top" />
+              <Node x={340} y={40} type="router" color="blue" />
+
+              {/* Layer 2: Peers */}
+              <Node x={100} y={120} type="router" label="User Peer" labelOffset={-10} />
+              <Node x={300} y={120} type="router" label="Secondary Peer" labelOffset={25} />
+
+              {/* Layer 3: Upstream Provider */}
+              <Node x={200} y={210} type="router" label={rtbhActive ? "All Dropped" : "Upstream Provider"} color={rtbhActive ? "red" : "slate"} labelBg labelVOffset={5} />
+
+              {/* Layer 4: Victim */}
+              <Node x={200} y={300} type="router" label={rtbhActive ? "Victim" : "Victim (Down)"} color={rtbhActive ? "indigo" : "red"} labelPos="bottom" offline={!rtbhActive} />
+
+              {rtbhActive && (
+                <g>
+                   <circle cx={200} cy={210} r={22} className="fill-slate-900 stroke-red-500 stroke-[3px]" />
+                   <Ban x={200 - 14} y={210 - 14} size={28} className="text-red-500" />
+                </g>
+              )}
+
+              {!rtbhActive && (
+                <g>
+                   <text x={200} y={345} textAnchor="middle" className="fill-red-500 text-[9px] font-bold uppercase animate-pulse">Service Outage</text>
+                </g>
+              )}
+
+              {rtbhPulses.map(pulse => (
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} />
+              ))}
+            </svg>
+          </PanelContainer>
+        )}
+
+        {activeTab === 4 && (
+          <PanelContainer 
+            title="5. BGP FlowSpec" 
+            description="BGP FlowSpec allows a victim to distribute precise filtering rules (e.g., 'drop UDP port 53 traffic to this IP') to upstream providers. Unlike RTBH, FlowSpec only drops attack traffic while allowing legitimate users through."
+            onPrev={handlePrev}
+            onNext={handleNext}
+            footer={
+              <>
+                <ActionButton 
+                  onClick={() => {
+                    setFlowspecActive(true);
+                    setFlowspecPulses([]);
+                  }}
+                  label="Deploy FlowSpec"
+                  icon={Filter}
+                  color="indigo"
+                  disabled={flowspecActive}
+                />
+                <ActionButton 
+                  onClick={() => {
+                    setFlowspecActive(false);
+                    setFlowspecPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!flowspecActive}
+                />
+              </>
+            }
+          >
+            <svg viewBox="0 0 400 350" className="w-full h-full">
+              {/* Layout: Layer 1 (y=40), Layer 2 (y=120), Layer 3 (y=210), Layer 4 (y=300) */}
+              
+              {/* Paths from Layer 1 to Layer 2 */}
+              <Path from={{x: 100, y: 40}} to={{x: 100, y: 120}} state="primary" />
+              <Path from={{x: 300, y: 40}} to={{x: 100, y: 120}} state="primary" color="blue" />
+              <Path from={{x: 300, y: 40}} to={{x: 300, y: 120}} state="primary" color="blue" />
+
+              {/* Paths from Layer 2 to Layer 3 (Upstream) */}
+              <Path from={{x: 100, y: 120}} to={{x: 200, y: 210}} state="primary" color="white" />
+              <Path from={{x: 300, y: 120}} to={{x: 200, y: 210}} state="primary" color="white" />
+
+              {/* Path from Layer 3 to Layer 4 (Victim) */}
+              <Path from={{x: 200, y: 210}} to={{x: 200, y: 300}} state="primary" color={flowspecActive ? "white" : "red"} />
+
+              {flowspecActive && (
+                <Path from={{x: 200, y: 300}} to={{x: 200, y: 210}} state="announcing" color="indigo" />
+              )}
+
+              {/* Layer 1: Clients */}
+              <Node x={100} y={40} type="user" label="User" color="emerald" labelPos="top" />
+              <Node x={260} y={40} type="router" color="blue" />
+              <Node x={300} y={40} type="router" label="Botnet" color="blue" labelPos="top" />
+              <Node x={340} y={40} type="router" color="blue" />
+
+              {/* Layer 2: Peers */}
+              <Node x={100} y={120} type="router" label="User Peer" labelOffset={-10} />
+              <Node x={300} y={120} type="router" label="Secondary Peer" labelOffset={25} />
+
+              {/* Layer 3: Upstream Provider */}
+              <Node x={200} y={210} type="router" label={flowspecActive ? "Attack Filtered" : "Upstream Provider"} color={flowspecActive ? "emerald" : "slate"} labelBg labelVOffset={5} />
+
+              {/* Layer 4: Victim */}
+              <Node x={200} y={300} type="router" label={flowspecActive ? "Victim" : "Victim (Stressed)"} color={flowspecActive ? "indigo" : "red"} labelPos="bottom" offline={!flowspecActive} />
+
+              {flowspecActive && (
+                <g>
+                   <circle cx={200} cy={210} r={22} className="fill-slate-900 stroke-emerald-500 stroke-[3px]" />
+                   <Filter x={200 - 14} y={210 - 14} size={28} className="text-emerald-400" />
+                </g>
+              )}
+
+              {!flowspecActive && (
+                <g>
+                   <text x={200} y={345} textAnchor="middle" className="fill-red-500 text-[9px] font-bold uppercase animate-pulse">Critical Latency</text>
+                </g>
+              )}
+
+              {flowspecPulses.map(pulse => (
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} />
               ))}
             </svg>
           </PanelContainer>
