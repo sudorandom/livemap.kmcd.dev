@@ -120,7 +120,7 @@ try {
               Path Selection
             </h3>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
               <div class="space-y-6">
                 <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
                   <p>
@@ -185,17 +185,91 @@ try {
                          <circle cx="100" cy="100" r="4" />
                       </g>
 
-                      {/* Selected Path */}
-                      <g class="transition-all duration-1000">
-                         <path d="M40,40 L100,20 L160,40 L100,100 L160,160" class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan" />
-                         <circle cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500" />
-                         <circle cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
-                         <circle cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
-                         <circle cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
-                         <circle cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald" />
+                      {/* Animated Selected Path */}
+                      <path
+                        id="animated-path"
+                        d="M40,40 L100,20 L160,40 L100,100 L160,160"
+                        class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan transition-all duration-1000 ease-in-out"
+                      />
+
+                      {/* Fixed Highlight Nodes */}
+                      <g id="path-nodes">
+                         <circle id="h-node-40-40" cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500 opacity-100 transition-opacity duration-1000" />
+                         <circle id="h-node-100-20" cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-100 transition-opacity duration-1000" />
+                         <circle id="h-node-160-40" cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-100 transition-opacity duration-1000" />
+                         <circle id="h-node-180-100" cx="180" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-160-160" cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald opacity-100 transition-opacity duration-1000" />
+                         <circle id="h-node-100-180" cx="100" cy="180" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-40-160" cx="40" cy="160" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-20-100" cx="20" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-100-100" cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-100 transition-opacity duration-1000" />
                       </g>
                    </svg>
                 </div>
+
+                <style>
+                  .shadow-glow-cyan { filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.5)); }
+                  .shadow-glow-emerald { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); }
+                  .dark .shadow-glow-cyan { filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.8)); }
+                  .dark .shadow-glow-emerald { filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8)); }
+                  
+                  #animated-path {
+                    transition: d 1s ease-in-out;
+                  }
+                </style>
+
+                <script>
+                  function cyclePaths() {
+                    const path = document.getElementById('animated-path');
+                    const allHighlightNodes = document.querySelectorAll('#path-nodes circle');
+
+                    if (!path) return;
+
+                    const paths = [
+                      {
+                        d: "M40,40 L100,20 L160,40 L100,100 L160,160",
+                        activeNodes: ['h-node-40-40', 'h-node-160-160']
+                      },
+                      {
+                        d: "M40,40 L40,40 L100,100 L160,160 L160,160",
+                        activeNodes: ['h-node-40-40', 'h-node-160-160']
+                      },
+                      {
+                        d: "M40,40 L40,160 L100,180 L160,160 L160,160",
+                        activeNodes: ['h-node-40-40', 'h-node-160-160']
+                      }
+                    ];
+
+                    let current = 0;
+
+                    setInterval(() => {
+                      // 1. Keep source node visible, hide destination as we start morph
+                      allHighlightNodes.forEach(node => {
+                        if (node.id !== 'h-node-40-40') {
+                          (node as HTMLElement).style.opacity = '0';
+                        }
+                      });
+
+                      current = (current + 1) % paths.length;
+                      const config = paths[current];
+
+                      // 2. Start Path Morph
+                      path.setAttribute('d', config.d);
+
+                      // 3. Wait for morph (1s), then show destination node
+                      setTimeout(() => {
+                        const destNode = document.getElementById('h-node-160-160');
+                        if (destNode) {
+                          destNode.style.opacity = '1';
+                        }
+                      }, 1000);
+
+                    }, 3500);
+                  }
+
+                  // Initialize after page load
+                  document.addEventListener('DOMContentLoaded', cyclePaths);
+                </script>
                 <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                   Path selection is a deliberate choice negotiated by network operators. These policies are vital for managing transit costs and maintaining link reliability across the Internet.
                 </p>
