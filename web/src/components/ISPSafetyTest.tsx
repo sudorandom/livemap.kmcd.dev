@@ -80,9 +80,9 @@ export function ISPSafetyTest() {
          </p>
          <button
            onClick={runTest}
-           className="group relative px-10 py-5 bg-indigo-600 dark:bg-transparent border-2 border-indigo-600 dark:border-cyan-500 text-white dark:text-cyan-500 hover:bg-indigo-700 dark:hover:bg-cyan-500 hover:text-white font-bold text-xs tracking-[0.2em] rounded-sm transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-3 shadow-xl dark:shadow-none"
+           className="group relative px-10 py-5 bg-indigo-600 dark:bg-transparent border-2 border-indigo-600 dark:border-cyan-500 text-white dark:text-cyan-500 hover:bg-indigo-700 dark:hover:bg-cyan-500 hover:text-white dark:hover:text-slate-900 font-bold text-xs tracking-[0.2em] rounded-sm transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-3 shadow-xl dark:shadow-none"
          >
-           <Zap size={18} className="text-white dark:text-cyan-400 group-hover:text-white animate-pulse" />
+           <Zap size={18} className="text-white dark:text-cyan-400 group-hover:text-white dark:group-hover:text-slate-900 animate-pulse" />
            <span className="relative z-10 uppercase text-[11px]">Initiate Security Probe</span>
            <div className="absolute inset-0 bg-indigo-500/20 dark:bg-cyan-500/10 blur-md group-hover:blur-xl transition-all"></div>
          </button>
