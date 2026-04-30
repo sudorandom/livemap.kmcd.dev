@@ -82,7 +82,7 @@ export const COORDS = {
   MALICIOUS: { x: 40, y: 200 }
 };
 
-export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos, labelBg, labelOffset = 0 }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom', labelBg?: boolean, labelOffset?: number }) => {
+export const Node = ({ x, y, type, label, color = "slate", offline = false, labelPos, labelBg, labelOffset = 0, labelVOffset = 0 }: { x: number, y: number, type: 'router' | 'user', label?: string, color?: string, offline?: boolean, labelPos?: 'top' | 'bottom', labelBg?: boolean, labelOffset?: number, labelVOffset?: number }) => {
   const isRouter = type === 'router';
   const hasDarkBg = color === 'indigo' || color === 'emerald' || color === 'red' || color === 'blue';
   
@@ -903,11 +903,11 @@ export const BGPSecurityExplainer = () => {
   const [rtbhActive, setRtbhActive] = useState(false);
   const [flowspecActive, setFlowspecActive] = useState(false);
   
-  const [hijackPulses, setHijackPulses] = useState<{id: number, path: string, color: string}[]>([]);
-  const [filterPulses, setFilteredPulses] = useState<{id: number, path: string, color: string}[]>([]);
-  const [leakPulses, setLeakPulses] = useState<{id: number, path: string, color: string}[]>([]);
-  const [rtbhPulses, setRtbhPulses] = useState<{id: number, path: string, color: string}[]>([]);
-  const [flowspecPulses, setFlowspecPulses] = useState<{id: number, path: string, color: string}[]>([]);
+  const [hijackPulses, setHijackPulses] = useState<{id: number, path: string, color: string, duration: string}[]>([]);
+  const [filterPulses, setFilteredPulses] = useState<{id: number, path: string, color: string, duration: string}[]>([]);
+  const [leakPulses, setLeakPulses] = useState<{id: number, path: string, color: string, duration: string}[]>([]);
+  const [rtbhPulses, setRtbhPulses] = useState<{id: number, path: string, color: string, duration: string}[]>([]);
+  const [flowspecPulses, setFlowspecPulses] = useState<{id: number, path: string, color: string, duration: string}[]>([]);
 
   const fullPathR = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
   const hijackPath = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.MALICIOUS.x},${COORDS.MALICIOUS.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
