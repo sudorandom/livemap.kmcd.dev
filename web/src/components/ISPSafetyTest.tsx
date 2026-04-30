@@ -94,7 +94,7 @@ export function ISPSafetyTest() {
             <div className="w-12 h-12 border-2 border-indigo-600/20 dark:border-cyan-500/20 rounded-full"></div>
             <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-indigo-600 dark:border-cyan-500 rounded-full animate-spin"></div>
           </div>
-          <div className="text-[10px] font-bold text-indigo-600 dark:text-cyan-500 animate-pulse uppercase tracking-[0.3em]">Analyzing Route Filtering...</div>
+          <div className="text-xs font-bold text-indigo-600 dark:text-cyan-500 animate-pulse uppercase tracking-[0.3em]">Analyzing Route Filtering...</div>
         </div>
       )}
 
@@ -123,7 +123,7 @@ export function ISPSafetyTest() {
             <div className="flex items-center gap-4">
                <button
                 onClick={runTest}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 border rounded-sm text-xs font-bold uppercase tracking-widest transition-all ${
                   status === 'safe' ? 'border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10' :
                   status === 'unsafe' ? 'border-red-500/50 text-red-500 hover:bg-red-500/10' :
                   'border-slate-500/50 text-slate-500 hover:bg-slate-500/20'
@@ -145,16 +145,16 @@ export function ISPSafetyTest() {
           </p>
 
           <div className="text-left bg-black/20 dark:bg-white/5 border border-slate-500/10 rounded-lg p-5 font-mono text-xs space-y-3 max-w-2xl">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
               <div className="w-1 h-1 bg-indigo-600 dark:bg-cyan-500"></div>
               Technical Probe Details
             </div>
             {probes.map((p, i) => (
               <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b border-slate-500/10 pb-2 last:border-0 last:pb-0">
-                <div className="truncate text-slate-500 dark:text-slate-400 text-[10px]">
+                <div className="truncate text-slate-500 dark:text-slate-400 text-xs">
                   <a href={p.url} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 dark:hover:text-cyan-500 underline decoration-dotted">{p.url}</a>
                 </div>
-                <div className={`font-bold uppercase text-[10px] sm:text-xs ${
+                <div className={`font-bold uppercase text-xs sm:text-sm ${
                   p.status === 'reachable' ? 'text-emerald-500' :
                   p.status === 'blocked' ? 'text-orange-500' :
                   p.status === 'error' ? 'text-red-500' :
@@ -164,7 +164,7 @@ export function ISPSafetyTest() {
                 </div>
               </div>
             ))}
-            <div className="pt-3 text-[10px] text-slate-500 leading-relaxed italic border-t border-slate-500/10">
+            <div className="pt-3 text-xs text-slate-500 leading-relaxed italic border-t border-slate-500/10">
               Note: A secure result requires the verified endpoint to be REACHABLE and the invalid endpoint to be BLOCKED.
             </div>
           </div>

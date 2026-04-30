@@ -10,7 +10,7 @@ export const PanelContainer = ({ title, children, footer, description, className
           {nextHighlighted && (
             <div className="w-fit flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500">
               <CheckCircle2 size={12} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">Step Complete</span>
+              <span className="text-xs font-bold uppercase tracking-tighter">Step Complete</span>
             </div>
           )}
         </div>
@@ -78,7 +78,7 @@ const ActionButton = ({ onClick, active, label, activeLabel, icon: Icon, color =
     <button 
       onClick={onClick}
       disabled={disabled}
-      className={`group relative ${bgColor} border text-[10px] font-bold py-2.5 px-6 rounded-full transition-all flex items-center gap-2 z-20 ${!disabled && 'transform hover:scale-105 active:scale-95 text-white'} ${pulseClass} ${className}`}
+      className={`group relative ${bgColor} border text-xs font-bold py-2.5 px-6 rounded-full transition-all flex items-center gap-2 z-20 ${!disabled && 'transform hover:scale-105 active:scale-95 text-white'} ${pulseClass} ${className}`}
     >
       <span className="relative z-10 flex items-center gap-2 uppercase tracking-widest">
         {active ? (activeLabel || label) : label}
@@ -93,7 +93,7 @@ const ActionButton = ({ onClick, active, label, activeLabel, icon: Icon, color =
 
 const ToggleSwitch = ({ enabled, onChange, label, className = "" }: { enabled: boolean, onChange: (val: boolean) => void, label?: string, className?: string }) => (
   <div className={`flex items-center gap-2 ${className}`}>
-    {label && <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400">{label}</span>}
+    {label && <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400">{label}</span>}
     <button
       onClick={() => onChange(!enabled)}
       className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none ${enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
@@ -258,6 +258,101 @@ const DataPulse = ({ path, color = "white", duration = "3s", delay = "0s" }: { p
   );
 };
 
+export const BGPStateMachine = () => {
+  const [activeState, setActiveState] = useState(0);
+  const states = [
+    { name: "Idle", desc: "Starting state" },
+    { name: "Connect", desc: "Waiting for TCP" },
+    { name: "Active", desc: "TCP link up" },
+    { name: "OpenSent", desc: "OPEN msg sent" },
+    { name: "OpenConfirm", desc: "KEEPALIVE sent" },
+    { name: "Established", desc: "Session up" }
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveState((prev) => (prev + 1) % states.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="py-12 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 px-6 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+      
+      <ol className="flex flex-col md:flex-row justify-between items-center gap-4 relative z-10 list-none p-0">
+        {states.map((s, idx) => {
+          const isPast = idx < activeState;
+          const isActive = idx === activeState;
+          
+          return (
+            <React.Fragment key={idx}>
+              <li className="flex flex-col items-center group relative">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${
+                  isActive ? "bg-indigo-600 border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-110" : 
+                  isPast ? "bg-emerald-500 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : 
+                  "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                }`}>
+                  <span className={`text-xs font-bold ${isActive || isPast ? "text-white" : "text-slate-400"}`}>
+                    {idx + 1}
+                  </span>
+                </div>
+                
+                <div className="mt-4 text-center">
+                  <div className={`text-xs font-cyber font-bold uppercase tracking-wider transition-colors duration-500 ${
+                    isActive ? "text-indigo-600 dark:text-cyan-400" : 
+                    isPast ? "text-emerald-600 dark:text-emerald-400" : 
+                    "text-slate-400 dark:text-slate-600"
+                  }`}>
+                    {s.name}
+                  </div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white dark:bg-slate-900 px-2 py-1 rounded shadow-lg border border-slate-100 dark:border-slate-800 pointer-events-none">
+                    {s.desc}
+                  </div>
+                </div>
+              </li>
+              
+              {idx < states.length - 1 && (
+                <div className="hidden md:block flex-1 h-0.5 relative mx-2" aria-hidden="true">
+                  <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800"></div>
+                  <div 
+                    className={`absolute inset-0 transition-all duration-1000 origin-left ${
+                      isPast ? "bg-emerald-400 scale-x-100" : "scale-x-0"
+                    }`}
+                  ></div>
+                  {isActive && (
+                    <div className="absolute inset-0 bg-indigo-500 animate-pulse-width"></div>
+                  )}
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </ol>
+      
+      <style>{`
+        @keyframes pulse-width {
+          0% { transform: scaleX(0); opacity: 0; transform-origin: left; }
+          50% { transform: scaleX(1); opacity: 1; transform-origin: left; }
+          51% { transform-origin: right; }
+          100% { transform: scaleX(0); opacity: 0; transform-origin: right; }
+        }
+        .animate-pulse-width {
+          animation: pulse-width 2.5s infinite ease-in-out;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-pulse-width {
+            animation: none;
+            background-color: rgb(79 70 229);
+            transform: scaleX(1);
+            opacity: 0.5;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 export const BGPRoutingExplainer = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [completedTabs, setCompletedTabs] = useState<number[]>([]);
@@ -398,6 +493,21 @@ export const BGPRoutingExplainer = () => {
           animation: shake-x 0.15s ease-in-out;
           animation-iteration-count: 3;
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .stroke-dash-offset-animate,
+          .animate-pulse-border,
+          .animate-pulse-path,
+          .animate-shake-x,
+          .animate-pulse,
+          .animate-bounce-once {
+            animation: none !important;
+          }
+          .animate-pulse-path {
+            opacity: 1 !important;
+            offset-distance: 100% !important;
+          }
+        }
       `}</style>
 
       {/* TABS SIDEBAR */}
@@ -419,7 +529,7 @@ export const BGPRoutingExplainer = () => {
                 }`}
               >
                 <Icon size={14} className={isComplete ? 'text-emerald-500' : ''} />
-                <span className="text-[10px] font-cyber font-bold uppercase tracking-wider">{tab.title}</span>
+                <span className="text-xs font-cyber font-bold uppercase tracking-wider">{tab.title}</span>
                 {isComplete && <CheckCircle2 size={10} className="text-emerald-500" />}
               </button>
             );
@@ -454,7 +564,7 @@ export const BGPRoutingExplainer = () => {
                   <div className={`text-sm font-cyber font-bold uppercase tracking-wider ${isActive ? 'text-indigo-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-indigo-700'}`}>
                     {tab.title}
                   </div>
-                  <div className={`text-[10px] font-medium leading-tight mt-1 ${isActive ? 'text-indigo-600 dark:text-slate-400 opacity-90' : 'text-slate-500 dark:text-slate-500 opacity-80'}`}>
+                  <div className={`text-xs font-medium leading-tight mt-1 ${isActive ? 'text-indigo-600 dark:text-slate-400 opacity-90' : 'text-slate-500 dark:text-slate-500 opacity-80'}`}>
                     {tab.description}
                   </div>
                 </div>
@@ -466,6 +576,7 @@ export const BGPRoutingExplainer = () => {
           })}
         </div>
       </div>
+
 
       {/* CONTENT AREA */}
       <div className="lg:w-2/3 min-h-[500px] lg:h-[700px]">
@@ -511,7 +622,7 @@ export const BGPRoutingExplainer = () => {
               {announcementComplete && (
                 <g className="transition-opacity duration-500 opacity-100">
                    <rect x={COORDS.ENTRY.x + 30} y={COORDS.ENTRY.y - 9} width={90} height={18} rx={9} className="fill-cyan-500/20 stroke-cyan-400 stroke-1" />
-                   <text x={COORDS.ENTRY.x + 75} y={COORDS.ENTRY.y + 3} textAnchor="middle" className="fill-indigo-600 dark:fill-cyan-400 text-[8px] font-bold uppercase tracking-tighter">Route Learned</text>
+                   <text x={COORDS.ENTRY.x + 75} y={COORDS.ENTRY.y + 3} textAnchor="middle" className="fill-indigo-600 dark:fill-cyan-400 text-[10px] font-bold uppercase tracking-tighter">Route Learned</text>
                 </g>
               )}
             </svg>
@@ -697,15 +808,35 @@ export const BGPRoutingExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setMultipathActive(true);
-                    const pulsesCount = multipathPulses.length;
-                    const useLeft = pulsesCount === 0 ? true : (pulsesCount === 1 ? false : Math.random() < 0.5);
-                    spawnPulse(setMultipathPulses, 3750, { 
-                      path: useLeft ? fullPathL : fullPathR,
-                      color: useLeft ? "white" : "cyan",
-                      duration: "3750ms"
-                    });
-                    if (pulsesCount === 1) {
-                      setTimeout(() => markTabComplete(4), 3750);
+                    
+                    // If not completed yet, trigger double pulse sequence
+                    if (!completedTabs.includes(4)) {
+                      // First pulse (Left)
+                      spawnPulse(setMultipathPulses, 3750, { 
+                        path: fullPathL,
+                        color: "white",
+                        duration: "3750ms"
+                      });
+                      
+                      // Second pulse (Right) after 0.5s
+                      setTimeout(() => {
+                        spawnPulse(setMultipathPulses, 3750, { 
+                          path: fullPathR,
+                          color: "cyan",
+                          duration: "3750ms"
+                        });
+                      }, 500);
+
+                      // Mark complete after sequence finishes (0.5s delay + 3.75s duration)
+                      setTimeout(() => markTabComplete(4), 4250);
+                    } else {
+                      // Subsequent presses: Random single pulse
+                      const useLeft = Math.random() < 0.5;
+                      spawnPulse(setMultipathPulses, 3750, { 
+                        path: useLeft ? fullPathL : fullPathR,
+                        color: useLeft ? "white" : "cyan",
+                        duration: "3750ms"
+                      });
                     }
                   }}
                   label="Trace Route"
@@ -899,6 +1030,181 @@ export const BGPRoutingExplainer = () => {
   );
 };
 
+
+export const BGPMessageAnatomy = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  
+  const messages = [
+    {
+      title: "Open",
+      color: "emerald",
+      bg: "bg-emerald-500",
+      description: "The first packet sent after the TCP handshake. It establishes the 'ground rules' for the peering session, including optional capabilities like IPv6 support or Route Refresh.",
+      fields: [
+        { label: "TYPE", value: "OPEN" },
+        { label: "VERSION", value: "4" },
+        { label: "MY ASN", value: "10122", highlight: "text-indigo-400" },
+        { label: "HOLD TIME", value: "90" },
+        { label: "BGP IDENTIFIER", value: "10.255.255.36", highlight: "text-cyan-400" }
+      ]
+    },
+    {
+      title: "Update",
+      color: "indigo",
+      bg: "bg-indigo-500",
+      description: "The core of BGP. Advertises new reachability (Announcements) or withdraws old routes. It contains critical path attributes used for route selection.",
+      subType: "Announcement",
+      fields: [
+        { label: "TYPE", value: "UPDATE (Announcement)" },
+        { label: "PEER ASN", value: "199524", highlight: "text-indigo-400" },
+        { 
+          label: "AS PATH", 
+          value: [199524, 1299, 7922, 46427, 64289],
+          isAsPath: true
+        },
+        { label: "COMMUNITIES", value: "1299:30000, 7922:101", highlight: "text-purple-400" },
+        { label: "NEXT HOP", value: "2001:504:1::a519:9524:1", highlight: "text-emerald-400" },
+        { label: "PREFIXES", value: "2a14:3f87:9800::/38", isPrefix: true }
+      ],
+      extra: (
+        <div className="mt-6 space-y-4 italic border-l-2 border-indigo-500/20 pl-4">
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            The <strong className="text-indigo-600 dark:text-cyan-400">AS PATH</strong> shows the chain of networks this update traversed. Each network appends its own ASN to the beginning.
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            The <strong className="text-indigo-600 dark:text-cyan-400">NEXT HOP</strong> specifies the exact IP address to which packets must be forwarded.
+          </p>
+        </div>
+      )
+    },
+    {
+      title: "Withdrawal",
+      color: "red",
+      bg: "bg-red-500",
+      description: "Removes prefixes from the global routing table immediately. This happens when a network link goes down or a peering session is disconnected.",
+      fields: [
+        { label: "TYPE", value: "UPDATE (Withdrawal)" },
+        { label: "PEER ASN", value: "19151", highlight: "text-red-400" },
+        { 
+          label: "WITHDRAWALS", 
+          value: ["199.199.238.0/23", "204.221.20.0/24", "206.10.88.0/22"],
+          isWithdrawals: true
+        }
+      ]
+    },
+    {
+      title: "KeepAlive",
+      color: "cyan",
+      bg: "bg-cyan-500",
+      description: "The heartbeat of BGP. These are minimal 19-byte messages sent periodically to confirm that the peer is still reachable.",
+      fields: [
+        { label: "TYPE", value: "KEEPALIVE" },
+        { label: "PEER", value: "195.208.208.15", highlight: "text-indigo-400" },
+        { label: "PEER ASN", value: "39821", highlight: "text-cyan-400" }
+      ]
+    },
+    {
+      title: "Notification",
+      color: "red",
+      bg: "bg-red-500",
+      description: "Sent when an error condition is detected. It contains an error code and subcode. Once sent, the BGP session is immediately closed.",
+      fields: [
+        { label: "TYPE", value: "NOTIFICATION" },
+        { label: "ERROR CODE", value: "6 (Cease)", highlight: "text-red-400" },
+        { label: "ERROR SUBCODE", value: "5 (Connection Rejected)", highlight: "text-red-400" },
+        { label: "PEER", value: "195.208.208.187", highlight: "text-indigo-400" }
+      ]
+    }
+  ];
+
+  const activeMsg = messages[activeTab];
+
+  return (
+    <div className="cyber-box p-1 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 overflow-hidden">
+      <div className="flex flex-wrap border-b border-slate-200 dark:border-slate-800">
+        {messages.map((msg, idx) => (
+          <button
+            key={idx}
+            onClick={() => setActiveTab(idx)}
+            className={`px-4 py-3 text-xs font-cyber font-bold uppercase tracking-wider transition-all relative ${
+              activeTab === idx 
+                ? "text-slate-900 dark:text-white" 
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            {msg.title}
+            {activeTab === idx && (
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 ${msg.bg}`}></div>
+            )}
+          </button>
+        ))}
+      </div>
+      
+      <div className="p-6 md:p-8 animate-in fade-in duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">
+              <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${activeMsg.color === 'red' ? 'text-red-400' : 'text-cyan-400'}`}>
+                Type: {activeMsg.subType || activeMsg.title}
+              </span>
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-slate-600"></div>
+                <div className="w-2 h-2 rounded-full bg-slate-600"></div>
+                <div className="w-2 h-2 rounded-full bg-slate-600"></div>
+              </div>
+            </div>
+            <div className="bg-slate-900 rounded-b-lg border border-slate-800 shadow-2xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-800/50">
+                    <th className="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider w-1/3">Attribute</th>
+                    <th className="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs font-mono">
+                  {activeMsg.fields.map((field, i) => (
+                    <tr key={i} className="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
+                      <td className="p-3 text-slate-500 font-bold uppercase">{field.label}</td>
+                      <td className="p-3">
+                        {field.isAsPath ? (
+                          <span className="flex flex-wrap gap-1">
+                            {(field.value as number[]).map(asn => (
+                              <span key={asn} className="bg-indigo-500/20 text-indigo-300 px-1 rounded border border-indigo-500/20">AS{asn}</span>
+                            ))}
+                          </span>
+                        ) : field.isWithdrawals ? (
+                          <div className="space-y-1">
+                            {(field.value as string[]).map(p => (
+                              <div key={p} className="text-red-300 font-bold text-sm">{p}</div>
+                            ))}
+                          </div>
+                        ) : field.isPrefix ? (
+                          <span className="font-bold text-white text-sm">{field.value}</span>
+                        ) : (
+                          <span className={field.highlight || "text-slate-300"}>{field.value}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div className="lg:col-span-1 space-y-4">
+            <h4 className="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+              <div className={`w-2 h-6 ${activeMsg.bg}`}></div> Details
+            </h4>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-2 border-slate-500/20 pl-4">
+              {activeMsg.description}
+            </p>
+            {activeMsg.extra}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const BGPAdvancedTopics = () => (
   <PanelContainer 
@@ -1168,7 +1474,7 @@ export const BGPSecurityExplainer = () => {
                 }`}
               >
                 <Icon size={14} className={isComplete ? 'text-emerald-500' : ''} />
-                <span className={`text-[10px] font-cyber font-bold uppercase tracking-wider ${isActive ? (isActive ? 'text-red-700 dark:text-white' : '') : ''}`}>{tab.title}</span>
+                <span className={`text-xs font-cyber font-bold uppercase tracking-wider ${isActive ? (isActive ? 'text-red-700 dark:text-white' : '') : ''}`}>{tab.title}</span>
                 {isComplete && <CheckCircle2 size={10} className="text-emerald-500" />}
               </button>
             );
@@ -1203,7 +1509,7 @@ export const BGPSecurityExplainer = () => {
                   <div className={`text-sm font-cyber font-bold uppercase tracking-wider ${isActive ? 'text-red-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-red-700'}`}>
                     {tab.title}
                   </div>
-                  <div className={`text-[10px] font-medium leading-tight mt-1 ${isActive ? 'text-red-600 dark:text-slate-400 opacity-90' : 'text-slate-500 dark:text-slate-500 opacity-80'}`}>
+                  <div className={`text-xs font-medium leading-tight mt-1 ${isActive ? 'text-red-600 dark:text-slate-400 opacity-90' : 'text-slate-500 dark:text-slate-500 opacity-80'}`}>
                     {tab.description}
                   </div>
                 </div>
@@ -1339,7 +1645,7 @@ export const BGPSecurityExplainer = () => {
                   <g transform={`translate(${COORDS.MID_L.x - 14}, ${COORDS.MID_L.y - 14})`}>
                     <ShieldCheck size={28} className="text-emerald-400" />
                   </g>
-                  <text x={COORDS.MID_L.x} y={COORDS.MID_L.y - 35} textAnchor="middle" className="fill-emerald-600 dark:fill-emerald-400 text-[10px] font-bold uppercase">Dropped</text>
+                  <text x={COORDS.MID_L.x} y={COORDS.MID_L.y - 35} textAnchor="middle" className="fill-emerald-600 dark:fill-emerald-400 text-xs font-bold uppercase">Dropped</text>
                 </g>
               )}
 
@@ -1395,12 +1701,12 @@ export const BGPSecurityExplainer = () => {
               <Node x={300} y={80} type="router" label="Provider B" color="emerald" labelPos="top" />
               <Node x={200} y={220} type="router" label="Customer AS" color="indigo" labelPos="bottom" />
 
-              <text x="200" y="55" textAnchor="middle" className="fill-slate-500 text-[8px] uppercase font-bold tracking-tighter">High-Speed Backbone</text>
+              <text x="200" y="55" textAnchor="middle" className="fill-slate-500 text-[10px] uppercase font-bold tracking-tighter">High-Speed Backbone</text>
               
               {leaked && (
                 <g className="animate-pulse">
                    <rect x={155} y={270} width={90} height={16} rx={8} className="fill-red-500/20 stroke-red-500 stroke-1" />
-                   <text x={200} y={281} textAnchor="middle" className="fill-red-600 dark:fill-red-400 text-[8px] font-bold uppercase">Congested Leak</text>
+                   <text x={200} y={281} textAnchor="middle" className="fill-red-600 dark:fill-red-400 text-[10px] font-bold uppercase">Congested Leak</text>
                    
                    <g transform="translate(0, 20)">
                       <text x={200} y={285} textAnchor="middle" className="fill-red-500/80 text-[7px] font-bold uppercase">High Latency</text>

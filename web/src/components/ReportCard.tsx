@@ -75,7 +75,7 @@ const RPKIPieChart = ({ data, isMobile, type }: { data: any[], isMobile?: boolea
               <span className="text-slate-700 dark:text-slate-300">
                 {value}: <span className="font-mono font-bold text-slate-900 dark:text-white">{percentage}%</span>
               </span>
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#0f172a] text-white text-[10px] rounded border border-[#1e293b] whitespace-nowrap opacity-0 group-hover/legend:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl font-mono">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#0f172a] text-white text-xs rounded border border-[#1e293b] whitespace-nowrap opacity-0 group-hover/legend:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl font-mono">
                 {formatHumanNumber(val)} {type === 'ipv4' ? 'Addresses' : 'Prefixes'}
                 <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1e293b] -mb-4"></span>
                 <span className="absolute top-full left-1/2 -translate-x-1/2 border-[7px] border-transparent border-t-[#0f172a] -mb-3.5"></span>
@@ -147,7 +147,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                     <div className="min-w-0 flex-1">
                       <div className="flex justify-between items-start mb-1 gap-4">
                         <div className="min-w-0 flex-1">
-                          <div className={`text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5 ${info.color.split(' ')[0]}`}>
+                          <div className={`text-xs font-bold uppercase tracking-[0.15em] mb-0.5 ${info.color.split(' ')[0]}`}>
                             {info.name}
                           </div>
                           <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight break-words">
@@ -158,11 +158,11 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                           </h4>
                         </div>
                         <div className="text-right whitespace-nowrap">
-                          <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                          <div className="text-xs font-mono text-slate-400 dark:text-slate-500">
                             {new Date(Number(alert.timestamp)*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second: '2-digit'})}
                           </div>
                           <div 
-                            className={`text-[10px] font-bold mt-1 uppercase cursor-help ${alert.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}
+                            className={`text-xs font-bold mt-1 uppercase cursor-help ${alert.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}
                             title="Routing Shift: Percentage change in BGP update volume compared to the 1-hour moving average baseline."
                           >
                             {alert.delta > 0 ? '+' : ''}{alert.delta}% SHIFT
@@ -176,7 +176,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                             href={`https://bgp.he.net/AS${alert.asn}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/5 dark:bg-indigo-500/10 rounded border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors text-[9px] font-bold text-indigo-400 font-mono uppercase group/link"
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/5 dark:bg-indigo-500/10 rounded border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors text-xs font-bold text-indigo-400 font-mono uppercase group/link"
                           >
                             AS{alert.asn}
                           </a>
@@ -186,16 +186,16 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                           {(Number(alert.impactedIpv4Ips) > 0 || Number(alert.impactedIpv6Prefixes) > 0) && (
                             <div className="flex items-center gap-2.5 font-medium">
                               {Number(alert.impactedIpv4Ips) > 0 && (
-                                <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                                  {formatHumanNumber(Number(alert.impactedIpv4Ips))} <span className="text-[9px] opacity-60 uppercase font-bold tracking-tighter">IPv4 Addrs</span>
+                                <span className="text-xs text-slate-600 dark:text-slate-300">
+                                  {formatHumanNumber(Number(alert.impactedIpv4Ips))} <span className="text-xs opacity-60 uppercase font-bold tracking-tighter">IPv4 Addrs</span>
                                 </span>
                               )}
                               {Number(alert.impactedIpv4Ips) > 0 && Number(alert.impactedIpv6Prefixes) > 0 && (
                                 <span className="w-px h-2 bg-slate-400/30"></span>
                               )}
                               {Number(alert.impactedIpv6Prefixes) > 0 && (
-                                <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                                  {formatHumanNumber(Number(alert.impactedIpv6Prefixes))} <span className="text-[9px] opacity-60 uppercase font-bold tracking-tighter">IPv6 Prefixes</span>
+                                <span className="text-xs text-slate-600 dark:text-slate-300">
+                                  {formatHumanNumber(Number(alert.impactedIpv6Prefixes))} <span className="text-xs opacity-60 uppercase font-bold tracking-tighter">IPv6 Prefixes</span>
                                 </span>
                               )}
                             </div>
@@ -204,12 +204,12 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
 
                         <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                             <Globe size={10} className="opacity-50" aria-hidden="true" />
-                            <span className="text-[10px] font-medium">
+                            <span className="text-xs font-medium">
                               {alert.location?.city ? `${alert.location.city}, ` : ''}{alert.location?.country || alert.country || 'GLOBAL'}
                             </span>
                         </div>
                         
-                        <div className="ml-auto text-[9px] font-bold text-slate-500 dark:text-slate-600 uppercase tracking-widest">
+                        <div className="ml-auto text-xs font-bold text-slate-500 dark:text-slate-600 uppercase tracking-widest">
                           {alert.eventsCount || alert.events_count} EVENTS
                         </div>
                       </div>
@@ -217,7 +217,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                       {/* Sample Events */}
                       {alert.sampleEvents && alert.sampleEvents.length > 0 && (
                         <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-200 dark:border-slate-500/10">
-                          <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Activity Log:</div>
+                          <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Activity Log:</div>
                           {alert.sampleEvents
                             .slice()
                             .sort((a: any, b: any) => {
@@ -228,16 +228,16 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
                             .slice(0, 5)
                             .map((e: any, j: number) => (
                             <div key={j} className="flex items-center gap-3 px-1 py-0.5 rounded hover:bg-white dark:hover:bg-slate-500/10 transition-colors group/sample">
-                              <span className="text-[10px] font-mono text-indigo-600 dark:text-cyan-400 font-bold shrink-0">{e.prefix}</span>
-                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400 uppercase tracking-tighter shrink-0 border border-slate-300/30 dark:border-slate-500/10">
+                              <span className="text-xs font-mono text-indigo-600 dark:text-cyan-400 font-bold shrink-0">{e.prefix}</span>
+                              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400 uppercase tracking-tighter shrink-0 border border-slate-300/30 dark:border-slate-500/10">
                                 {getClassificationName(e.newState)}
                               </span>
                               {e.asnName && (
-                                <span className="text-[9px] text-slate-600 dark:text-slate-500 truncate opacity-70 group-hover/sample:opacity-100 transition-opacity">
+                                <span className="text-xs text-slate-600 dark:text-slate-500 truncate opacity-70 group-hover/sample:opacity-100 transition-opacity">
                                   {e.asnName}
                                 </span>
                               )}
-                              <span className="ml-auto text-[8px] font-mono text-slate-500 dark:text-slate-600">
+                              <span className="ml-auto text-xs font-mono text-slate-500 dark:text-slate-600">
                                 {new Date(Number(e.ts) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
@@ -439,7 +439,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                   <span className="w-1.5 h-1.5 bg-emerald-500"></span>
                   RPKI STATUS IPv4
                 </h2>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Unique IP Addresses</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Unique IP Addresses</p>
                 <div className="h-80 md:h-80">
                   {/* Mobile version */}
                   <div className="md:hidden h-full">
@@ -462,7 +462,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                   <span className="w-1.5 h-1.5 bg-emerald-500"></span>
                   RPKI STATUS IPv6
                 </h2>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Announced Prefixes</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Announced Prefixes</p>
                 <div className="h-80 md:h-80">
                   {/* Mobile version */}
                   <div className="md:hidden h-full">
@@ -604,7 +604,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                       referrerPolicy="strict-origin-when-cross-origin"
                       allowFullScreen>
                     </iframe>
-                    <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm border border-white/10 rounded text-[8px] font-mono text-white/70 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm border border-white/10 rounded text-xs font-mono text-white/70 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                       Live Stream Feed
                     </div>
                  </div>
@@ -623,9 +623,9 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                   <span className="w-2 h-2 bg-orange-500"></span>
                   Top Flappy Networks
                 </div>
-                <span className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Last 24 Hours</span>
+                <span className="text-xs font-mono opacity-50 uppercase tracking-widest">Last 24 Hours</span>
               </h2>
-              <p className="text-[10px] font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Networking Hall of Shame</p>
+              <p className="text-xs font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Networking Hall of Shame</p>
             </div>
             <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar">
               {data.flappiestNetworks && data.flappiestNetworks.length > 0 ? (
@@ -638,7 +638,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                         <div className="flex justify-between items-start">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">RANK {idx+1}</span>
+                              <span className="text-xs font-bold text-orange-600 dark:text-orange-400">RANK {idx+1}</span>
                               <h3 className="font-bold text-slate-900 dark:text-white truncate uppercase tracking-tight">
                                 AS{network.asn}{cleanName && ` - ${cleanName}`}
                               </h3>
@@ -650,11 +650,11 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                           </div>
                           <div className="text-right ml-4">
                             <div className="text-2xl font-mono font-bold text-orange-600 dark:text-orange-500 leading-none">{formatHumanNumber(Number(network.flapCount))}</div>
-                            <div className="text-[10px] font-bold text-orange-500/70 dark:text-orange-500/50 uppercase tracking-widest mt-1">FLAPS</div>
+                            <div className="text-xs font-bold text-orange-500/70 dark:text-orange-500/50 uppercase tracking-widest mt-1">FLAPS</div>
                           </div>
                         </div>
                         <div className="mt-3 pt-3 border-t border-orange-500/10 flex justify-end items-center">
-                          <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                          <div className="flex gap-3 text-xs font-bold uppercase tracking-wider">
                             <a
                               href={`https://bgp.he.net/AS${network.asn}`}
                               target="_blank"
@@ -734,8 +734,8 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
               </ResponsiveContainer>
             </div>
             <div className="space-y-3">
-              <p className="text-center text-[10px] text-slate-500 uppercase tracking-tighter">BGP Table Distribution (%)</p>
-              <div className="bg-blue-500/5 border border-blue-500/10 p-3 rounded text-[10px] text-slate-500 leading-relaxed">
+              <p className="text-center text-xs text-slate-500 uppercase tracking-tighter">BGP Table Distribution (%)</p>
+              <div className="bg-blue-500/5 border border-blue-500/10 p-3 rounded text-xs text-slate-500 leading-relaxed">
                 <span className="font-bold text-blue-400">NOTE:</span> This metrics tracks <strong>routable prefixes</strong> visible in the global BGP table. Protocol distribution in BGP is not a direct proxy for user adoption; a single IPv4 prefix may hide thousands of users behind NAT, while IPv6 prefixes typically represent significantly larger address blocks.
               </div>
             </div>
