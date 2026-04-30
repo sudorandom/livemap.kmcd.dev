@@ -434,52 +434,56 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* RPKI IPv4 */}
-              <div className="group flex flex-col">
-                <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
-                  <span className="w-1.5 h-1.5 bg-emerald-500"></span>
-                  RPKI STATUS IPv4
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Unique IP Addresses</p>
-                <div className="h-80 md:h-80">
-                  {/* Mobile version */}
-                  <div className="md:hidden h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RPKIPieChart data={rpkiData4} type="ipv4" isMobile />
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Desktop version */}
-                  <div className="hidden md:block h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RPKIPieChart data={rpkiData4} type="ipv4" />
-                    </ResponsiveContainer>
+              <div className="cyber-box p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
+                <div className="group flex flex-col h-full">
+                  <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
+                    <span className="w-1.5 h-1.5 bg-emerald-500"></span>
+                    RPKI STATUS IPv4
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Unique IP Addresses</p>
+                  <div className="flex-grow min-h-[320px]">
+                    {/* Mobile version */}
+                    <div className="md:hidden h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RPKIPieChart data={rpkiData4} type="ipv4" isMobile />
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Desktop version */}
+                    <div className="hidden md:block h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RPKIPieChart data={rpkiData4} type="ipv4" />
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* RPKI IPv6 */}
-              <div className="group flex flex-col">
-                <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
-                  <span className="w-1.5 h-1.5 bg-emerald-500"></span>
-                  RPKI STATUS IPv6
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Announced Prefixes</p>
-                <div className="h-80 md:h-80">
-                  {/* Mobile version */}
-                  <div className="md:hidden h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RPKIPieChart data={rpkiData6} type="ipv6" isMobile />
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Desktop version */}
-                  <div className="hidden md:block h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RPKIPieChart data={rpkiData6} type="ipv6" />
-                    </ResponsiveContainer>
+              <div className="cyber-box p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
+                <div className="group flex flex-col h-full">
+                  <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
+                    <span className="w-1.5 h-1.5 bg-emerald-500"></span>
+                    RPKI STATUS IPv6
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 font-medium">Measuring: Announced Prefixes</p>
+                  <div className="flex-grow min-h-[320px]">
+                    {/* Mobile version */}
+                    <div className="md:hidden h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RPKIPieChart data={rpkiData6} type="ipv6" isMobile />
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Desktop version */}
+                    <div className="hidden md:block h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RPKIPieChart data={rpkiData6} type="ipv6" />
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-        </div>
+          </div>
       </section>
 
       {/* INTERNET HEALTH SECTION */}
