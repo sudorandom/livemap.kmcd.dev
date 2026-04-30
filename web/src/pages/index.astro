@@ -119,7 +119,7 @@ try {
               <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19.5 7.1 20.5a.5.5 0 0 1-.6-.5V3.5a.5.5 0 0 1 .6-.5L11 3.5"/><path d="M11 3.5 15.1 4.5a.5.5 0 0 1 .6.5V21.5a.5.5 0 0 1-.6.5L11 20.5"/><path d="M15.1 4.5 19.1 3.5a.5.5 0 0 1 .6.5V19.5a.5.5 0 0 1-.6.5L15.1 19.5"/><path d="M7.1 20.5 3.1 21.5a.5.5 0 0 1-.6-.5V5.5a.5.5 0 0 1 .6-.5L7.1 5.5"/></svg>
               Path Selection
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div class="space-y-6">
                 <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
@@ -136,71 +136,65 @@ try {
                   <ol class="space-y-3 text-xs">
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">01</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Local Preference:</a> The main way a network decides how its traffic leaves. For example, a network often prefers free peering connections over paid transit links.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Local Preference:</a> The primary way networks prioritize outbound paths, often preferring free peering over paid transit.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">02</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> Generally, the shorter the chain of networks, the better the path.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> A tie-breaker that prefers the shortest chain of networks.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">03</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.1" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Origin Type:</a> Routes that start from within the network are trusted more than those from outside.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.1" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Origin & MED:</a> Technical hints about route trust and optimal entry points into neighboring networks.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">04</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">MED:</a> A hint to a neighboring network about which entry point is best to use.</div>
-                    </li>
-                    <li class="flex gap-3">
-                      <span class="font-bold text-indigo-500">05</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">External over Internal:</a> External routes (eBGP) are usually preferred over those learned internally (iBGP).</div>
-                    </li>
-                    <li class="flex gap-3">
-                      <span class="font-bold text-indigo-500">06</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">Router ID:</a> If all else is a tie, the router with the lowest IP address wins.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-[10px] font-bold underline decoration-dotted decoration-indigo-500/50">External vs Internal:</a> BGP prefers routes learned from external neighbors (eBGP) over those learned internally (iBGP).</div>
                     </li>
                   </ol>
                 </div>
               </div>
 
-              <div class="relative aspect-square bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner">
-                 <svg viewBox="0 0 200 200" class="w-full h-full">
-                    {/* Dotted Connections (The Mesh) */}
-                    <g class="stroke-slate-300 dark:stroke-slate-700 stroke-[0.5] fill-none" stroke-dasharray="2,2">
-                       <path d="M40,40 L100,20 L160,40 L180,100 L160,160 L100,180 L40,160 L20,100 Z" />
-                       <path d="M40,40 L100,100 L160,40" />
-                       <path d="M20,100 L100,100 L180,100" />
-                       <path d="M40,160 L100,100 L160,160" />
-                       <path d="M100,20 L100,180" />
-                       <path d="M40,40 L40,160" />
-                       <path d="M160,40 L160,160" />
-                    </g>
+              <div class="space-y-4">
+                <div class="relative aspect-square bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner">
+                   <svg viewBox="0 0 200 200" class="w-full h-full">
+                      {/* Dotted Connections (The Mesh) */}
+                      <g class="stroke-slate-300 dark:stroke-slate-700 stroke-[0.5] fill-none" stroke-dasharray="2,2">
+                         <path d="M40,40 L100,20 L160,40 L180,100 L160,160 L100,180 L40,160 L20,100 Z" />
+                         <path d="M40,40 L100,100 L160,40" />
+                         <path d="M20,100 L100,100 L180,100" />
+                         <path d="M40,160 L100,100 L160,160" />
+                         <path d="M100,20 L100,180" />
+                         <path d="M40,40 L40,160" />
+                         <path d="M160,40 L160,160" />
+                      </g>
 
-                    {/* Nodes */}
-                    <g class="fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600 stroke-[1]">
-                       <circle cx="40" cy="40" r="4" />
-                       <circle cx="100" cy="20" r="4" />
-                       <circle cx="160" cy="40" r="4" />
-                       <circle cx="180" cy="100" r="4" />
-                       <circle cx="160" cy="160" r="4" />
-                       <circle cx="100" cy="180" r="4" />
-                       <circle cx="40" cy="160" r="4" />
-                       <circle cx="20" cy="100" r="4" />
-                       <circle cx="100" cy="100" r="4" />
-                    </g>
+                      {/* Nodes */}
+                      <g class="fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600 stroke-[1]">
+                         <circle cx="40" cy="40" r="4" />
+                         <circle cx="100" cy="20" r="4" />
+                         <circle cx="160" cy="40" r="4" />
+                         <circle cx="180" cy="100" r="4" />
+                         <circle cx="160" cy="160" r="4" />
+                         <circle cx="100" cy="180" r="4" />
+                         <circle cx="40" cy="160" r="4" />
+                         <circle cx="20" cy="100" r="4" />
+                         <circle cx="100" cy="100" r="4" />
+                      </g>
 
-                    {/* Selected Path */}
-                    <g class="transition-all duration-1000">
-                       <path d="M40,40 L100,20 L160,40 L100,100 L160,160" class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan" />
-                       <circle cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500" />
-                       <circle cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
-                       <circle cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
-                       <circle cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
-                       <circle cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald" />
-                    </g>
-                 </svg>
-                 <div class="absolute inset-0 bg-gradient-to-t from-slate-100/80 dark:from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-4 pointer-events-none">
-                    <span class="text-[9px] font-mono text-indigo-600 dark:text-cyan-400 font-bold uppercase tracking-widest">Route Selection</span>
-                 </div>
+                      {/* Selected Path */}
+                      <g class="transition-all duration-1000">
+                         <path d="M40,40 L100,20 L160,40 L100,100 L160,160" class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan" />
+                         <circle cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500" />
+                         <circle cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
+                         <circle cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
+                         <circle cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400" />
+                         <circle cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald" />
+                      </g>
+                   </svg>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Path selection is a deliberate choice negotiated by network operators. These policies are vital for managing transit costs and maintaining link reliability across the Internet.
+                </p>
               </div>
             </div>
           </div>
