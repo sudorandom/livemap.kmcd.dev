@@ -5,10 +5,10 @@ export const PanelContainer = ({ title, children, footer, description, className
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
           <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider">{title}</h3>
           {nextHighlighted && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500">
+            <div className="w-fit flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500">
               <CheckCircle2 size={12} className="animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-tighter">Step Complete</span>
             </div>
@@ -41,7 +41,7 @@ export const PanelContainer = ({ title, children, footer, description, className
       {children}
     </div>
     {footer && (
-      <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
+      <div className="mt-6 flex flex-row items-center justify-center gap-4 sm:gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
         <div className="flex justify-center gap-4">
           {footer}
         </div>
