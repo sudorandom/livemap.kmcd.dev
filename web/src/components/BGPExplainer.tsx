@@ -1031,10 +1031,29 @@ export const BGPRoutingExplainer = () => {
 };
 
 
+interface MessageField {
+  label: string;
+  value: string | number[] | string[];
+  highlight?: string;
+  isAsPath?: boolean;
+  isWithdrawals?: boolean;
+  isPrefix?: boolean;
+}
+
+interface BGPMessage {
+  title: string;
+  color: string;
+  bg: string;
+  description: string;
+  subType?: string;
+  fields: MessageField[];
+  extra?: React.ReactNode;
+}
+
 export const BGPMessageAnatomy = () => {
   const [activeTab, setActiveTab] = useState(0);
   
-  const messages = [
+  const messages: BGPMessage[] = [
     {
       title: "Open",
       color: "emerald",
@@ -1049,11 +1068,10 @@ export const BGPMessageAnatomy = () => {
       ]
     },
     {
-      title: "Update",
+      title: "Announcement",
       color: "indigo",
       bg: "bg-indigo-500",
-      description: "The core of BGP. Advertises new reachability (Announcements) or withdraws old routes. It contains critical path attributes used for route selection.",
-      subType: "Announcement",
+      description: "The most common form of BGP Update. It advertises new reachability for an IP prefix and contains the path attributes used for route selection.",
       fields: [
         { label: "TYPE", value: "UPDATE (Announcement)" },
         { label: "PEER ASN", value: "199524", highlight: "text-indigo-400" },
