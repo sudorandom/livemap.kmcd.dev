@@ -36,6 +36,8 @@ use map::Geolocation;
 
 pub mod livemap_proto {
     tonic::include_proto!("livemap.v1");
+    pub const FILE_DESCRIPTOR_SET: &[u8] =
+        tonic::include_file_descriptor_set!("livemap_descriptor");
 }
 
 use livemap_proto::live_map_service_server::{
@@ -256,7 +258,7 @@ impl LiveMap for LiveMapService {
         &self,
         req: Request<livemap_proto::GetFlappiestNetworksRequest>,
     ) -> Result<Response<livemap_proto::GetFlappiestNetworksResponse>, Status> {
-        let limit = req.into_inner().limit.max(1).min(100);
+        let limit = req.into_inner().limit.clamp(1, 100);
         let flappiest = self
             .classifier
             .state_db
@@ -2277,9 +2279,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     let addr = args.listen.parse().expect("Failed to parse listen address");
+    let reflection_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(livemap_proto::FILE_DESCRIPTOR_SET)
+        .build_v1()?;
+
     info!("Starting gRPC server on {}", addr);
     info!("Startup took {}ms", start_instant.elapsed().as_millis());
     Server::builder()
+        .add_service(reflection_service)
         .add_service(LiveMapServer::new(LiveMapService {
             state: app_state,
             classifier: classifier.clone(),
