@@ -62,21 +62,25 @@ try {
           <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed">
             <h3 class="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">The Internet's Control Plane</h3>
             <p>
-              The <a href="https://datatracker.ietf.org/doc/html/rfc4271" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Border Gateway Protocol (BGP)</a> manages how data travels across the internet. It allows <a href="https://datatracker.ietf.org/doc/html/rfc1930" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Autonomous Systems</a> (ASes) to announce IP prefix ownership and discover efficient paths to other networks. BGP relies on trust, which makes it vulnerable to misconfigurations and malicious route hijacks.
+              The Border Gateway Protocol (BGP) is the system that connects thousands of independent networks to form the global internet. While interior protocols handle traffic within a single organization, BGP is built for scale and policy-driven routing between <a href="https://datatracker.ietf.org/doc/html/rfc1930" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Autonomous Systems</a> (ASes).
+            </p>
+            <p>
+              Networks use BGP to announce which IP addresses they own and discover paths to reach the rest of the world. Because the protocol was built on a model of implicit trust, it is susceptible to complex security issues like route hijacks and leaks, which we will discuss at length later in this guide.
             </p>
           </div>
 
           <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed border-l-2 border-indigo-500/20 pl-8">
             <h3 class="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">IP Prefixes & Subnetting</h3>
             <p class="text-sm">
-              BGP routes <strong>Prefixes</strong>, which are blocks of IP addresses. A prefix like <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-600 dark:text-cyan-400 font-bold">192.0.2.0/24</code> represents 256 addresses.
+              IP addresses are grouped into blocks called <strong>Prefixes</strong>. In BGP, these are often referred to using "slash" notation, such as a "slash 24" (<code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-600 dark:text-cyan-400 font-bold">/24</code>), which represents 256 individual addresses.
             </p>
             <ul class="text-xs space-y-2 list-disc pl-4">
-              <li><strong>Specific (/24):</strong> Small prefixes. BGP prefers the most specific route. A hijacker can steal traffic by announcing a more specific /24 than a legitimate /23.</li>
-              <li><strong>Aggregate (/8):</strong> Large prefixes covering millions of IPs. These keep the global routing table manageable.</li>
+              <li><strong>Longest Prefix Match:</strong> One of BGP's core rules is that it always prefers the most specific route. If one network announces a /23 and another announces a /24 that overlaps with it, traffic will follow the /24.</li>
+              <li><strong>Minimum Prefix Size:</strong> While subnets can be smaller, <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">/24</code> is generally the smallest unit accepted on the global BGP table. Prefixes more specific than /24 are usually filtered by ISPs, except for specialized use cases like <strong>RTBH</strong>.</li>
             </ul>
             <div class="pt-2">
-              <a href="https://www.cloudflare.com/learning/network-layer/what-is-a-subnet/" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-indigo-600 dark:text-cyan-400 hover:underline">Learn about Subnetting &rarr;</a>
+              <p class="text-xs italic mb-2">Network subnets are an entire subject on their own, so go here to learn more about subnetting:</p>
+              <a href="https://www.cloudflare.com/learning/network-layer/what-is-a-subnet/" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-indigo-600 dark:text-cyan-400 hover:underline">Cloudflare: What is a Subnet? &rarr;</a>
             </div>
           </div>
         </div>
@@ -93,7 +97,7 @@ try {
           <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
              <h4 class="text-lg font-bold text-slate-900 dark:text-white uppercase">Peering vs Transit</h4>
              <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-               <a href="https://en.wikipedia.org/wiki/Peering" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Peering</a> is a direct interconnection between ASes. <strong>Transit</strong> is a service where a network pays a provider to carry its traffic to the rest of the internet.
+               <a href="https://en.wikipedia.org/wiki/Peering" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Peering</a> is a direct interconnection between ASes. <strong>Transit</strong> is a service where a network pays a provider to carry its traffic to the rest of the internet. Peering can often be free, while transit is a paid service.
              </p>
           </div>
 
@@ -140,19 +144,15 @@ try {
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">02</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> A tie-breaker that prefers the shortest chain of networks.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">AS Path Length:</a> BGP prefers the shortest chain of networks (ASes) to reach a destination.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">03</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.1" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">Origin Type:</a> Routes that start from within the network are trusted more than those from outside.</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">Route Source:</a> BGP prefers routes originated directly (IGP) and learned from external neighbors (eBGP) over redistributed or internal paths.</div>
                     </li>
                     <li class="flex gap-3">
                       <span class="font-bold text-indigo-500">04</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">MED:</a> A technical hint used to tell a neighboring network which entry point into your network is preferred.</div>
-                    </li>
-                    <li class="flex gap-3">
-                      <span class="font-bold text-indigo-500">05</span>
-                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">External vs Internal:</a> BGP prefers routes learned from external neighbors (eBGP) over those learned internally (iBGP).</div>
+                      <div><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-slate-900 dark:text-slate-100 uppercase text-xs font-bold underline decoration-dotted decoration-indigo-500/50">MED:</a> A technical "hint" used to tell a neighboring network which entry point into your network is preferred for their inbound traffic.</div>
                     </li>
                   </ol>
                 </div>
@@ -359,7 +359,7 @@ try {
                </h3>
                <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
                  <p>
-                   A <a href="https://en.wikipedia.org/wiki/Looking_glass_server" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Looking Glass</a> allows engineers to view the routing table from the perspective of a specific remote router.
+                   A <a href="https://en.wikipedia.org/wiki/Looking_Glass_server" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Looking Glass</a> allows engineers to view the routing table from the perspective of a specific remote router.
                  </p>
                  <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                    <li>
@@ -396,7 +396,7 @@ try {
             <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">The Session Lifecycle</h3>
           </div>
           <p class="text-slate-600 dark:text-slate-400 mb-8 max-w-3xl leading-relaxed">
-            Before routes can be exchanged, routers must traverse the <strong>BGP Finite State Machine (FSM)</strong>. This sequence ensures that both peers are ready and authorized to communicate over <strong>TCP Port 179</strong>.
+            Before routes can be exchanged, routers must establish a session by progressing through several states in the <strong>BGP Finite State Machine (FSM)</strong>. This sequence ensures that both peers are ready and authorized to communicate over <strong>TCP Port 179</strong>.
           </p>
           <BGPStateMachine client:visible />
 

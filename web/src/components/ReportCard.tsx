@@ -388,17 +388,17 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                 <div className="space-y-4 pt-4 border-t border-slate-500/10">
                   <h4 className="text-xl font-bold text-slate-900 dark:text-slate-200 uppercase tracking-tight">How a route leak works</h4>
                   <p className="text-sm">
-                    Misconfigurations spread because BGP propagates information quickly. A <strong>Route Leak</strong> usually begins with a policy error.
+                    Misconfigurations spread because BGP propagates information quickly. A <strong>Route Leak</strong> usually occurs when a policy error allows prefixes from one peer to be unintentionally re-advertised to another:
                   </p>
-                  <div className="bg-red-500/5 border-l-4 border-red-500 p-4 space-y-3">
-                    <p className="text-xs">
-                      A small ISP accidentally re-announces routes learned from its high-speed transit provider to its other peers. It effectively tells the world it is the best way to reach a popular destination.
+                  <div className="space-y-4 pl-4 border-l-2 border-slate-200 dark:border-slate-800 text-xs">
+                    <p>
+                      A network accidentally re-announces routes learned from its high-speed transit provider to its other upstream peers. It effectively tells the world it is the best way to reach a popular destination.
                     </p>
-                    <p className="text-xs">
-                      Larger neighbors accept this false announcement because they lack strict filters. The route appears to be a valid path.
+                    <p>
+                      Neighboring networks accept this false announcement because they lack strict filters. The route appears as a valid path, and BGP's path selection may favor it due to a deceptively "shorter" AS Path.
                     </p>
-                    <p className="text-xs">
-                      Global traffic for the leaked prefix is pulled into the small ISP's network. This congests its modest links and causes a regional or global outage.
+                    <p>
+                      Global traffic for the leaked prefix is pulled into the originator's network. This congests its modest links, leading to massive packet loss and regional or global outages.
                     </p>
                   </div>
                 </div>
@@ -421,7 +421,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                 <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Threats and Defenses</h3>
               </div>
               <p className="text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed mb-8">
-                Understanding the theory of BGP security is one thing; seeing a hijack in action is another. Use the simulation below to witness how malicious actors exploit the protocol and how modern defenses like <strong>Route Origin Validation (ROV)</strong>, <strong>RTBH</strong>, and <strong>BGP FlowSpec</strong> identify and mitigate threats in real-time.
+                Understanding the theory of BGP security is one thing; seeing a hijack in action is another. Use the simulation below to witness how malicious actors exploit the protocol and how modern defenses like <a href="https://datatracker.ietf.org/doc/html/rfc6811" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Route Origin Validation (ROV)</a>, <a href="https://datatracker.ietf.org/doc/html/rfc5635" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Remote Triggered Black Hole (RTBH)</a>, and <a href="https://datatracker.ietf.org/doc/html/rfc5575" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">BGP FlowSpec</a> identify and mitigate threats in real-time.
               </p>
               <BGPSecurityExplainer />
             </div>
@@ -429,7 +429,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
             <div className="space-y-6 pt-12 border-t border-slate-500/10">
               <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">Global RPKI Adoption</h3>
               <p className="text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
-                While RPKI has seen significant growth, global security depends on both widespread registration and active route filtering by all ISPs. You can track real-world deployment and enforcement progress at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
+                ISPs use <a href="https://blog.cloudflare.com/rpki/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">RPKI</a> to mathematically prove Route Hijacks are invalid. The malicious path is dropped at the border, protecting the user. While RPKI has seen significant growth, global security depends on both widespread registration and active route filtering by all ISPs. You can track real-world deployment and enforcement progress at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
               </p>            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -706,11 +706,11 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
         <div className="cyber-box p-8 md:p-12 rounded-xl flex flex-col lg:flex-row gap-12 items-start shadow-2xl">
           <div className="flex-1 space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed">
             <h3 className="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase">The IPv4 to IPv6 Transition</h3>
-            <p className="text-base text-slate-700 dark:text-slate-300">
-              The internet is currently undergoing a critical multi-decade migration. IPv4, the protocol that built the modern web, only supports approximately 4.3 billion addresses. These were functionally exhausted years ago, forcing the world to rely on complex workarounds like <a href="https://www.cisco.com/site/us/en/learn/topics/networking/what-is-network-address-translation-nat.html" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-semibold">Carrier-Grade NAT (CGNAT)</a>.
+            <p>
+              The internet is currently undergoing a critical multi-decade migration. <a href="https://datatracker.ietf.org/doc/html/rfc791" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">IPv4</a>, the protocol that built the modern web, only supports approximately 4.3 billion addresses. These were functionally exhausted years ago, forcing the world to rely on complex workarounds like <a href="https://www.cisco.com/site/us/en/learn/topics/networking/what-is-network-address-translation-nat.html" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-semibold">Carrier-Grade NAT (CGNAT)</a>.
             </p>
             <p>
-              IPv6 is the modern successor, providing a virtually infinite address space and improved routing efficiency. However, the global BGP table shows a significant lag in adoption. This data tracks the relative presence of both protocols, highlighting the ongoing effort to build a truly scalable internet foundation.
+              <a href="https://datatracker.ietf.org/doc/html/rfc8200" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">IPv6</a> is the modern successor, providing a virtually infinite address space and improved routing efficiency. However, the global BGP table shows a significant lag in adoption. This data tracks the relative presence of both protocols, highlighting the ongoing effort to build a truly scalable internet foundation.
             </p>
             <div className="pt-4 flex flex-wrap gap-4">
               <a href="https://www.google.com/intl/en/ipv6/statistics.html" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-2 rounded border border-blue-500/20 hover:bg-blue-500/20 transition-colors">Google IPv6 Stats &rarr;</a>

@@ -1746,7 +1746,7 @@ export const BGPSecurityExplainer = () => {
         {activeTab === 3 && (
           <PanelContainer 
             title="4. BGP RTBH (Black-Hole)" 
-            description="Remote Triggered Black Hole (RTBH) allows a network to tell its providers to drop all traffic destined for an IP under attack. This protects the network link capacity at the cost of the target IP's reachability."
+            description="Remote Triggered Black Hole (RTBH, RFC 5635) allows a network to tell its providers to drop all traffic destined for an IP under a Distributed Denial of Service (DDoS) attack. This protects the network link capacity at the cost of the target IP's reachability."
             onPrev={handlePrev}
             onNext={handleNext}
             nextHighlighted={completedTabs.includes(3)}
@@ -1841,7 +1841,7 @@ export const BGPSecurityExplainer = () => {
         {activeTab === 4 && (
           <PanelContainer 
             title="5. BGP FlowSpec" 
-            description="BGP FlowSpec allows a victim to distribute precise filtering rules (e.g., 'drop UDP port 53 traffic to this IP') to upstream providers. Unlike RTBH, FlowSpec only drops attack traffic while allowing legitimate users through. However, FlowSpec is less effective if attack traffic perfectly mimics production traffic, as it relies on identifiable patterns. RTBH is typically preferred when attack volumes are so massive they exceed the processing capacity of upstream hardware, or as a 'nuclear option' to protect core stability."
+            description="BGP FlowSpec (RFC 5575) allows a victim to distribute precise filtering rules (e.g., 'drop UDP port 53 traffic to this IP') to upstream providers to mitigate DDoS attacks. Unlike RTBH, FlowSpec only drops attack traffic while allowing legitimate users through. However, FlowSpec is less effective if attack traffic perfectly mimics production traffic, as it relies on identifiable patterns. RTBH is typically preferred when attack volumes are so massive they exceed the processing capacity of upstream hardware, or as a 'nuclear option' to protect core stability."
             onPrev={handlePrev}
             onNext={handleNext}
             isLast
