@@ -229,7 +229,7 @@ const spawnPulse = (setter: React.Dispatch<React.SetStateAction<any[]>>, duratio
 };
 
 // DataPulse component using CSS Motion Paths for reliable replaying
-const DataPulse = ({ path, color = "white", duration = "3s", delay = "0s" }: { path: string, color?: string, duration?: string, delay?: string }) => {
+const DataPulse = ({ path, color = "white", duration = "3s", delay = "0s", clipped = false, clipId = "drop-clip" }: { path: string, color?: string, duration?: string, delay?: string, clipped?: boolean, clipId?: string }) => {
   const isRed = color === 'red';
   const isCyan = color === 'cyan';
   const isPurple = color === 'purple';
@@ -246,15 +246,17 @@ const DataPulse = ({ path, color = "white", duration = "3s", delay = "0s" }: { p
                     'shadow-glow-white'));
 
   return (
-    <circle 
-      r="4" 
-      className={`fill-current ${fillColor} ${glowClass} animate-pulse-path opacity-0`}
-      style={{ 
-        offsetPath: `path('${path}')`,
-        animationDuration: duration,
-        animationDelay: delay,
-      } as any}
-    />
+    <g style={{ clipPath: clipped ? `url(#${clipId})` : "none" }}>
+      <circle 
+        r="4" 
+        className={`fill-current ${fillColor} ${glowClass} animate-pulse-path opacity-0`}
+        style={{ 
+          offsetPath: `path('${path}')`,
+          animationDuration: duration,
+          animationDelay: delay,
+        } as any}
+      />
+    </g>
   );
 };
 
@@ -1555,7 +1557,6 @@ export const BGPSecurityExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setHijacked(true);
-                    setHijackPulses([]);
                     setTimeout(() => markTabComplete(0), 3000);
                   }}
                   label="Trigger Hijack"
@@ -1618,7 +1619,6 @@ export const BGPSecurityExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setFiltered(true);
-                    setFilteredPulses([]);
                     setTimeout(() => markTabComplete(1), 3000);
                   }}
                   label="Enable RPKI ROV"
@@ -1686,7 +1686,6 @@ export const BGPSecurityExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setLeaked(true);
-                    setLeakPulses([]);
                     setTimeout(() => markTabComplete(2), 3000);
                   }}
                   label="Trigger Leak"
@@ -1753,7 +1752,8 @@ export const BGPSecurityExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setRtbhActive(true);
-                    setRtbhPulses([]);
+                    // Tag ALL existing pulses to stop at the provider
+                    setRtbhPulses(prev => prev.map(p => ({ ...p, clipped: true })));
                     setTimeout(() => markTabComplete(3), 3000);
                   }}
                   label="Activate RTBH"
@@ -1775,6 +1775,11 @@ export const BGPSecurityExplainer = () => {
             }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
+              <defs>
+                <clipPath id="rtbh-clip">
+                  <rect x="0" y="0" width="400" height="212" />
+                </clipPath>
+              </defs>
               {/* Layout: Layer 1 (y=40), Layer 2 (y=120), Layer 3 (y=210), Layer 4 (y=300) */}
               
               {/* Paths from Layer 1 to Layer 2 */}
@@ -1823,7 +1828,7 @@ export const BGPSecurityExplainer = () => {
               )}
 
               {rtbhPulses.map(pulse => (
-                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} />
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} clipped={(pulse as any).clipped} clipId="rtbh-clip" />
               ))}
             </svg>
           </PanelContainer>
@@ -1832,7 +1837,7 @@ export const BGPSecurityExplainer = () => {
         {activeTab === 4 && (
           <PanelContainer 
             title="5. BGP FlowSpec" 
-            description="BGP FlowSpec allows a victim to distribute precise filtering rules (e.g., 'drop UDP port 53 traffic to this IP') to upstream providers. Unlike RTBH, FlowSpec only drops attack traffic while allowing legitimate users through."
+            description="BGP FlowSpec allows a victim to distribute precise filtering rules (e.g., 'drop UDP port 53 traffic to this IP') to upstream providers. Unlike RTBH, FlowSpec only drops attack traffic while allowing legitimate users through. However, FlowSpec is less effective if attack traffic perfectly mimics production traffic, as it relies on identifiable patterns. RTBH is typically preferred when attack volumes are so massive they exceed the processing capacity of upstream hardware, or as a 'nuclear option' to protect core stability."
             onPrev={handlePrev}
             onNext={handleNext}
             isLast
@@ -1842,7 +1847,13 @@ export const BGPSecurityExplainer = () => {
                 <ActionButton 
                   onClick={() => {
                     setFlowspecActive(true);
-                    setFlowspecPulses([]);
+                    // Tag ALL existing RED pulses to stop at the provider
+                    setFlowspecPulses(prev => prev.map(p => {
+                      if (p.color === "red") {
+                        return { ...p, clipped: true };
+                      }
+                      return p;
+                    }));
                     setTimeout(() => markTabComplete(4), 3000);
                   }}
                   label="Deploy FlowSpec"
@@ -1864,6 +1875,11 @@ export const BGPSecurityExplainer = () => {
             }
           >
             <svg viewBox="0 0 400 350" className="w-full h-full">
+              <defs>
+                <clipPath id="flowspec-clip">
+                  <rect x="0" y="0" width="400" height="212" />
+                </clipPath>
+              </defs>
               {/* Layout: Layer 1 (y=40), Layer 2 (y=120), Layer 3 (y=210), Layer 4 (y=300) */}
               
               {/* Paths from Layer 1 to Layer 2 */}
@@ -1912,7 +1928,7 @@ export const BGPSecurityExplainer = () => {
               )}
 
               {flowspecPulses.map(pulse => (
-                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} />
+                <DataPulse key={pulse.id} color={pulse.color} path={pulse.path} duration={pulse.duration} clipped={(pulse as any).clipped} clipId="flowspec-clip" />
               ))}
             </svg>
           </PanelContainer>
