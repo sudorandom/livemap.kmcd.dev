@@ -1690,31 +1690,93 @@ mod tests {
         // Use 2 hosts to meet the host threshold
         // Host 1: A -> W -> A (Flap 1) -> W -> A (Flap 2)
         // Host 2: A -> W -> A (Flap 3)
-        
+
         // Initial Announce
-        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h1", "p1", false, 100), 0.0, 0.0, None, None);
-        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h2", "p2", false, 100), 0.0, 0.0, None, None);
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1000, "h1", "p1", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1000, "h2", "p2", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
 
         // First Withdraw
-        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h1", "p1", true, 100), 0.0, 0.0, None, None);
-        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h2", "p2", true, 100), 0.0, 0.0, None, None);
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1001, "h1", "p1", true, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1001, "h2", "p2", true, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
 
         // First Flap cycle completed (A -> W -> A) for both
-        classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h1", "p1", false, 100), 0.0, 0.0, None, None);
-        let (res_h2, _) = classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h2", "p2", false, 100), 0.0, 0.0, None, None);
-        
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1002, "h1", "p1", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        let (res_h2, _) = classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1002, "h2", "p2", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
         // Total flaps so far: 2 (h1, h2). Threshold is 3.
         assert!(res_h2.is_some());
         assert_eq!(res_h2.as_ref().unwrap().num_flaps, 1);
-        assert_ne!(res_h2.unwrap().classification_type, ClassificationType::Flap);
+        assert_ne!(
+            res_h2.unwrap().classification_type,
+            ClassificationType::Flap
+        );
 
         // Host 1: another cycle
-        classifier.classify_event(prefix.clone(), &mock_ctx(1003, "h1", "p1", true, 100), 0.0, 0.0, None, None);
-        let (res, _) = classifier.classify_event(prefix.clone(), &mock_ctx(1004, "h1", "p1", false, 100), 0.0, 0.0, None, None);
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1003, "h1", "p1", true, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        let (res, _) = classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1004, "h1", "p1", false, 100),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
 
         // Now total flaps = 3. Should trigger Flap classification.
         assert!(res.is_some());
-        assert_eq!(res.as_ref().unwrap().classification_type, ClassificationType::Flap);
+        assert_eq!(
+            res.as_ref().unwrap().classification_type,
+            ClassificationType::Flap
+        );
         assert_eq!(res.unwrap().num_flaps, 1);
     }
 
@@ -1734,18 +1796,74 @@ mod tests {
         // Need 3 flaps to trigger Flap classification
         // h1: A -> W -> A (F1) -> W -> A (F2)
         // h2: A -> W -> A (F3)
-        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h1", "p1", false, 300), 0.0, 0.0, None, None);
-        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h2", "p2", false, 300), 0.0, 0.0, None, None);
-        
-        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h1", "p1", true, 300), 0.0, 0.0, None, None);
-        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h2", "p2", true, 300), 0.0, 0.0, None, None);
-        
-        classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h1", "p1", false, 300), 0.0, 0.0, None, None);
-        classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h2", "p2", false, 300), 0.0, 0.0, None, None); // F1, F2
-        
-        classifier.classify_event(prefix.clone(), &mock_ctx(1003, "h1", "p1", true, 300), 0.0, 0.0, None, None);
-        let (res_flap, _) = classifier.classify_event(prefix.clone(), &mock_ctx(1004, "h1", "p1", false, 300), 0.0, 0.0, None, None); // F3
-        
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1000, "h1", "p1", false, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1000, "h2", "p2", false, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1001, "h1", "p1", true, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1001, "h2", "p2", true, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1002, "h1", "p1", false, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1002, "h2", "p2", false, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        ); // F1, F2
+
+        classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1003, "h1", "p1", true, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        );
+        let (res_flap, _) = classifier.classify_event(
+            prefix.clone(),
+            &mock_ctx(1004, "h1", "p1", false, 300),
+            0.0,
+            0.0,
+            None,
+            None,
+        ); // F3
+
         assert!(res_flap.is_some());
         assert_eq!(
             res_flap.unwrap().classification_type,
