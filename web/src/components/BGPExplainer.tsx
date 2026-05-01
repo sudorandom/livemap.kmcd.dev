@@ -71,6 +71,7 @@ const ActionButton = ({ onClick, active, label, activeLabel, icon: Icon, color =
     <button 
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={active}
       className={`group relative ${bgColor} border text-xs font-bold py-2.5 px-6 rounded-full transition-all flex items-center gap-2 z-20 ${!disabled && 'transform hover:scale-105 active:scale-95 text-white'} ${pulseClass} ${className}`}
     >
       <span className="relative z-10 flex items-center gap-2 uppercase tracking-widest">
@@ -89,6 +90,8 @@ const ToggleSwitch = ({ enabled, onChange, label, className = "" }: { enabled: b
     {label && <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400">{label}</span>}
     <button
       onClick={() => onChange(!enabled)}
+      role="switch"
+      aria-checked={enabled}
       className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none ${enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
     >
       <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-300 ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -517,6 +520,7 @@ export const BGPRoutingExplainer = () => {
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
+                aria-pressed={isActive}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${
                   isActive 
                     ? 'bg-indigo-600/10 dark:bg-indigo-600/20 border-indigo-500 text-indigo-700 dark:text-white shadow-sm' 
@@ -541,6 +545,7 @@ export const BGPRoutingExplainer = () => {
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
+                aria-pressed={isActive}
                 className={`flex items-start gap-4 p-4 rounded-xl border transition-all text-left group ${
                   isActive 
                     ? 'bg-indigo-50 dark:bg-indigo-600/10 border-indigo-500 dark:border-indigo-500/50 ring-1 ring-indigo-500 dark:ring-indigo-500/50 shadow-md' 
@@ -1145,6 +1150,7 @@ export const BGPMessageAnatomy = () => {
           <button
             key={idx}
             onClick={() => setActiveTab(idx)}
+            aria-pressed={activeTab === idx}
             className={`px-4 py-3 text-xs font-cyber font-bold uppercase tracking-wider transition-all relative ${
               activeTab === idx 
                 ? "text-slate-900 dark:text-white" 
@@ -1487,6 +1493,7 @@ export const BGPSecurityExplainer = () => {
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
+                aria-pressed={isActive}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${
                   isActive 
                     ? 'bg-red-600/10 dark:bg-red-600/20 border-red-500 text-red-700 dark:text-white shadow-sm' 
@@ -1511,6 +1518,7 @@ export const BGPSecurityExplainer = () => {
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
+                aria-pressed={isActive}
                 className={`flex items-start gap-4 p-4 rounded-xl border transition-all text-left group ${
                   isActive 
                     ? 'bg-red-50 dark:bg-red-600/10 border-red-500 dark:border-red-500/50 ring-1 ring-red-500 dark:ring-red-500/50 shadow-md' 
