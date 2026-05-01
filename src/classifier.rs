@@ -678,10 +678,10 @@ impl Classifier {
         if is_fully_withdrawn {
             if state.fully_withdrawn_ts.is_none() {
                 state.fully_withdrawn_ts = Some(ctx.now);
-                transition_count = 1;
             }
         } else {
             if state.fully_withdrawn_ts.is_some() {
+                // Completed one flap cycle (W -> A)
                 transition_count = 1;
             }
             state.fully_withdrawn_ts = None;
@@ -1015,7 +1015,7 @@ impl Classifier {
         &self,
         state: &mut PrefixState,
         now: i64,
-        current_origin_asn: u32,
+        _current_origin_asn: u32,
     ) -> AggregatedStats {
         let mut s = AggregatedStats::new(now);
         let cutoff = now - 600;
@@ -1039,7 +1039,9 @@ impl Classifier {
             s.all_unique_hosts.insert(attr.host.clone());
             if attr.withdrawn {
                 s.withdrawn_peers.insert(peer.clone());
-            } else if attr.origin_asn == current_origin_asn {
+            } else {
+                // Count ANY peer seeing the prefix, regardless of ASN
+                // This ensures is_fully_withdrawn is only true if NO one sees it.
                 s.unique_peers.insert(peer.clone());
                 s.unique_hosts.insert(attr.host.clone());
             }
@@ -1727,9 +1729,8 @@ mod tests {
             None,
             None,
         );
-        // Prefix fully withdrawn -> transition
-        assert!(res_w2.is_some());
-        assert_eq!(res_w2.as_ref().unwrap().num_flaps, 1);
+        // Prefix fully withdrawn -> NO LONGER transition (only W->A counts)
+        assert!(res_w2.is_none());
 
         // First Flap cycle completed (A -> W -> A) for both
         let (res_h1, _) = classifier.classify_event(
@@ -1740,7 +1741,7 @@ mod tests {
             None,
             None,
         );
-        // Prefix announced again -> transition
+        // Prefix announced again -> transition!
         assert!(res_h1.is_some());
         assert_eq!(res_h1.as_ref().unwrap().num_flaps, 1);
 
