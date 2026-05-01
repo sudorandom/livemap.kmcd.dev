@@ -1619,7 +1619,7 @@ export const BGPSecurityExplainer = () => {
         {activeTab === 1 && (
           <PanelContainer 
             title="2. RPKI Route Filtering" 
-            description="ISPs use RPKI to mathematically prove Route Hijacks are invalid. The malicious path is dropped at the border, protecting the user."
+            description="ISPs use Route Origin Validation (ROV) to mathematically prove route announcements. Routes are evaluated against ROAs (Route Origin Authorizations) and placed into states: Valid, Invalid, or Not-Found. Invalid routes are dropped at the border, protecting the user."
             onPrev={handlePrev}
             onNext={handleNext}
             nextHighlighted={completedTabs.includes(1)}
