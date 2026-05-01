@@ -415,7 +415,6 @@ impl Classifier {
             .retain(|_, attr| !attr.withdrawn || attr.last_update_ts >= ctx.now - 3600);
         state.buckets.entry(minute_ts).or_default().total_messages += 1;
 
-        let mut flap_count = 0;
         if ctx.is_withdrawal {
             state.buckets.entry(minute_ts).or_default().withdrawals += 1;
             let session_key = format!("{}:{}", ctx.host, ctx.peer);
@@ -444,7 +443,7 @@ impl Classifier {
                 state.classified_time_ts = ctx.now;
             }
         } else {
-            flap_count = self.update_announcement_stats(&mut state, minute_ts, ctx);
+            self.update_announcement_stats(&mut state, minute_ts, ctx);
             if ctx.origin_asn != 0 {
                 state.last_origin_asn = ctx.origin_asn;
                 if let Some(ref db) = self.state_db
@@ -486,7 +485,7 @@ impl Classifier {
         state.city = city.clone();
         state.country = country.clone();
 
-        let (mut result, needs_timer) = self.evaluate_prefix_state(
+        let (mut result, needs_timer, transition_count) = self.evaluate_prefix_state(
             &prefix,
             &mut state,
             historical_origin_asn,
@@ -497,7 +496,6 @@ impl Classifier {
             city.clone(),
             country.clone(),
             old_classified_type,
-            flap_count,
         );
 
         if result.is_none() && state.classified_type != old_classified_type {
@@ -531,7 +529,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
-                num_flaps: flap_count,
+                num_flaps: transition_count,
             });
             if state.classified_type == ClassificationType::None {
                 state.active_incident_id = None;
@@ -547,7 +545,7 @@ impl Classifier {
             };
 
             result = Some(PendingEvent {
-                prefix: prefix.clone(),
+                prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
                 peer_ip: ctx.peer.clone(),
@@ -576,13 +574,13 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
-                num_flaps: flap_count,
+                num_flaps: transition_count,
             });
         }
 
         if result.is_none() && !ctx.is_withdrawal && historical_origin_asn == 0 {
             result = Some(PendingEvent {
-                prefix: prefix.clone(),
+                prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
                 peer_ip: ctx.peer.clone(),
@@ -599,7 +597,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
-                num_flaps: flap_count,
+                num_flaps: transition_count,
             });
             if let Some(ref db) = self.state_db
                 && let Ok(net) = IpNet::from_str(&prefix)
@@ -607,9 +605,9 @@ impl Classifier {
             {
                 db.record_seen(net, ctx.origin_asn);
             }
-        } else if result.is_none() && flap_count > 0 {
+        } else if result.is_none() && transition_count > 0 {
             result = Some(PendingEvent {
-                prefix: prefix.clone(),
+                prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
                 peer_ip: ctx.peer.clone(),
@@ -626,7 +624,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
-                num_flaps: flap_count,
+                num_flaps: transition_count,
             });
         }
 
@@ -670,16 +668,22 @@ impl Classifier {
         city: Option<String>,
         country: Option<String>,
         old_classified_type: ClassificationType,
-        flap_count: u32,
-    ) -> (Option<PendingEvent>, bool) {
-        let stats = self.aggregate_recent_buckets(state, ctx.now, ctx.origin_asn);
+    ) -> (Option<PendingEvent>, bool, u32) {
+        let stats = self.aggregate_recent_buckets(state, ctx.now, resolved_asn);
         let elapsed = (ctx.now - stats.earliest_ts).max(1);
 
-        if stats.unique_peers.is_empty() {
+        let mut transition_count = 0;
+        let is_fully_withdrawn = stats.unique_peers.is_empty();
+
+        if is_fully_withdrawn {
             if state.fully_withdrawn_ts.is_none() {
                 state.fully_withdrawn_ts = Some(ctx.now);
+                transition_count = 1;
             }
         } else {
+            if state.fully_withdrawn_ts.is_some() {
+                transition_count = 1;
+            }
             state.fully_withdrawn_ts = None;
         }
 
@@ -697,7 +701,7 @@ impl Classifier {
             city.clone(),
             country.clone(),
             fw_ts,
-            flap_count,
+            transition_count,
         );
 
         if let Some(mut event) = event_opt {
@@ -705,11 +709,11 @@ impl Classifier {
             // If the current state is None, any detected anomaly is a transition.
             if old_classified_type != ClassificationType::None {
                 if event.classification_type.priority() < old_classified_type.priority() {
-                    return (None, needs_timer);
+                    return (None, needs_timer, transition_count);
                 }
                 if event.classification_type == old_classified_type {
                     state.classified_time_ts = ctx.now;
-                    return (None, needs_timer);
+                    return (None, needs_timer, transition_count);
                 }
             }
 
@@ -755,9 +759,9 @@ impl Classifier {
                 state.leaker_asn = ld.leaker_asn;
                 state.victim_asn = ld.victim_asn;
             }
-            return (Some(event), needs_timer);
+            return (Some(event), needs_timer, transition_count);
         }
-        (None, needs_timer)
+        (None, needs_timer, transition_count)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1048,7 +1052,7 @@ impl Classifier {
         state: &mut PrefixState,
         minute_ts: i64,
         ctx: &MessageContext,
-    ) -> u32 {
+    ) {
         let session_key = format!("{}:{}", ctx.host, ctx.peer);
         let (path_changed, len_inc, len_dec, was_withdrawn) =
             if let Some(last) = state.peer_last_attrs.get(&session_key) {
@@ -1069,10 +1073,8 @@ impl Classifier {
             };
         let bucket = state.buckets.entry(minute_ts).or_default();
         bucket.announcements += 1;
-        let mut flap_count = 0;
         if was_withdrawn {
             bucket.flaps += 1;
-            flap_count = 1;
         }
         if path_changed {
             bucket.path_changes += 1;
@@ -1095,7 +1097,6 @@ impl Classifier {
                 withdrawn: false,
             },
         );
-        flap_count
     }
 
     fn get_historical_asn(&self, prefix: &str) -> u32 {
@@ -1718,7 +1719,7 @@ mod tests {
             None,
             None,
         );
-        classifier.classify_event(
+        let (res_w2, _) = classifier.classify_event(
             prefix.clone(),
             &mock_ctx(1001, "h2", "p2", true, 100),
             0.0,
@@ -1726,9 +1727,12 @@ mod tests {
             None,
             None,
         );
+        // Prefix fully withdrawn -> transition
+        assert!(res_w2.is_some());
+        assert_eq!(res_w2.as_ref().unwrap().num_flaps, 1);
 
         // First Flap cycle completed (A -> W -> A) for both
-        classifier.classify_event(
+        let (res_h1, _) = classifier.classify_event(
             prefix.clone(),
             &mock_ctx(1002, "h1", "p1", false, 100),
             0.0,
@@ -1736,6 +1740,10 @@ mod tests {
             None,
             None,
         );
+        // Prefix announced again -> transition
+        assert!(res_h1.is_some());
+        assert_eq!(res_h1.as_ref().unwrap().num_flaps, 1);
+
         let (res_h2, _) = classifier.classify_event(
             prefix.clone(),
             &mock_ctx(1002, "h2", "p2", false, 100),
@@ -1746,8 +1754,8 @@ mod tests {
         );
 
         // Total flaps so far: 2 (h1, h2). Threshold is 3.
-        assert!(res_h2.is_some());
-        assert_eq!(res_h2.as_ref().unwrap().num_flaps, 1);
+        assert!(res_h2.is_some()); // Discovery
+        assert_eq!(res_h2.as_ref().unwrap().num_flaps, 0); // No transition because it's already announced
         assert_ne!(
             res_h2.unwrap().classification_type,
             ClassificationType::Flap
@@ -1762,6 +1770,8 @@ mod tests {
             None,
             None,
         );
+        // Does not transition to fully withdrawn because h2 is still announcing
+
         let (res, _) = classifier.classify_event(
             prefix.clone(),
             &mock_ctx(1004, "h1", "p1", false, 100),
@@ -1777,7 +1787,7 @@ mod tests {
             res.as_ref().unwrap().classification_type,
             ClassificationType::Flap
         );
-        assert_eq!(res.unwrap().num_flaps, 1);
+        assert_eq!(res.unwrap().num_flaps, 0); // No transition because it was never fully withdrawn
     }
 
     #[test]

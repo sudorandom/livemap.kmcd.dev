@@ -8,12 +8,11 @@ export const PanelContainer = ({ title, children, footer, description, className
         <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider mb-1">{title}</h3>
         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{description}</p>
       </div>
-      {nextHighlighted && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500 ml-4">
-          <CheckCircle2 size={12} className="animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-tighter">Step Complete</span>
-        </div>
-      )}
+      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 ml-4 transition-opacity duration-500 ${nextHighlighted ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <CheckCircle2 size={12} className={nextHighlighted ? "animate-pulse" : ""} />
+        <span className="text-xs font-bold uppercase tracking-tighter">Step Complete</span>
+      </div>
+
     </div>
     <div 
       aria-live="polite"

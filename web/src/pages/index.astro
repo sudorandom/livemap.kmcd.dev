@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { ReportCard } from '../components/ReportCard';
 import { ISPSafetyTest } from '../components/ISPSafetyTest';
-import { BGPRoutingExplainer, BGPAdvancedTopics, BGPStateMachine, BGPMessageAnatomy } from '../components/BGPExplainer';
+import { BGPRoutingExplainer, BGPAdvancedTopics, BGPStateMachine, BGPMessageAnatomy, PanelContainer } from '../components/BGPExplainer';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -448,42 +448,41 @@ try {
           </div>
           <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">References</h2>
         </div>
-        <BGPAdvancedTopics client:visible />
-        <div class="mt-8">
-        <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
-           <h3 class="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
-             <svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-             Network Tooling & Resources
-           </h3>
-           <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
-             <p>
-               A <a href="https://en.wikipedia.org/wiki/Looking_Glass_server" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Looking Glass</a> allows engineers to view the routing table from the perspective of a specific remote router.
-             </p>
-             <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-               <li>
-                 <a href="https://radar.cloudflare.com" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">Cloudflare Radar</a>
-                 <p class="mt-1 opacity-80 leading-relaxed">Real-time insights into internet traffic, security, and routing patterns globally.</p>
-               </li>
-               <li>
-                 <a href="https://peeringdb.com" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">PeeringDB</a>
-                 <p class="mt-1 opacity-80 leading-relaxed">The industry-standard database for peering locations and network interconnection data.</p>
-               </li>
-               <li>
-                 <a href="https://bgp.he.net" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">HE BGP Toolkit</a>
-                 <p class="mt-1 opacity-80 leading-relaxed">Extensive BGP routing information, including AS details, prefix propagation, and path history.</p>
-               </li>
-               <li>
-                 <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">RouteViews</a>
-                 <p class="mt-1 opacity-80 leading-relaxed">A global project providing real-time BGP data to researchers since 1995 via dozens of collectors.</p>
-               </li>
-               <li>
-                 <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" class="text-slate-900 dark:text-slate-100 font-bold hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-tight">RIPE NCC RIS</a>
-                 <p class="mt-1 opacity-80 leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions.</p>
-               </li>
-             </ul>
-           </div>
-        </div>
+        
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <BGPAdvancedTopics client:visible />
 
+          <PanelContainer 
+            client:visible
+            title="Network Tooling & Resources" 
+            description="A Looking Glass allows engineers to view the routing table from the perspective of a specific remote router."
+            className="bg-transparent border-none p-0"
+          >
+            <div class="flex flex-col gap-6 w-full h-full overflow-y-auto custom-scrollbar p-2">
+               <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                 <li class="space-y-1">
+                   <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">Cloudflare Radar</a>
+                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Real-time insights into internet traffic, security, and routing patterns globally.</p>
+                 </li>
+                 <li class="space-y-1">
+                   <a href="https://peeringdb.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">PeeringDB</a>
+                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The industry-standard database for peering locations and network interconnection data.</p>
+                 </li>
+                 <li class="space-y-1">
+                   <a href="https://bgp.he.net" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">HE BGP Toolkit</a>
+                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Extensive BGP routing information, including AS details, prefix propagation, and path history.</p>
+                 </li>
+                 <li class="space-y-1">
+                   <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">RouteViews</a>
+                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">A global project providing real-time BGP data to researchers since 1995 via dozens of collectors.</p>
+                 </li>
+                 <li class="space-y-1">
+                   <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">RIPE NCC RIS</a>
+                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions.</p>
+                 </li>
+               </ul>
+            </div>
+          </PanelContainer>
         </div>
       </section>
 
