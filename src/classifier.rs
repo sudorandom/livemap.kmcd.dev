@@ -268,6 +268,7 @@ pub struct PendingEvent {
     pub lon: f32,
     pub city: Option<String>,
     pub country: Option<String>,
+    pub num_flaps: u32,
 }
 
 pub struct BgpkitCache {
@@ -414,13 +415,11 @@ impl Classifier {
             .retain(|_, attr| !attr.withdrawn || attr.last_update_ts >= ctx.now - 3600);
         state.buckets.entry(minute_ts).or_default().total_messages += 1;
 
+        let mut flap_count = 0;
         if ctx.is_withdrawal {
             state.buckets.entry(minute_ts).or_default().withdrawals += 1;
             let session_key = format!("{}:{}", ctx.host, ctx.peer);
             if let Some(last) = state.peer_last_attrs.get_mut(&session_key) {
-                if !last.withdrawn {
-                    state.buckets.entry(minute_ts).or_default().flaps += 1;
-                }
                 last.withdrawn = true;
                 last.last_update_ts = ctx.now;
             } else {
@@ -445,7 +444,7 @@ impl Classifier {
                 state.classified_time_ts = ctx.now;
             }
         } else {
-            self.update_announcement_stats(&mut state, minute_ts, ctx);
+            flap_count = self.update_announcement_stats(&mut state, minute_ts, ctx);
             if ctx.origin_asn != 0 {
                 state.last_origin_asn = ctx.origin_asn;
                 if let Some(ref db) = self.state_db
@@ -498,6 +497,7 @@ impl Classifier {
             city.clone(),
             country.clone(),
             old_classified_type,
+            flap_count,
         );
 
         if result.is_none() && state.classified_type != old_classified_type {
@@ -531,6 +531,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
             if state.classified_type == ClassificationType::None {
                 state.active_incident_id = None;
@@ -575,6 +576,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
         }
 
@@ -597,6 +599,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
             if let Some(ref db) = self.state_db
                 && let Ok(net) = IpNet::from_str(&prefix)
@@ -604,6 +607,27 @@ impl Classifier {
             {
                 db.record_seen(net, ctx.origin_asn);
             }
+        } else if result.is_none() && flap_count > 0 {
+            result = Some(PendingEvent {
+                prefix: prefix.clone(),
+                asn: resolved_asn,
+                as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
+                peer_ip: ctx.peer.clone(),
+                historical_asn: historical_origin_asn,
+                timestamp: ctx.now,
+                classification_type: ClassificationType::None,
+                old_classification: ClassificationType::None,
+                incident_id: state.active_incident_id.clone(),
+                incident_start_time: state.classified_time_ts,
+                leak_detail: None,
+                anomaly_details: None,
+                source: ctx.source.clone(),
+                lat,
+                lon,
+                city: city.clone(),
+                country: country.clone(),
+                num_flaps: flap_count,
+            });
         }
 
         if let Some(ref db) = self.state_db {
@@ -646,6 +670,7 @@ impl Classifier {
         city: Option<String>,
         country: Option<String>,
         old_classified_type: ClassificationType,
+        flap_count: u32,
     ) -> (Option<PendingEvent>, bool) {
         let stats = self.aggregate_recent_buckets(state, ctx.now, ctx.origin_asn);
         let elapsed = (ctx.now - stats.earliest_ts).max(1);
@@ -672,6 +697,7 @@ impl Classifier {
             city.clone(),
             country.clone(),
             fw_ts,
+            flap_count,
         );
 
         if let Some(mut event) = event_opt {
@@ -748,6 +774,7 @@ impl Classifier {
         city: Option<String>,
         country: Option<String>,
         fully_withdrawn_ts: Option<i64>,
+        flap_count: u32,
     ) -> (Option<PendingEvent>, bool) {
         let as_name = self.get_as_name(resolved_asn).unwrap_or_default();
         let mut candidates = Vec::new();
@@ -773,6 +800,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
         }
 
@@ -819,6 +847,7 @@ impl Classifier {
                     lon,
                     city: city.clone(),
                     country: country.clone(),
+                    num_flaps: flap_count,
                 });
             }
         }
@@ -855,6 +884,7 @@ impl Classifier {
                     lon,
                     city: city.clone(),
                     country: country.clone(),
+                    num_flaps: flap_count,
                 });
             } else {
                 needs_timer = true;
@@ -888,6 +918,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
         }
 
@@ -911,6 +942,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
         }
 
@@ -940,6 +972,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
         }
 
@@ -963,6 +996,7 @@ impl Classifier {
                 lon,
                 city: city.clone(),
                 country: country.clone(),
+                num_flaps: flap_count,
             });
         }
 
@@ -1014,7 +1048,7 @@ impl Classifier {
         state: &mut PrefixState,
         minute_ts: i64,
         ctx: &MessageContext,
-    ) {
+    ) -> u32 {
         let session_key = format!("{}:{}", ctx.host, ctx.peer);
         let (path_changed, len_inc, len_dec, was_withdrawn) =
             if let Some(last) = state.peer_last_attrs.get(&session_key) {
@@ -1035,8 +1069,10 @@ impl Classifier {
             };
         let bucket = state.buckets.entry(minute_ts).or_default();
         bucket.announcements += 1;
+        let mut flap_count = 0;
         if was_withdrawn {
             bucket.flaps += 1;
+            flap_count = 1;
         }
         if path_changed {
             bucket.path_changes += 1;
@@ -1059,6 +1095,7 @@ impl Classifier {
                 withdrawn: false,
             },
         );
+        flap_count
     }
 
     fn get_historical_asn(&self, prefix: &str) -> u32 {
@@ -1525,6 +1562,7 @@ impl Classifier {
                 lon: state.lon,
                 city: state.city.clone(),
                 country: state.country.clone(),
+                num_flaps: 0,
             };
 
             if let Some(ref db) = self.state_db
@@ -1645,77 +1683,39 @@ mod tests {
     }
 
     #[test]
-    fn test_flap_detection_on_withdrawal() {
+    fn test_flap_detection_on_announcement() {
         let classifier = setup_classifier();
         let prefix = "2.2.2.0/24".to_string();
 
         // Use 2 hosts to meet the host threshold
-        // Flap 1: Announce
-        classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1000, "h1", "p1", false, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
-        classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1000, "h2", "p2", false, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
+        // Host 1: A -> W -> A (Flap 1) -> W -> A (Flap 2)
+        // Host 2: A -> W -> A (Flap 3)
+        
+        // Initial Announce
+        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h1", "p1", false, 100), 0.0, 0.0, None, None);
+        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h2", "p2", false, 100), 0.0, 0.0, None, None);
 
-        // Flap 2: Withdraw
-        classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1001, "h1", "p1", true, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
-        classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1001, "h2", "p2", true, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
+        // First Withdraw
+        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h1", "p1", true, 100), 0.0, 0.0, None, None);
+        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h2", "p2", true, 100), 0.0, 0.0, None, None);
 
-        // Flap 3: Announce
-        classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1002, "h1", "p1", false, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
-        classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1002, "h2", "p2", false, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
+        // First Flap cycle completed (A -> W -> A) for both
+        classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h1", "p1", false, 100), 0.0, 0.0, None, None);
+        let (res_h2, _) = classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h2", "p2", false, 100), 0.0, 0.0, None, None);
+        
+        // Total flaps so far: 2 (h1, h2). Threshold is 3.
+        assert!(res_h2.is_some());
+        assert_eq!(res_h2.as_ref().unwrap().num_flaps, 1);
+        assert_ne!(res_h2.unwrap().classification_type, ClassificationType::Flap);
 
-        // Flap 4: Withdraw (SHOULD trigger Flap classification even though it's a withdrawal and currently inactive)
-        let (res, _) = classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1003, "h1", "p1", true, 100),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
+        // Host 1: another cycle
+        classifier.classify_event(prefix.clone(), &mock_ctx(1003, "h1", "p1", true, 100), 0.0, 0.0, None, None);
+        let (res, _) = classifier.classify_event(prefix.clone(), &mock_ctx(1004, "h1", "p1", false, 100), 0.0, 0.0, None, None);
 
+        // Now total flaps = 3. Should trigger Flap classification.
         assert!(res.is_some());
-        assert_eq!(res.unwrap().classification_type, ClassificationType::Flap);
+        assert_eq!(res.as_ref().unwrap().classification_type, ClassificationType::Flap);
+        assert_eq!(res.unwrap().num_flaps, 1);
     }
 
     #[test]
@@ -1731,32 +1731,22 @@ mod tests {
             .unwrap();
 
         // 1. Trigger Flap (Priority 40)
-        for i in 0..4 {
-            classifier.classify_event(
-                prefix.clone(),
-                &mock_ctx(1000 + i, "h1", "p1", i % 2 == 1, 300),
-                0.0,
-                0.0,
-                None,
-                None,
-            );
-            classifier.classify_event(
-                prefix.clone(),
-                &mock_ctx(1000 + i, "h2", "p2", i % 2 == 1, 300),
-                0.0,
-                0.0,
-                None,
-                None,
-            );
-        }
-        let (res_flap, _) = classifier.classify_event(
-            prefix.clone(),
-            &mock_ctx(1005, "h1", "p1", true, 300),
-            0.0,
-            0.0,
-            None,
-            None,
-        );
+        // Need 3 flaps to trigger Flap classification
+        // h1: A -> W -> A (F1) -> W -> A (F2)
+        // h2: A -> W -> A (F3)
+        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h1", "p1", false, 300), 0.0, 0.0, None, None);
+        classifier.classify_event(prefix.clone(), &mock_ctx(1000, "h2", "p2", false, 300), 0.0, 0.0, None, None);
+        
+        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h1", "p1", true, 300), 0.0, 0.0, None, None);
+        classifier.classify_event(prefix.clone(), &mock_ctx(1001, "h2", "p2", true, 300), 0.0, 0.0, None, None);
+        
+        classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h1", "p1", false, 300), 0.0, 0.0, None, None);
+        classifier.classify_event(prefix.clone(), &mock_ctx(1002, "h2", "p2", false, 300), 0.0, 0.0, None, None); // F1, F2
+        
+        classifier.classify_event(prefix.clone(), &mock_ctx(1003, "h1", "p1", true, 300), 0.0, 0.0, None, None);
+        let (res_flap, _) = classifier.classify_event(prefix.clone(), &mock_ctx(1004, "h1", "p1", false, 300), 0.0, 0.0, None, None); // F3
+        
+        assert!(res_flap.is_some());
         assert_eq!(
             res_flap.unwrap().classification_type,
             ClassificationType::Flap

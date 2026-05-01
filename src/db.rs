@@ -328,6 +328,32 @@ impl Db {
         counts
     }
 
+    pub fn get_flappiest_asns(&self, limit: u32) -> Vec<FlappyNetwork> {
+        let mut flappiest = Vec::new();
+        if let Ok(conn) = self.pool.get() {
+            let now = chrono::Utc::now().timestamp();
+            let day_ago = now - 86400;
+
+            let query = "SELECT asn, count(*) as c FROM events WHERE event_type = 6 AND ts >= ?1 GROUP BY asn ORDER BY c DESC LIMIT ?2";
+            if let Ok(mut stmt) = conn.prepare_cached(query) {
+                if let Ok(mut rows) = stmt.query(params![day_ago, limit]) {
+                    while let Ok(Some(row)) = rows.next() {
+                        let asn: u32 = row.get(0).unwrap_or(0);
+                        let flap_count: u32 = row.get(1).unwrap_or(0);
+
+                        flappiest.push(FlappyNetwork {
+                            asn,
+                            prefix: String::new(),
+                            flap_count,
+                            event_rate: 0.0,
+                        });
+                    }
+                }
+            }
+        }
+        flappiest
+    }
+
     pub fn get_top_stats(&self) -> TopStats {
         let mut flappiest_networks = Vec::new();
         if let Ok(conn) = self.pool.get() {
@@ -335,8 +361,16 @@ impl Db {
             let day_ago = now - 86400;
 
             // Find the top 5 origin ASNs with the most flap events in the last 24 hours
-            // ClassificationType::Flap == 6
-            let query = "SELECT asn, prefix, count(*) as c FROM events WHERE event_type = 6 AND ts >= ?1 GROUP BY prefix, asn ORDER BY c DESC LIMIT 5";
+            let query = "
+                SELECT 
+                    asn, 
+                    (SELECT prefix FROM events e2 WHERE e2.asn = e1.asn AND e2.event_type = 6 AND e2.ts >= ?1 GROUP BY prefix ORDER BY count(*) DESC LIMIT 1) as main_prefix,
+                    count(*) as c 
+                FROM events e1 
+                WHERE event_type = 6 AND ts >= ?1 
+                GROUP BY asn 
+                ORDER BY c DESC 
+                LIMIT 5";
             if let Ok(mut stmt) = conn.prepare_cached(query) {
                 if let Ok(mut rows) = stmt.query([day_ago]) {
                     while let Ok(Some(row)) = rows.next() {

@@ -252,6 +252,34 @@ impl LiveMap for LiveMapService {
         Ok(Response::new(GetRecentAlertsResponse { alerts }))
     }
 
+    async fn get_flappiest_networks(
+        &self,
+        req: Request<livemap_proto::GetFlappiestNetworksRequest>,
+    ) -> Result<Response<livemap_proto::GetFlappiestNetworksResponse>, Status> {
+        let limit = req.into_inner().limit.max(1).min(100);
+        let flappiest = self
+            .classifier
+            .state_db
+            .as_ref()
+            .map(|db| db.get_flappiest_asns(limit))
+            .unwrap_or_default();
+
+        let mut stats = Vec::new();
+        for f in flappiest {
+            stats.push(livemap_proto::FlappiestNetworkStats {
+                asn: f.asn,
+                network_name: self.classifier.get_as_name(f.asn).unwrap_or_default(),
+                event_rate: 0.0,
+                flap_count: f.flap_count,
+                prefix: String::new(),
+            });
+        }
+
+        Ok(Response::new(livemap_proto::GetFlappiestNetworksResponse {
+            flappiest_networks: stats,
+        }))
+    }
+
     async fn get_summary(
         &self,
         _req: Request<GetSummaryRequest>,
@@ -458,6 +486,7 @@ async fn process_ris_live_message(
                 lon,
                 city,
                 country,
+                num_flaps: 0,
             });
             let _ = tx.blocking_send((pending, is_classified));
 
@@ -642,6 +671,7 @@ async fn process_routeviews_message(
                     lon,
                     city,
                     country,
+                    num_flaps: 0,
                 });
                 let _ = tx.blocking_send((pending, is_classified));
 
@@ -2066,13 +2096,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             cs.add_event(now);
                         }
 
-                        if pending.classification_type == ClassificationType::Flap {
-                            db_ingest.record_event(
-                                &pending.prefix,
-                                pending.asn,
-                                ClassificationType::Flap as i32,
-                                now,
-                            );
+                        if pending.num_flaps > 0 {
+                            for _ in 0..pending.num_flaps {
+                                db_ingest.record_event(
+                                    &pending.prefix,
+                                    pending.asn,
+                                    ClassificationType::Flap as i32,
+                                    now,
+                                );
+                            }
                         }
 
                         let mut is_beacon = false;

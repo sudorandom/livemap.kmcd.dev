@@ -202,6 +202,15 @@ service LiveMapService {
     rpc StreamAlerts(StreamAlertsRequest) returns (stream StreamAlertsResponse);
     rpc StreamPrefixSnapshots(StreamPrefixSnapshotsRequest) returns (stream StreamPrefixSnapshotsResponse);
     rpc GetRecentAlerts(GetRecentAlertsRequest) returns (GetRecentAlertsResponse);
+    rpc GetFlappiestNetworks(GetFlappiestNetworksRequest) returns (GetFlappiestNetworksResponse);
+}
+
+message GetFlappiestNetworksRequest {
+    uint32 limit = 1;
+}
+
+message GetFlappiestNetworksResponse {
+    repeated FlappiestNetworkStats flappiest_networks = 1;
 }
 
 message StreamPrefixSnapshotsRequest {}
