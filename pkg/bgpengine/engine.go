@@ -27,7 +27,7 @@ import (
 	geojson "github.com/paulmach/go.geojson"
 	"github.com/sudorandom/bgp-stream/pkg/bgp"
 	"github.com/sudorandom/bgp-stream/pkg/geoservice"
-	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/livemap/v1"
+	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/v1"
 	"github.com/sudorandom/bgp-stream/pkg/utils"
 	"golang.org/x/text/language"
 	"golang.org/x/text/language/display"

@@ -10,7 +10,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/sudorandom/bgp-stream/pkg/bgp"
-	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/livemap/v1"
+	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/v1"
 	"github.com/sudorandom/bgp-stream/pkg/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -220,7 +220,11 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 		}
 	}
 
-	networkStats := resp.GetFlappiestNetworkStats()
+	networkStatsSlice := resp.GetFlappiestNetworkStats()
+	var networkStats *livemap.FlappiestNetworkStats
+	if len(networkStatsSlice) > 0 {
+		networkStats = networkStatsSlice[0]
+	}
 
 	dirty := false
 	if e.topStatsLargestOrg != resp.GetLargestOrgName() ||
@@ -255,6 +259,15 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 		e.topStatsFlappiestPrefix = networkStats.GetPrefix()
 		e.topStatsFlappyEventRate = networkStats.GetEventRate()
 		e.topStatsFlappiestFlapCount = networkStats.GetFlapCount()
+	} else {
+		if e.topStatsFlappiestASN != 0 {
+			dirty = true
+		}
+		e.topStatsFlappiestASN = 0
+		e.topStatsFlappiestOrg = ""
+		e.topStatsFlappiestPrefix = ""
+		e.topStatsFlappyEventRate = 0
+		e.topStatsFlappiestFlapCount = 0
 	}
 
 	if dirty {

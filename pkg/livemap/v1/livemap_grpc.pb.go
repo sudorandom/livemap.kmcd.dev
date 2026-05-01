@@ -24,6 +24,8 @@ const (
 	LiveMapService_StreamStateTransitions_FullMethodName = "/livemap.v1.LiveMapService/StreamStateTransitions"
 	LiveMapService_StreamAlerts_FullMethodName           = "/livemap.v1.LiveMapService/StreamAlerts"
 	LiveMapService_StreamPrefixSnapshots_FullMethodName  = "/livemap.v1.LiveMapService/StreamPrefixSnapshots"
+	LiveMapService_GetRecentAlerts_FullMethodName        = "/livemap.v1.LiveMapService/GetRecentAlerts"
+	LiveMapService_GetFlappiestNetworks_FullMethodName   = "/livemap.v1.LiveMapService/GetFlappiestNetworks"
 )
 
 // LiveMapServiceClient is the client API for LiveMapService service.
@@ -37,6 +39,8 @@ type LiveMapServiceClient interface {
 	StreamStateTransitions(ctx context.Context, in *StreamStateTransitionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamStateTransitionsResponse], error)
 	StreamAlerts(ctx context.Context, in *StreamAlertsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamAlertsResponse], error)
 	StreamPrefixSnapshots(ctx context.Context, in *StreamPrefixSnapshotsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamPrefixSnapshotsResponse], error)
+	GetRecentAlerts(ctx context.Context, in *GetRecentAlertsRequest, opts ...grpc.CallOption) (*GetRecentAlertsResponse, error)
+	GetFlappiestNetworks(ctx context.Context, in *GetFlappiestNetworksRequest, opts ...grpc.CallOption) (*GetFlappiestNetworksResponse, error)
 }
 
 type liveMapServiceClient struct {
@@ -133,6 +137,26 @@ func (c *liveMapServiceClient) StreamPrefixSnapshots(ctx context.Context, in *St
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LiveMapService_StreamPrefixSnapshotsClient = grpc.ServerStreamingClient[StreamPrefixSnapshotsResponse]
 
+func (c *liveMapServiceClient) GetRecentAlerts(ctx context.Context, in *GetRecentAlertsRequest, opts ...grpc.CallOption) (*GetRecentAlertsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRecentAlertsResponse)
+	err := c.cc.Invoke(ctx, LiveMapService_GetRecentAlerts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *liveMapServiceClient) GetFlappiestNetworks(ctx context.Context, in *GetFlappiestNetworksRequest, opts ...grpc.CallOption) (*GetFlappiestNetworksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFlappiestNetworksResponse)
+	err := c.cc.Invoke(ctx, LiveMapService_GetFlappiestNetworks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LiveMapServiceServer is the server API for LiveMapService service.
 // All implementations must embed UnimplementedLiveMapServiceServer
 // for forward compatibility.
@@ -144,6 +168,8 @@ type LiveMapServiceServer interface {
 	StreamStateTransitions(*StreamStateTransitionsRequest, grpc.ServerStreamingServer[StreamStateTransitionsResponse]) error
 	StreamAlerts(*StreamAlertsRequest, grpc.ServerStreamingServer[StreamAlertsResponse]) error
 	StreamPrefixSnapshots(*StreamPrefixSnapshotsRequest, grpc.ServerStreamingServer[StreamPrefixSnapshotsResponse]) error
+	GetRecentAlerts(context.Context, *GetRecentAlertsRequest) (*GetRecentAlertsResponse, error)
+	GetFlappiestNetworks(context.Context, *GetFlappiestNetworksRequest) (*GetFlappiestNetworksResponse, error)
 	mustEmbedUnimplementedLiveMapServiceServer()
 }
 
@@ -168,6 +194,12 @@ func (UnimplementedLiveMapServiceServer) StreamAlerts(*StreamAlertsRequest, grpc
 }
 func (UnimplementedLiveMapServiceServer) StreamPrefixSnapshots(*StreamPrefixSnapshotsRequest, grpc.ServerStreamingServer[StreamPrefixSnapshotsResponse]) error {
 	return status.Error(codes.Unimplemented, "method StreamPrefixSnapshots not implemented")
+}
+func (UnimplementedLiveMapServiceServer) GetRecentAlerts(context.Context, *GetRecentAlertsRequest) (*GetRecentAlertsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRecentAlerts not implemented")
+}
+func (UnimplementedLiveMapServiceServer) GetFlappiestNetworks(context.Context, *GetFlappiestNetworksRequest) (*GetFlappiestNetworksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFlappiestNetworks not implemented")
 }
 func (UnimplementedLiveMapServiceServer) mustEmbedUnimplementedLiveMapServiceServer() {}
 func (UnimplementedLiveMapServiceServer) testEmbeddedByValue()                        {}
@@ -252,6 +284,42 @@ func _LiveMapService_StreamPrefixSnapshots_Handler(srv interface{}, stream grpc.
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LiveMapService_StreamPrefixSnapshotsServer = grpc.ServerStreamingServer[StreamPrefixSnapshotsResponse]
 
+func _LiveMapService_GetRecentAlerts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRecentAlertsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LiveMapServiceServer).GetRecentAlerts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LiveMapService_GetRecentAlerts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LiveMapServiceServer).GetRecentAlerts(ctx, req.(*GetRecentAlertsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LiveMapService_GetFlappiestNetworks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFlappiestNetworksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LiveMapServiceServer).GetFlappiestNetworks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LiveMapService_GetFlappiestNetworks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LiveMapServiceServer).GetFlappiestNetworks(ctx, req.(*GetFlappiestNetworksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LiveMapService_ServiceDesc is the grpc.ServiceDesc for LiveMapService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -262,6 +330,14 @@ var LiveMapService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSummary",
 			Handler:    _LiveMapService_GetSummary_Handler,
+		},
+		{
+			MethodName: "GetRecentAlerts",
+			Handler:    _LiveMapService_GetRecentAlerts_Handler,
+		},
+		{
+			MethodName: "GetFlappiestNetworks",
+			Handler:    _LiveMapService_GetFlappiestNetworks_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
