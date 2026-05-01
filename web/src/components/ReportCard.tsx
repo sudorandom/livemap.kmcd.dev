@@ -132,7 +132,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
       </div>
       <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar mb-4">
         {filteredAlerts.length > 0 ? (
-          <ul className="space-y-2">
+          <ul aria-live="polite" className="space-y-2">
             {filteredAlerts.map((alert: any, i: number) => {
               const info = CLASSIFICATION_INFO[alert.classification] || { name: 'UNKNOWN', color: 'text-slate-500 bg-slate-500/10', icon: Info, hex: '#666' };
               const Icon = info.icon;
@@ -633,7 +633,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
             </div>
             <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar">
               {data.flappiestNetworks && data.flappiestNetworks.length > 0 ? (
-                <div className="space-y-4 mb-4">
+                <div aria-live="polite" className="space-y-4 mb-4">
                   {data.flappiestNetworks.slice(0, 5).map((network: any, idx: number) => {
                     const cleanName = network.networkName && network.networkName !== `AS${network.asn}` ? network.networkName : '';
 

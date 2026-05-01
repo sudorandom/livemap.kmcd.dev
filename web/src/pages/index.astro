@@ -398,7 +398,7 @@ try {
           <p class="text-slate-600 dark:text-slate-400 mb-8 max-w-3xl leading-relaxed">
             Before routes can be exchanged, routers must traverse the <strong>BGP Finite State Machine (FSM)</strong>. This sequence ensures that both peers are ready and authorized to communicate over <strong>TCP Port 179</strong>.
           </p>
-          <BGPStateMachine client:load />
+          <BGPStateMachine client:visible />
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-12 items-start">
             <div class="space-y-6">
@@ -447,7 +447,7 @@ try {
           </div>
 
           <div class="space-y-16">
-            <BGPMessageAnatomy client:load />
+            <BGPMessageAnatomy client:visible />
           </div>
         </div>
 
@@ -460,13 +460,13 @@ try {
           </div>          <p class="text-slate-600 dark:text-slate-400 mb-8 max-w-3xl leading-relaxed">
             To truly understand BGP, you must see it in motion. Use the simulation below to walk through the lifecycle of a route. Starting from its initial announcement and path selection across the global internet mesh, to handling failures and anycast failover.
           </p>
-          <BGPRoutingExplainer client:load />
+          <BGPRoutingExplainer client:visible />
         </div>
       </section>
 
       {/* Main Integrated Dashboard */}
-      <ReportCard client:only="react" initialData={initialData}>
-         <ISPSafetyTest client:only="react" />
+      <ReportCard client:visible initialData={initialData}>
+         <ISPSafetyTest client:visible />
       </ReportCard>
 
       {/* Advanced Topics Section */}
@@ -477,7 +477,7 @@ try {
           </div>
           <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">References</h2>
         </div>
-        <BGPAdvancedTopics client:load />
+        <BGPAdvancedTopics client:visible />
       </section>
 
       {/* FOOTER */}

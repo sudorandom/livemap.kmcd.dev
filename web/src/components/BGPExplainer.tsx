@@ -5,55 +5,48 @@ export const PanelContainer = ({ title, children, footer, description, className
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
-          <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider">{title}</h3>
-          {nextHighlighted && (
-            <div className="w-fit flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500">
-              <CheckCircle2 size={12} className="animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-tighter">Step Complete</span>
-            </div>
-          )}
-        </div>
+        <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider mb-1">{title}</h3>
         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{description}</p>
       </div>
+      {nextHighlighted && (
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-in fade-in zoom-in duration-500 ml-4">
+          <CheckCircle2 size={12} className="animate-pulse" />
+          <span className="text-xs font-bold uppercase tracking-tighter">Step Complete</span>
+        </div>
+      )}
+    </div>
+    <div 
+      aria-live="polite"
+      className={`flex-grow flex items-center justify-center bg-transparent rounded-lg p-0 relative overflow-hidden min-h-[350px] ${className}`}
+    >
+      {children}
+    </div>
+    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
       {(onPrev || onNext) && (
-        <div className="flex items-center gap-2 ml-4 pt-1">
+        <div className="flex items-center gap-2 order-2 sm:order-1">
            <button 
              onClick={onPrev} 
              disabled={isFirst}
-             className={`p-2.5 md:p-3 rounded-lg border transition-all shadow-sm dark:shadow-lg active:scale-95 ${isFirst ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700'}`}
+             className={`p-2.5 rounded-lg border transition-all shadow-sm active:scale-95 ${isFirst ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700'}`}
              aria-label="Previous Diagram"
            >
-             <ChevronLeft className="w-6 h-6" />
+             <ChevronLeft className="w-5 h-5" />
            </button>
            <button 
              onClick={onNext} 
              disabled={isLast}
-             className={`p-2.5 md:p-3 rounded-lg border transition-all shadow-sm dark:shadow-lg active:scale-95 ${isLast ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : (nextHighlighted ? 'bg-indigo-600 text-white border-indigo-400 animate-bounce-once shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700')}`}
+             className={`p-2.5 rounded-lg border transition-all shadow-sm active:scale-95 ${isLast ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : (nextHighlighted ? 'bg-indigo-600 text-white border-indigo-400 animate-bounce-once shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700')}`}
              aria-label="Next Diagram"
            >
-             <ChevronRight className="w-6 h-6" />
+             <ChevronRight className="w-5 h-5" />
            </button>
         </div>
       )}
-    </div>
-    <div className={`flex-grow flex items-center justify-center bg-transparent rounded-lg p-0 relative overflow-hidden min-h-[350px] ${className}`}>
-      {children}
-    </div>
-    {footer && (
-      <div className="mt-6 flex flex-row items-center justify-center gap-4 sm:gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
-        <div className="flex justify-center gap-4">
-          {footer}
-        </div>
-        {nextHighlighted && (
-          <div className="sm:absolute sm:right-0 animate-in fade-in zoom-in slide-in-from-right-2 duration-700">
-            <div className="bg-emerald-500/10 dark:bg-emerald-500/20 p-2 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-               <CheckCircle2 size={22} className="text-emerald-600 dark:text-emerald-400 animate-pulse" />
-            </div>
-          </div>
-        )}
+
+      <div className="flex flex-1 justify-center sm:justify-end gap-4 order-1 sm:order-2">
+        {footer}
       </div>
-    )}
+    </div>
   </div>
 );
 
@@ -593,22 +586,23 @@ export const BGPRoutingExplainer = () => {
             footer={
               <>
                 <ActionButton 
-                  onClick={() => setAnnouncing(true)}
-                  label="Announce"
-                  icon={Share2}
-                  disabled={announcing}
-                />
-                <ActionButton 
                   onClick={() => setAnnouncing(false)}
                   label="Reset"
                   icon={RotateCcw}
                   color="slate"
                   disabled={!announcing}
                 />
+                <ActionButton 
+                  onClick={() => setAnnouncing(true)}
+                  label="Announce"
+                  icon={Share2}
+                  disabled={announcing}
+                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="announcing-svg-title">
+              <title id="announcing-svg-title">BGP Route Announcement Diagram</title>
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
               <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={announcing ? 'announcing' : 'idle'} />
               <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={announcing ? 'announcing' : 'idle'} />
@@ -642,15 +636,6 @@ export const BGPRoutingExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
-                    setRoutingActive(true);
-                    spawnPulse(setRoutingPulses);
-                    setTimeout(() => markTabComplete(1), 3000);
-                  }}
-                  label="Trace Route"
-                  icon={Zap}
-                />
-                <ActionButton 
-                  onClick={() => {
                     setRoutingActive(false);
                     setRoutingPulses([]);
                   }}
@@ -659,10 +644,20 @@ export const BGPRoutingExplainer = () => {
                   color="slate"
                   disabled={!routingActive && routingPulses.length === 0}
                 />
+                <ActionButton 
+                  onClick={() => {
+                    setRoutingActive(true);
+                    spawnPulse(setRoutingPulses);
+                    setTimeout(() => markTabComplete(1), 3000);
+                  }}
+                  label="Trace Route"
+                  icon={Zap}
+                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="routing-svg-title">
+              <title id="routing-svg-title">BGP Route Selection Diagram</title>
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
               <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={routingActive ? 'primary' : 'announcing'} />
               <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={routingActive ? 'primary' : 'announcing'} />
@@ -694,16 +689,6 @@ export const BGPRoutingExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
-                    setWithdrawn(true);
-                    setWithdrawalPulses([]);
-                    setTimeout(() => markTabComplete(2), 1500);
-                  }}
-                  label="Take Offline"
-                  icon={Ban}
-                  disabled={withdrawn}
-                />
-                <ActionButton 
-                  onClick={() => {
                     setWithdrawn(false);
                     setWithdrawalPulses([]);
                   }}
@@ -712,10 +697,21 @@ export const BGPRoutingExplainer = () => {
                   color="slate"
                   disabled={!withdrawn}
                 />
+                <ActionButton 
+                  onClick={() => {
+                    setWithdrawn(true);
+                    setWithdrawalPulses([]);
+                    setTimeout(() => markTabComplete(2), 1500);
+                  }}
+                  label="Take Offline"
+                  icon={Ban}
+                  disabled={withdrawn}
+                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="withdrawal-svg-title">
+              <title id="withdrawal-svg-title">BGP Route Withdrawal Diagram</title>
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
               {!withdrawn && (
                 <>
@@ -752,6 +748,16 @@ export const BGPRoutingExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
+                    setAsymmetricActive(false);
+                    setAsymmetricPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!asymmetricActive && asymmetricPulses.length === 0}
+                />
+                <ActionButton 
+                  onClick={() => {
                     setAsymmetricActive(true);
                     const pulsesCount = asymmetricPulses.length;
                     spawnPulse(setAsymmetricPulses, 3000, {
@@ -761,20 +767,11 @@ export const BGPRoutingExplainer = () => {
                   label="Trace Route"
                   icon={Zap}
                 />
-                <ActionButton 
-                  onClick={() => {
-                    setAsymmetricActive(false);
-                    setAsymmetricPulses([]);
-                  }}
-                  label="Reset"
-                  icon={RotateCcw}
-                  color="slate"
-                  disabled={!asymmetricActive && asymmetricPulses.length === 0}
-                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="asymmetry-svg-title">
+              <title id="asymmetry-svg-title">Asymmetric Routing Diagram</title>
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
               <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={asymmetricActive ? 'primary' : 'announcing'} />
               <Path from={COORDS.MID_L} to={COORDS.ENTRY} state={asymmetricActive ? 'primary' : 'announcing'} />
@@ -807,6 +804,16 @@ export const BGPRoutingExplainer = () => {
             nextHighlighted={completedTabs.includes(4)}
             footer={
               <>
+                <ActionButton 
+                  onClick={() => {
+                    setMultipathActive(false);
+                    setMultipathPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!multipathActive && multipathPulses.length === 0}
+                />
                 <ActionButton 
                   onClick={() => {
                     setMultipathActive(true);
@@ -844,20 +851,11 @@ export const BGPRoutingExplainer = () => {
                   label="Trace Route"
                   icon={Zap}
                 />
-                <ActionButton 
-                  onClick={() => {
-                    setMultipathActive(false);
-                    setMultipathPulses([]);
-                  }}
-                  label="Reset"
-                  icon={RotateCcw}
-                  color="slate"
-                  disabled={!multipathActive && multipathPulses.length === 0}
-                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="multipath-svg-title">
+              <title id="multipath-svg-title">BGP Multipath Diagram</title>
               <Path from={COORDS.USER} to={COORDS.ENTRY} state="primary" />
               <Path from={COORDS.ORIGIN} to={COORDS.MID_L} state={multipathActive ? 'primary' : 'announcing'} />
               <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={multipathActive ? 'primary' : 'announcing'} />
@@ -892,6 +890,17 @@ export const BGPRoutingExplainer = () => {
             nextHighlighted={completedTabs.includes(5)}
             footer={
               <div className="flex flex-wrap justify-center gap-3">
+                <ActionButton 
+                  onClick={() => {
+                    setAnycastNode1Offline(false);
+                    setAnycastNode2Offline(false);
+                    setAnycastPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!anycastNode1Offline && !anycastNode2Offline && anycastPulses.length === 0}
+                />
                 <ActionButton 
                   onClick={() => {
                     const node1Offline = anycastNode1Offline;
@@ -934,21 +943,11 @@ export const BGPRoutingExplainer = () => {
                   label="Trace Route"
                   icon={Zap}
                 />
-                <ActionButton 
-                  onClick={() => {
-                    setAnycastNode1Offline(false);
-                    setAnycastNode2Offline(false);
-                    setAnycastPulses([]);
-                  }}
-                  label="Reset"
-                  icon={RotateCcw}
-                  color="slate"
-                  disabled={!anycastNode1Offline && !anycastNode2Offline && anycastPulses.length === 0}
-                />
               </div>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="anycast-svg-title">
+              <title id="anycast-svg-title">BGP Anycast Diagram</title>
               <path 
                 d={`M100,150 L300,150`} 
                 stroke="currentColor" 
@@ -1160,7 +1159,7 @@ export const BGPMessageAnatomy = () => {
         ))}
       </div>
       
-      <div className="p-6 md:p-8 animate-in fade-in duration-500">
+      <div aria-live="polite" className="p-6 md:p-8 animate-in fade-in duration-500">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">
@@ -1175,6 +1174,7 @@ export const BGPMessageAnatomy = () => {
             </div>
             <div className="bg-slate-900 rounded-b-lg border border-slate-800 shadow-2xl overflow-hidden">
               <table className="w-full text-left border-collapse">
+                <caption className="sr-only">{activeMsg.title} Message Details</caption>
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-800/50">
                     <th className="p-3 text-[10px] font-cyber font-bold text-slate-400 uppercase tracking-wider w-1/3">Attribute</th>
@@ -1556,16 +1556,6 @@ export const BGPSecurityExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
-                    setHijacked(true);
-                    setTimeout(() => markTabComplete(0), 3000);
-                  }}
-                  label="Trigger Hijack"
-                  icon={ShieldAlert}
-                  color="red"
-                  disabled={hijacked}
-                />
-                <ActionButton 
-                  onClick={() => {
                     setHijacked(false);
                     setHijackPulses([]);
                   }}
@@ -1574,10 +1564,21 @@ export const BGPSecurityExplainer = () => {
                   color="slate"
                   disabled={!hijacked}
                 />
+                <ActionButton 
+                  onClick={() => {
+                    setHijacked(true);
+                    setTimeout(() => markTabComplete(0), 3000);
+                  }}
+                  label="Trigger Hijack"
+                  icon={ShieldAlert}
+                  color="red"
+                  disabled={hijacked}
+                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="hijack-svg-title">
+              <title id="hijack-svg-title">BGP Route Hijack Diagram</title>
               <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state={hijacked ? 'secondary' : 'primary'} />
               <Path from={COORDS.MID_R} to={COORDS.ENTRY} state={hijacked ? 'secondary' : 'primary'} />
               
@@ -1618,16 +1619,6 @@ export const BGPSecurityExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
-                    setFiltered(true);
-                    setTimeout(() => markTabComplete(1), 3000);
-                  }}
-                  label="Enable RPKI ROV"
-                  icon={ShieldCheck}
-                  color="indigo"
-                  disabled={filtered}
-                />
-                <ActionButton 
-                  onClick={() => {
                     setFiltered(false);
                     setFilteredPulses([]);
                   }}
@@ -1636,10 +1627,21 @@ export const BGPSecurityExplainer = () => {
                   color="slate"
                   disabled={!filtered}
                 />
+                <ActionButton 
+                  onClick={() => {
+                    setFiltered(true);
+                    setTimeout(() => markTabComplete(1), 3000);
+                  }}
+                  label="Enable RPKI ROV"
+                  icon={ShieldCheck}
+                  color="indigo"
+                  disabled={filtered}
+                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="rpki-svg-title">
+              <title id="rpki-svg-title">RPKI Filtering Diagram</title>
               <Path from={COORDS.ORIGIN} to={COORDS.MID_R} state="primary" />
               <Path from={COORDS.MID_R} to={COORDS.ENTRY} state="primary" />
               
@@ -1685,16 +1687,6 @@ export const BGPSecurityExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
-                    setLeaked(true);
-                    setTimeout(() => markTabComplete(2), 3000);
-                  }}
-                  label="Trigger Leak"
-                  icon={Activity}
-                  color="red"
-                  disabled={leaked}
-                />
-                <ActionButton 
-                  onClick={() => {
                     setLeaked(false);
                     setLeakPulses([]);
                   }}
@@ -1703,10 +1695,21 @@ export const BGPSecurityExplainer = () => {
                   color="slate"
                   disabled={!leaked}
                 />
+                <ActionButton 
+                  onClick={() => {
+                    setLeaked(true);
+                    setTimeout(() => markTabComplete(2), 3000);
+                  }}
+                  label="Trigger Leak"
+                  icon={Activity}
+                  color="red"
+                  disabled={leaked}
+                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="leak-svg-title">
+              <title id="leak-svg-title">BGP Route Leak Diagram</title>
               {/* Main Provider-to-Provider intended path */}
               <Path from={{x: 300, y: 80}} to={{x: 100, y: 80}} state={leaked ? "secondary" : "primary"} />
               
@@ -1751,6 +1754,16 @@ export const BGPSecurityExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
+                    setRtbhActive(false);
+                    setRtbhPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!rtbhActive}
+                />
+                <ActionButton 
+                  onClick={() => {
                     setRtbhActive(true);
                     // Tag ALL existing pulses to stop at the provider
                     setRtbhPulses(prev => prev.map(p => ({ ...p, clipped: true })));
@@ -1761,20 +1774,11 @@ export const BGPSecurityExplainer = () => {
                   color="red"
                   disabled={rtbhActive}
                 />
-                <ActionButton 
-                  onClick={() => {
-                    setRtbhActive(false);
-                    setRtbhPulses([]);
-                  }}
-                  label="Reset"
-                  icon={RotateCcw}
-                  color="slate"
-                  disabled={!rtbhActive}
-                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="rtbh-svg-title">
+              <title id="rtbh-svg-title">BGP RTBH Mitigation Diagram</title>
               <defs>
                 <clipPath id="rtbh-clip">
                   <rect x="0" y="0" width="400" height="212" />
@@ -1846,6 +1850,16 @@ export const BGPSecurityExplainer = () => {
               <>
                 <ActionButton 
                   onClick={() => {
+                    setFlowspecActive(false);
+                    setFlowspecPulses([]);
+                  }}
+                  label="Reset"
+                  icon={RotateCcw}
+                  color="slate"
+                  disabled={!flowspecActive}
+                />
+                <ActionButton 
+                  onClick={() => {
                     setFlowspecActive(true);
                     // Tag ALL existing RED pulses to stop at the provider
                     setFlowspecPulses(prev => prev.map(p => {
@@ -1861,20 +1875,11 @@ export const BGPSecurityExplainer = () => {
                   color="indigo"
                   disabled={flowspecActive}
                 />
-                <ActionButton 
-                  onClick={() => {
-                    setFlowspecActive(false);
-                    setFlowspecPulses([]);
-                  }}
-                  label="Reset"
-                  icon={RotateCcw}
-                  color="slate"
-                  disabled={!flowspecActive}
-                />
               </>
             }
           >
-            <svg viewBox="0 0 400 350" className="w-full h-full">
+            <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="flowspec-svg-title">
+              <title id="flowspec-svg-title">BGP FlowSpec Mitigation Diagram</title>
               <defs>
                 <clipPath id="flowspec-clip">
                   <rect x="0" y="0" width="400" height="212" />
