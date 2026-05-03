@@ -1715,162 +1715,6 @@ func (x *GetFlappiestNetworksResponse) GetFlappiestNetworks() []*FlappiestNetwor
 	return nil
 }
 
-type StreamPrefixSnapshotsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StreamPrefixSnapshotsRequest) Reset() {
-	*x = StreamPrefixSnapshotsRequest{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StreamPrefixSnapshotsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StreamPrefixSnapshotsRequest) ProtoMessage() {}
-
-func (x *StreamPrefixSnapshotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StreamPrefixSnapshotsRequest.ProtoReflect.Descriptor instead.
-func (*StreamPrefixSnapshotsRequest) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{21}
-}
-
-type StreamPrefixSnapshotsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Snapshots     []*PrefixSnapshot      `protobuf:"bytes,1,rep,name=snapshots,proto3" json:"snapshots,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StreamPrefixSnapshotsResponse) Reset() {
-	*x = StreamPrefixSnapshotsResponse{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StreamPrefixSnapshotsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StreamPrefixSnapshotsResponse) ProtoMessage() {}
-
-func (x *StreamPrefixSnapshotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StreamPrefixSnapshotsResponse.ProtoReflect.Descriptor instead.
-func (*StreamPrefixSnapshotsResponse) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *StreamPrefixSnapshotsResponse) GetSnapshots() []*PrefixSnapshot {
-	if x != nil {
-		return x.Snapshots
-	}
-	return nil
-}
-
-type PrefixSnapshot struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Prefix         string                 `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
-	Classification Classification         `protobuf:"varint,2,opt,name=classification,proto3,enum=livemap.v1.Classification" json:"classification,omitempty"`
-	Asn            uint32                 `protobuf:"varint,3,opt,name=asn,proto3" json:"asn,omitempty"`
-	LastUpdateTs   int64                  `protobuf:"varint,4,opt,name=last_update_ts,json=lastUpdateTs,proto3" json:"last_update_ts,omitempty"`
-	TotalEvents    uint32                 `protobuf:"varint,5,opt,name=total_events,json=totalEvents,proto3" json:"total_events,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *PrefixSnapshot) Reset() {
-	*x = PrefixSnapshot{}
-	mi := &file_livemap_v1_livemap_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PrefixSnapshot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PrefixSnapshot) ProtoMessage() {}
-
-func (x *PrefixSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_livemap_v1_livemap_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PrefixSnapshot.ProtoReflect.Descriptor instead.
-func (*PrefixSnapshot) Descriptor() ([]byte, []int) {
-	return file_livemap_v1_livemap_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *PrefixSnapshot) GetPrefix() string {
-	if x != nil {
-		return x.Prefix
-	}
-	return ""
-}
-
-func (x *PrefixSnapshot) GetClassification() Classification {
-	if x != nil {
-		return x.Classification
-	}
-	return Classification_CLASSIFICATION_UNSPECIFIED
-}
-
-func (x *PrefixSnapshot) GetAsn() uint32 {
-	if x != nil {
-		return x.Asn
-	}
-	return 0
-}
-
-func (x *PrefixSnapshot) GetLastUpdateTs() int64 {
-	if x != nil {
-		return x.LastUpdateTs
-	}
-	return 0
-}
-
-func (x *PrefixSnapshot) GetTotalEvents() uint32 {
-	if x != nil {
-		return x.TotalEvents
-	}
-	return 0
-}
-
 var File_livemap_v1_livemap_proto protoreflect.FileDescriptor
 
 const file_livemap_v1_livemap_proto_rawDesc = "" +
@@ -2011,16 +1855,7 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x1bGetFlappiestNetworksRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\rR\x05limit\"p\n" +
 	"\x1cGetFlappiestNetworksResponse\x12P\n" +
-	"\x12flappiest_networks\x18\x01 \x03(\v2!.livemap.v1.FlappiestNetworkStatsR\x11flappiestNetworks\"\x1e\n" +
-	"\x1cStreamPrefixSnapshotsRequest\"Y\n" +
-	"\x1dStreamPrefixSnapshotsResponse\x128\n" +
-	"\tsnapshots\x18\x01 \x03(\v2\x1a.livemap.v1.PrefixSnapshotR\tsnapshots\"\xc7\x01\n" +
-	"\x0ePrefixSnapshot\x12\x16\n" +
-	"\x06prefix\x18\x01 \x01(\tR\x06prefix\x12B\n" +
-	"\x0eclassification\x18\x02 \x01(\x0e2\x1a.livemap.v1.ClassificationR\x0eclassification\x12\x10\n" +
-	"\x03asn\x18\x03 \x01(\rR\x03asn\x12$\n" +
-	"\x0elast_update_ts\x18\x04 \x01(\x03R\flastUpdateTs\x12!\n" +
-	"\ftotal_events\x18\x05 \x01(\rR\vtotalEvents*\xc0\x02\n" +
+	"\x12flappiest_networks\x18\x01 \x03(\v2!.livemap.v1.FlappiestNetworkStatsR\x11flappiestNetworks*\xc0\x02\n" +
 	"\x0eClassification\x12\x1e\n" +
 	"\x1aCLASSIFICATION_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14CLASSIFICATION_BOGON\x10\x01\x12\x19\n" +
@@ -2044,14 +1879,13 @@ const file_livemap_v1_livemap_proto_rawDesc = "" +
 	"\x16ALERT_TYPE_BY_LOCATION\x10\x01\x12\x15\n" +
 	"\x11ALERT_TYPE_BY_ASN\x10\x02\x12\x19\n" +
 	"\x15ALERT_TYPE_BY_COUNTRY\x10\x03\x12\x1e\n" +
-	"\x1aALERT_TYPE_BY_ORGANIZATION\x10\x042\xba\x05\n" +
+	"\x1aALERT_TYPE_BY_ORGANIZATION\x10\x042\xca\x04\n" +
 	"\x0eLiveMapService\x12\\\n" +
 	"\x0fSubscribeEvents\x12\".livemap.v1.SubscribeEventsRequest\x1a#.livemap.v1.SubscribeEventsResponse0\x01\x12K\n" +
 	"\n" +
 	"GetSummary\x12\x1d.livemap.v1.GetSummaryRequest\x1a\x1e.livemap.v1.GetSummaryResponse\x12q\n" +
 	"\x16StreamStateTransitions\x12).livemap.v1.StreamStateTransitionsRequest\x1a*.livemap.v1.StreamStateTransitionsResponse0\x01\x12S\n" +
-	"\fStreamAlerts\x12\x1f.livemap.v1.StreamAlertsRequest\x1a .livemap.v1.StreamAlertsResponse0\x01\x12n\n" +
-	"\x15StreamPrefixSnapshots\x12(.livemap.v1.StreamPrefixSnapshotsRequest\x1a).livemap.v1.StreamPrefixSnapshotsResponse0\x01\x12Z\n" +
+	"\fStreamAlerts\x12\x1f.livemap.v1.StreamAlertsRequest\x1a .livemap.v1.StreamAlertsResponse0\x01\x12Z\n" +
 	"\x0fGetRecentAlerts\x12\".livemap.v1.GetRecentAlertsRequest\x1a#.livemap.v1.GetRecentAlertsResponse\x12i\n" +
 	"\x14GetFlappiestNetworks\x12'.livemap.v1.GetFlappiestNetworksRequest\x1a(.livemap.v1.GetFlappiestNetworksResponseB\x98\x01\n" +
 	"\x0ecom.livemap.v1B\fLivemapProtoP\x01Z/github.com/sudorandom/bgp-stream/pkg/livemap/v1\xa2\x02\x03LXX\xaa\x02\n" +
@@ -2071,7 +1905,7 @@ func file_livemap_v1_livemap_proto_rawDescGZIP() []byte {
 }
 
 var file_livemap_v1_livemap_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_livemap_v1_livemap_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_livemap_v1_livemap_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_livemap_v1_livemap_proto_goTypes = []any{
 	(Classification)(0),                    // 0: livemap.v1.Classification
 	(RPKIStatus)(0),                        // 1: livemap.v1.RPKIStatus
@@ -2097,9 +1931,6 @@ var file_livemap_v1_livemap_proto_goTypes = []any{
 	(*StreamStateTransitionsResponse)(nil), // 21: livemap.v1.StreamStateTransitionsResponse
 	(*GetFlappiestNetworksRequest)(nil),    // 22: livemap.v1.GetFlappiestNetworksRequest
 	(*GetFlappiestNetworksResponse)(nil),   // 23: livemap.v1.GetFlappiestNetworksResponse
-	(*StreamPrefixSnapshotsRequest)(nil),   // 24: livemap.v1.StreamPrefixSnapshotsRequest
-	(*StreamPrefixSnapshotsResponse)(nil),  // 25: livemap.v1.StreamPrefixSnapshotsResponse
-	(*PrefixSnapshot)(nil),                 // 26: livemap.v1.PrefixSnapshot
 }
 var file_livemap_v1_livemap_proto_depIdxs = []int32{
 	3,  // 0: livemap.v1.AggregatedEvent.geo:type_name -> livemap.v1.GeoData
@@ -2126,27 +1957,23 @@ var file_livemap_v1_livemap_proto_depIdxs = []int32{
 	0,  // 21: livemap.v1.StreamStateTransitionsRequest.target_states:type_name -> livemap.v1.Classification
 	13, // 22: livemap.v1.StreamStateTransitionsResponse.transition:type_name -> livemap.v1.StateTransition
 	11, // 23: livemap.v1.GetFlappiestNetworksResponse.flappiest_networks:type_name -> livemap.v1.FlappiestNetworkStats
-	26, // 24: livemap.v1.StreamPrefixSnapshotsResponse.snapshots:type_name -> livemap.v1.PrefixSnapshot
-	0,  // 25: livemap.v1.PrefixSnapshot.classification:type_name -> livemap.v1.Classification
-	6,  // 26: livemap.v1.LiveMapService.SubscribeEvents:input_type -> livemap.v1.SubscribeEventsRequest
-	7,  // 27: livemap.v1.LiveMapService.GetSummary:input_type -> livemap.v1.GetSummaryRequest
-	20, // 28: livemap.v1.LiveMapService.StreamStateTransitions:input_type -> livemap.v1.StreamStateTransitionsRequest
-	16, // 29: livemap.v1.LiveMapService.StreamAlerts:input_type -> livemap.v1.StreamAlertsRequest
-	24, // 30: livemap.v1.LiveMapService.StreamPrefixSnapshots:input_type -> livemap.v1.StreamPrefixSnapshotsRequest
-	18, // 31: livemap.v1.LiveMapService.GetRecentAlerts:input_type -> livemap.v1.GetRecentAlertsRequest
-	22, // 32: livemap.v1.LiveMapService.GetFlappiestNetworks:input_type -> livemap.v1.GetFlappiestNetworksRequest
-	5,  // 33: livemap.v1.LiveMapService.SubscribeEvents:output_type -> livemap.v1.SubscribeEventsResponse
-	10, // 34: livemap.v1.LiveMapService.GetSummary:output_type -> livemap.v1.GetSummaryResponse
-	21, // 35: livemap.v1.LiveMapService.StreamStateTransitions:output_type -> livemap.v1.StreamStateTransitionsResponse
-	17, // 36: livemap.v1.LiveMapService.StreamAlerts:output_type -> livemap.v1.StreamAlertsResponse
-	25, // 37: livemap.v1.LiveMapService.StreamPrefixSnapshots:output_type -> livemap.v1.StreamPrefixSnapshotsResponse
-	19, // 38: livemap.v1.LiveMapService.GetRecentAlerts:output_type -> livemap.v1.GetRecentAlertsResponse
-	23, // 39: livemap.v1.LiveMapService.GetFlappiestNetworks:output_type -> livemap.v1.GetFlappiestNetworksResponse
-	33, // [33:40] is the sub-list for method output_type
-	26, // [26:33] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	6,  // 24: livemap.v1.LiveMapService.SubscribeEvents:input_type -> livemap.v1.SubscribeEventsRequest
+	7,  // 25: livemap.v1.LiveMapService.GetSummary:input_type -> livemap.v1.GetSummaryRequest
+	20, // 26: livemap.v1.LiveMapService.StreamStateTransitions:input_type -> livemap.v1.StreamStateTransitionsRequest
+	16, // 27: livemap.v1.LiveMapService.StreamAlerts:input_type -> livemap.v1.StreamAlertsRequest
+	18, // 28: livemap.v1.LiveMapService.GetRecentAlerts:input_type -> livemap.v1.GetRecentAlertsRequest
+	22, // 29: livemap.v1.LiveMapService.GetFlappiestNetworks:input_type -> livemap.v1.GetFlappiestNetworksRequest
+	5,  // 30: livemap.v1.LiveMapService.SubscribeEvents:output_type -> livemap.v1.SubscribeEventsResponse
+	10, // 31: livemap.v1.LiveMapService.GetSummary:output_type -> livemap.v1.GetSummaryResponse
+	21, // 32: livemap.v1.LiveMapService.StreamStateTransitions:output_type -> livemap.v1.StreamStateTransitionsResponse
+	17, // 33: livemap.v1.LiveMapService.StreamAlerts:output_type -> livemap.v1.StreamAlertsResponse
+	19, // 34: livemap.v1.LiveMapService.GetRecentAlerts:output_type -> livemap.v1.GetRecentAlertsResponse
+	23, // 35: livemap.v1.LiveMapService.GetFlappiestNetworks:output_type -> livemap.v1.GetFlappiestNetworksResponse
+	30, // [30:36] is the sub-list for method output_type
+	24, // [24:30] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_livemap_v1_livemap_proto_init() }
@@ -2160,7 +1987,7 @@ func file_livemap_v1_livemap_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_livemap_v1_livemap_proto_rawDesc), len(file_livemap_v1_livemap_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   24,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

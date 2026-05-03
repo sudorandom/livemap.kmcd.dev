@@ -23,7 +23,6 @@ const (
 	LiveMapService_GetSummary_FullMethodName             = "/livemap.v1.LiveMapService/GetSummary"
 	LiveMapService_StreamStateTransitions_FullMethodName = "/livemap.v1.LiveMapService/StreamStateTransitions"
 	LiveMapService_StreamAlerts_FullMethodName           = "/livemap.v1.LiveMapService/StreamAlerts"
-	LiveMapService_StreamPrefixSnapshots_FullMethodName  = "/livemap.v1.LiveMapService/StreamPrefixSnapshots"
 	LiveMapService_GetRecentAlerts_FullMethodName        = "/livemap.v1.LiveMapService/GetRecentAlerts"
 	LiveMapService_GetFlappiestNetworks_FullMethodName   = "/livemap.v1.LiveMapService/GetFlappiestNetworks"
 )
@@ -38,7 +37,6 @@ type LiveMapServiceClient interface {
 	GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error)
 	StreamStateTransitions(ctx context.Context, in *StreamStateTransitionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamStateTransitionsResponse], error)
 	StreamAlerts(ctx context.Context, in *StreamAlertsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamAlertsResponse], error)
-	StreamPrefixSnapshots(ctx context.Context, in *StreamPrefixSnapshotsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamPrefixSnapshotsResponse], error)
 	GetRecentAlerts(ctx context.Context, in *GetRecentAlertsRequest, opts ...grpc.CallOption) (*GetRecentAlertsResponse, error)
 	GetFlappiestNetworks(ctx context.Context, in *GetFlappiestNetworksRequest, opts ...grpc.CallOption) (*GetFlappiestNetworksResponse, error)
 }
@@ -118,25 +116,6 @@ func (c *liveMapServiceClient) StreamAlerts(ctx context.Context, in *StreamAlert
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LiveMapService_StreamAlertsClient = grpc.ServerStreamingClient[StreamAlertsResponse]
 
-func (c *liveMapServiceClient) StreamPrefixSnapshots(ctx context.Context, in *StreamPrefixSnapshotsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamPrefixSnapshotsResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &LiveMapService_ServiceDesc.Streams[3], LiveMapService_StreamPrefixSnapshots_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[StreamPrefixSnapshotsRequest, StreamPrefixSnapshotsResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LiveMapService_StreamPrefixSnapshotsClient = grpc.ServerStreamingClient[StreamPrefixSnapshotsResponse]
-
 func (c *liveMapServiceClient) GetRecentAlerts(ctx context.Context, in *GetRecentAlertsRequest, opts ...grpc.CallOption) (*GetRecentAlertsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRecentAlertsResponse)
@@ -167,7 +146,6 @@ type LiveMapServiceServer interface {
 	GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error)
 	StreamStateTransitions(*StreamStateTransitionsRequest, grpc.ServerStreamingServer[StreamStateTransitionsResponse]) error
 	StreamAlerts(*StreamAlertsRequest, grpc.ServerStreamingServer[StreamAlertsResponse]) error
-	StreamPrefixSnapshots(*StreamPrefixSnapshotsRequest, grpc.ServerStreamingServer[StreamPrefixSnapshotsResponse]) error
 	GetRecentAlerts(context.Context, *GetRecentAlertsRequest) (*GetRecentAlertsResponse, error)
 	GetFlappiestNetworks(context.Context, *GetFlappiestNetworksRequest) (*GetFlappiestNetworksResponse, error)
 	mustEmbedUnimplementedLiveMapServiceServer()
@@ -191,9 +169,6 @@ func (UnimplementedLiveMapServiceServer) StreamStateTransitions(*StreamStateTran
 }
 func (UnimplementedLiveMapServiceServer) StreamAlerts(*StreamAlertsRequest, grpc.ServerStreamingServer[StreamAlertsResponse]) error {
 	return status.Error(codes.Unimplemented, "method StreamAlerts not implemented")
-}
-func (UnimplementedLiveMapServiceServer) StreamPrefixSnapshots(*StreamPrefixSnapshotsRequest, grpc.ServerStreamingServer[StreamPrefixSnapshotsResponse]) error {
-	return status.Error(codes.Unimplemented, "method StreamPrefixSnapshots not implemented")
 }
 func (UnimplementedLiveMapServiceServer) GetRecentAlerts(context.Context, *GetRecentAlertsRequest) (*GetRecentAlertsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRecentAlerts not implemented")
@@ -273,17 +248,6 @@ func _LiveMapService_StreamAlerts_Handler(srv interface{}, stream grpc.ServerStr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LiveMapService_StreamAlertsServer = grpc.ServerStreamingServer[StreamAlertsResponse]
 
-func _LiveMapService_StreamPrefixSnapshots_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamPrefixSnapshotsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(LiveMapServiceServer).StreamPrefixSnapshots(m, &grpc.GenericServerStream[StreamPrefixSnapshotsRequest, StreamPrefixSnapshotsResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LiveMapService_StreamPrefixSnapshotsServer = grpc.ServerStreamingServer[StreamPrefixSnapshotsResponse]
-
 func _LiveMapService_GetRecentAlerts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRecentAlertsRequest)
 	if err := dec(in); err != nil {
@@ -354,11 +318,6 @@ var LiveMapService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StreamAlerts",
 			Handler:       _LiveMapService_StreamAlerts_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "StreamPrefixSnapshots",
-			Handler:       _LiveMapService_StreamPrefixSnapshots_Handler,
 			ServerStreams: true,
 		},
 	},

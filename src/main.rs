@@ -47,8 +47,8 @@ use livemap_proto::{
     AggregatedEvent, Alert, AlertType, Classification as ProtoClassification, ClassificationCount,
     GeoData as ProtoGeoData, GetRecentAlertsRequest, GetRecentAlertsResponse, GetSummaryRequest,
     GetSummaryResponse, StateTransition, StreamAlertsRequest, StreamAlertsResponse,
-    StreamPrefixSnapshotsRequest, StreamPrefixSnapshotsResponse, StreamStateTransitionsRequest,
-    StreamStateTransitionsResponse, SubscribeEventsRequest, SubscribeEventsResponse,
+    StreamStateTransitionsRequest, StreamStateTransitionsResponse, SubscribeEventsRequest,
+    SubscribeEventsResponse,
 };
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
@@ -154,50 +154,6 @@ impl LiveMap for LiveMapService {
         ReceiverStream<Result<StreamStateTransitionsResponse, Status>>;
 
     type StreamAlertsStream = ReceiverStream<Result<StreamAlertsResponse, Status>>;
-    type StreamPrefixSnapshotsStream =
-        ReceiverStream<Result<StreamPrefixSnapshotsResponse, Status>>;
-    async fn stream_prefix_snapshots(
-        &self,
-        _req: Request<StreamPrefixSnapshotsRequest>,
-    ) -> Result<Response<Self::StreamPrefixSnapshotsStream>, Status> {
-        let (tx, rx) = mpsc::channel(16);
-        let classifier = self.classifier.clone();
-        tokio::spawn(async move {
-            const BATCH_SIZE: usize = 500;
-            for shard in &classifier.shards {
-                let snapshots: Vec<livemap_proto::PrefixSnapshot> = {
-                    let guard = shard.lock();
-                    guard
-                        .iter()
-                        .filter(|(_, state)| state.classified_type != ClassificationType::None)
-                        .map(|(prefix, state)| {
-                            let total_events: u32 =
-                                state.buckets.values().map(|b| b.total_messages).sum();
-                            livemap_proto::PrefixSnapshot {
-                                prefix: prefix.clone(),
-                                classification: map_classification(state.classified_type).into(),
-                                asn: state.last_origin_asn,
-                                last_update_ts: state.last_update_ts,
-                                total_events,
-                            }
-                        })
-                        .collect()
-                };
-                for chunk in snapshots.chunks(BATCH_SIZE) {
-                    if tx
-                        .send(Ok(StreamPrefixSnapshotsResponse {
-                            snapshots: chunk.to_vec(),
-                        }))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
-                }
-            }
-        });
-        Ok(Response::new(ReceiverStream::new(rx)))
-    }
 
     async fn stream_alerts(
         &self,
@@ -772,21 +728,21 @@ struct Args {
 fn entry_to_transition(e: &WindowEntry, class: ClassificationType) -> StateTransition {
     StateTransition {
         incident_id: String::new(), // incident_id is not stored in WindowEntry
-        prefix: e.prefix.clone(),
+        prefix: (*e.prefix).clone(),
         asn: e.asn,
-        as_name: e.as_name.clone(),
+        as_name: (*e.as_name).clone(),
         geo: Some(ProtoGeoData {
             lat: e.lat,
             lon: e.lon,
         }),
-        city: e.city.clone().unwrap_or_default(),
-        country: e.country.clone().unwrap_or_default(),
+        city: e.city.as_ref().map(|s| (**s).clone()).unwrap_or_default(),
+        country: e.country.as_ref().map(|s| (**s).clone()).unwrap_or_default(),
         new_state: map_classification(class).into(),
         old_state: map_classification(ClassificationType::None).into(),
         start_time: e.ts,
         end_time: e.ts,
         leak_detail: None,
-        organization: e.org_name.clone().unwrap_or_default(),
+        organization: e.org_name.as_ref().map(|s| (**s).clone()).unwrap_or_default(),
         anomaly_details: String::new(),
         rpki_status: 0, // rpki_status is not stored in WindowEntry
     }
@@ -834,7 +790,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_for_classifier = db.clone();
     info!("Initializing classifier...");
     let classifier = Arc::new(Classifier::new(
-        1000000,
+        200000,
         Some(DiskTrie::new(seen_tree)),
         Some(db_for_classifier),
     ));
@@ -867,9 +823,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Err(e) = bgpkit.load_bogons() {
             warn!("Failed to load bogons: {}", e);
         }
-        if let Err(e) = bgpkit.load_mrt_collectors() {
-            warn!("Failed to load mrt collectors: {}", e);
-        }
 
         bgpkit
     })
@@ -883,7 +836,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let classifier_bg = classifier.clone();
     let db_bg = db.clone();
     tokio::task::spawn_blocking(move || {
-        info!("Loading BGPKIT RPKI data and AS2REL in background...");
+        info!("Loading BGPKIT RPKI data in background...");
         let start = Instant::now();
 
         let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
@@ -895,7 +848,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = bgpkit.load_asinfo(true, true, true, true);
         }
         let _ = bgpkit.load_bogons();
-        let _ = bgpkit.load_mrt_collectors();
 
         info!(
             "Downloading and parsing RPKI data from Cloudflare... (This may take several minutes in debug mode without --release)"
@@ -905,14 +857,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             info!("BGPKIT RPKI data loaded successfully.");
         }
-        if let Err(e) = bgpkit.load_as2rel() {
-            warn!("Failed to load as2rel: {}", e);
-        }
         {
             *classifier_bg.bgpkit.write() = Some(bgpkit);
         }
         info!(
-            "BGPKIT RPKI data and AS2REL loading complete (took {}s).",
+            "BGPKIT RPKI data loading complete (took {}s).",
             start.elapsed().as_secs()
         );
 
@@ -945,16 +894,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     name: "bogons",
                     refresh_interval: 7 * 86400,
                     retry_interval: 86400,
-                },
-                DatasetConfig {
-                    name: "as2rel",
-                    refresh_interval: 7 * 86400,
-                    retry_interval: 86400,
-                },
-                DatasetConfig {
-                    name: "mrt",
-                    refresh_interval: 30 * 86400,
-                    retry_interval: 7 * 86400,
                 },
             ];
 
@@ -1001,8 +940,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                     "rpki" => bgpkit_to_update.load_rpki(None)?,
                                     "bogons" => bgpkit_to_update.load_bogons()?,
-                                    "as2rel" => bgpkit_to_update.load_as2rel()?,
-                                    "mrt" => bgpkit_to_update.load_mrt_collectors()?,
                                     _ => return Err(anyhow::anyhow!("Unknown dataset")),
                                 }
                                 Ok(bgpkit_to_update)
@@ -1237,19 +1174,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let hc = heavy_classifier.clone();
             if let Ok(summary) = tokio::task::spawn_blocking(move || {
-                let mut class_v4: HashMap<ClassificationType, Vec<ipnet::Ipv4Net>> = HashMap::new();
-                let mut org_v4: HashMap<String, Vec<ipnet::Ipv4Net>> = HashMap::new();
-                let mut global_v4 = Vec::new();
-
-                let mut rpki_v4_valid = Vec::new();
-                let mut rpki_v4_invalid = Vec::new();
-                let mut rpki_v4_missing = Vec::new();
-
+                struct Entry {
+                    net: ipnet::Ipv4Net,
+                    class: ClassificationType,
+                    org: Option<Arc<String>>,
+                    rpki: i32,
+                }
+                let mut data = Vec::new();
                 let mut rpki_v6_valid = 0u64;
                 let mut rpki_v6_invalid = 0u64;
                 let mut rpki_v6_missing = 0u64;
-
-                let mut count = 0;
 
                 let guard = hc.bgpkit.read();
                 let bgpkit_opt = guard.as_ref();
@@ -1264,8 +1198,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         conn.prepare("SELECT prefix, classified_type, origin_asn FROM prefix_state")
                 {
                     let mut rows = stmt.query([]).unwrap();
-                    // Per-loop local cache for heavy aggregation to avoid redundant lookups
-                    let mut local_asinfo: HashMap<u32, (String, Option<String>)> = HashMap::new();
+                    let mut local_asinfo: HashMap<u32, Option<Arc<String>>> = HashMap::new();
 
                     while let Ok(Some(row)) = rows.next() {
                         let p_str: String = row.get(0).unwrap();
@@ -1274,63 +1207,53 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let net_parsed = IpNet::from_str(&p_str).ok();
                         match net_parsed {
                             Some(IpNet::V4(v4)) => {
-                                global_v4.push(v4);
-                                class_v4
-                                    .entry(ClassificationType::from_i32(c_i32))
-                                    .or_default()
-                                    .push(v4);
-
+                                let mut org = None;
                                 if o_asn > 0 {
-                                    let (o_name, _) = local_asinfo
+                                    org = local_asinfo
                                         .entry(o_asn)
                                         .or_insert_with(|| {
-                                            let mut name = format!("AS{}", o_asn);
-                                            let mut org = None;
                                             if let Some(bgpkit) = bgpkit_opt
                                                 && let Ok(Some(info)) = bgpkit.asinfo_get(o_asn)
                                             {
                                                 if let Some(o) = info.as2org {
-                                                    name = o.org_name.clone();
-                                                    org = Some(o.org_name);
+                                                    return Some(Arc::new(o.org_name));
                                                 } else if !info.name.is_empty() {
-                                                    name = info.name.clone();
+                                                    return Some(Arc::new(info.name));
                                                 }
                                             }
-                                            (name, org)
+                                            None
                                         })
                                         .clone();
-                                    org_v4.entry(o_name).or_default().push(v4);
-
-                                    // RPKI Check
-                                    if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
-                                        let status = if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
-                                            match status {
-                                                bgpkit_commons::rpki::RpkiValidation::Valid => 1,
-                                                bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
-                                                bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
-                                            }
-                                        } else {
-                                            3
-                                        };
-
-                                        match status {
-                                            1 => rpki_v4_valid.push(v4),
-                                            2 => rpki_v4_invalid.push(v4),
-                                            _ => rpki_v4_missing.push(v4),
-                                        }
-                                    }
-                                } else if rpki_loaded {
-                                    rpki_v4_missing.push(v4);
                                 }
-                                count += 1;
+
+                                let rpki = if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
+                                    if o_asn > 0 {
+                                        match bgpkit.rpki_validate(o_asn, &p_str) {
+                                            Ok(bgpkit_commons::rpki::RpkiValidation::Valid) => 1,
+                                            Ok(bgpkit_commons::rpki::RpkiValidation::Invalid) => 2,
+                                            _ => 3,
+                                        }
+                                    } else {
+                                        3
+                                    }
+                                } else {
+                                    0
+                                };
+
+                                data.push(Entry {
+                                    net: v4,
+                                    class: ClassificationType::from_i32(c_i32),
+                                    org,
+                                    rpki,
+                                });
                             }
                             Some(IpNet::V6(_)) => {
-                                if o_asn > 0 && rpki_loaded && let Some(bgpkit) = bgpkit_opt {
-                                    let status = if let Ok(status) = bgpkit.rpki_validate(o_asn, &p_str) {
-                                        match status {
-                                            bgpkit_commons::rpki::RpkiValidation::Valid => 1,
-                                            bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
-                                            bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
+                                if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
+                                    let status = if o_asn > 0 {
+                                        match bgpkit.rpki_validate(o_asn, &p_str) {
+                                            Ok(bgpkit_commons::rpki::RpkiValidation::Valid) => 1,
+                                            Ok(bgpkit_commons::rpki::RpkiValidation::Invalid) => 2,
+                                            _ => 3,
                                         }
                                     } else {
                                         3
@@ -1341,70 +1264,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         2 => rpki_v6_invalid += 1,
                                         _ => rpki_v6_missing += 1,
                                     }
-                                } else if rpki_loaded {
-                                    rpki_v6_missing += 1;
                                 }
                             }
                             _ => {}
                         }
                     }
                 }
-                info!("[STATS] Aggregating {} IPv4 prefixes.", count);
-                let g_ipv4 = if global_v4.is_empty() {
-                    0
-                } else {
-                    ipnet::Ipv4Net::aggregate(&global_v4)
-                        .iter()
-                        .map(|n| {
-                            if n.prefix_len() == 0 {
-                                u32::MAX as u64 + 1
-                            } else {
-                                1u64 << (32 - n.prefix_len())
-                            }
-                        })
-                        .sum::<u64>()
-                };
-                let mut c_ipv4 = HashMap::new();
-                for (k, nets) in class_v4 {
-                    c_ipv4.insert(
-                        k,
-                        ipnet::Ipv4Net::aggregate(&nets)
-                            .iter()
-                            .map(|n| {
-                                if n.prefix_len() == 0 {
-                                    u32::MAX as u64 + 1
-                                } else {
-                                    1u64 << (32 - n.prefix_len())
-                                }
-                            })
-                            .sum::<u64>(),
-                    );
-                }
 
-                let mut largest_org = String::new();
-                let mut largest_org_ips = 0;
-                for (org, nets) in org_v4 {
-                    let ips = ipnet::Ipv4Net::aggregate(&nets)
-                        .iter()
-                        .map(|n| {
-                            if n.prefix_len() == 0 {
-                                u32::MAX as u64 + 1
-                            } else {
-                                1u64 << (32 - n.prefix_len())
-                            }
-                        })
-                        .sum::<u64>();
-                    if ips > largest_org_ips {
-                        largest_org_ips = ips;
-                        largest_org = org;
-                    }
-                }
+                info!("[STATS] Aggregating {} IPv4 prefixes.", data.len());
 
-                let sum_ips = |nets: &Vec<ipnet::Ipv4Net>| -> u64 {
+                let count_ips = |nets: Vec<ipnet::Ipv4Net>| -> u64 {
                     if nets.is_empty() {
                         return 0;
                     }
-                    ipnet::Ipv4Net::aggregate(nets)
+                    ipnet::Ipv4Net::aggregate(&nets)
                         .iter()
                         .map(|n| {
                             if n.prefix_len() == 0 {
@@ -1416,14 +1289,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .sum::<u64>()
                 };
 
-                let rv4 = sum_ips(&rpki_v4_valid);
-                let ri4 = sum_ips(&rpki_v4_invalid);
-                let rm4 = sum_ips(&rpki_v4_missing);
+                let g_ipv4 = count_ips(data.iter().map(|e| e.net).collect());
+
+                let mut c_ipv4 = HashMap::new();
+                for &ct in &[
+                    ClassificationType::None,
+                    ClassificationType::Bogon,
+                    ClassificationType::Hijack,
+                    ClassificationType::RouteLeak,
+                    ClassificationType::Outage,
+                    ClassificationType::DDoSMitigation,
+                    ClassificationType::Flap,
+                    ClassificationType::PathHunting,
+                    ClassificationType::Discovery,
+                    ClassificationType::MinorRouteLeak,
+                ] {
+                    let nets: Vec<_> = data.iter().filter(|e| e.class == ct).map(|e| e.net).collect();
+                    if !nets.is_empty() {
+                        c_ipv4.insert(ct, count_ips(nets));
+                    }
+                }
+
+                let mut org_ips_approx: HashMap<Arc<String>, u64> = HashMap::new();
+                for e in &data {
+                    if let Some(ref org) = e.org {
+                        let ips = if e.net.prefix_len() == 0 {
+                            u32::MAX as u64 + 1
+                        } else {
+                            1u64 << (32 - e.net.prefix_len())
+                        };
+                        *org_ips_approx.entry(org.clone()).or_default() += ips;
+                    }
+                }
+
+                let (largest_org_name, largest_org_ips) = org_ips_approx
+                    .into_iter()
+                    .max_by_key(|(_, ips)| *ips)
+                    .map(|(name, ips)| (name.to_string(), ips))
+                    .unwrap_or_default();
+
+                let (rv4, ri4, rm4) = if rpki_loaded {
+                    (
+                        count_ips(data.iter().filter(|e| e.rpki == 1).map(|e| e.net).collect()),
+                        count_ips(data.iter().filter(|e| e.rpki == 2).map(|e| e.net).collect()),
+                        count_ips(data.iter().filter(|e| e.rpki == 3).map(|e| e.net).collect()),
+                    )
+                } else {
+                    (0, 0, 0)
+                };
 
                 (
                     g_ipv4,
                     c_ipv4,
-                    largest_org,
+                    largest_org_name,
                     largest_org_ips,
                     rv4,
                     ri4,
@@ -1569,7 +1487,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         unique_asns.insert(e.asn);
-                        if unique_prefixes.insert(e.prefix.clone())
+                        if unique_prefixes.insert((*e.prefix).clone())
                             && let Ok(net) = ipnet::IpNet::from_str(&e.prefix)
                         {
                             match net {
@@ -1601,7 +1519,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                     let mut anomaly_score = 0.0;
                     for p in &recent_prefixes {
-                        if let Some(ph) = rw.prefix_stats.get(p) {
+                        if let Some(ph) = rw.prefix_stats.get(p.as_ref()) {
                             anomaly_score += ph.z_score(now_tick);
                         }
                     }
@@ -1627,8 +1545,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         alerts.push(Alert {
                             alert_type: AlertType::ByLocation.into(),
                             location: Some(livemap_proto::AlertLocation {
-                                city: top_city,
-                                country: top_country,
+                                city: (*top_city).clone(),
+                                country: (*top_country).clone(),
                                 lat: lat_q as f32 / 10.0,
                                 lon: lon_q as f32 / 10.0,
                                 radius_km: 11.0,
@@ -1669,7 +1587,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut count_recent = 0;
                     let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
-                        if unique_prefixes.insert(e.prefix.clone())
+                        if unique_prefixes.insert((*e.prefix).clone())
                             && let Ok(net) = ipnet::IpNet::from_str(&e.prefix)
                         {
                             match net {
@@ -1684,7 +1602,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             recent_prefixes.insert(e.prefix.clone());
                         }
                         if !e.as_name.is_empty() {
-                            as_name = e.as_name.clone();
+                            as_name = (*e.as_name).clone();
                         }
                         if let Some(ref c) = e.city {
                             *city_counts.entry(c.clone()).or_insert(0) += 1;
@@ -1707,7 +1625,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                     let mut anomaly_score = 0.0;
                     for p in &recent_prefixes {
-                        if let Some(ph) = rw.prefix_stats.get(p) {
+                        if let Some(ph) = rw.prefix_stats.get(p.as_ref()) {
                             anomaly_score += ph.z_score(now_tick);
                         }
                     }
@@ -1733,8 +1651,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         alerts.push(Alert {
                             alert_type: AlertType::ByAsn.into(),
                             location: Some(livemap_proto::AlertLocation {
-                                city: top_city,
-                                country: top_country,
+                                city: (*top_city).clone(),
+                                country: (*top_country).clone(),
                                 lat: if latlon_count > 0 {
                                     total_lat / latlon_count as f32
                                 } else {
@@ -1783,7 +1701,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         unique_asns.insert(e.asn);
-                        if unique_prefixes.insert(e.prefix.clone())
+                        if unique_prefixes.insert((*e.prefix).clone())
                             && let Ok(net) = ipnet::IpNet::from_str(&e.prefix)
                         {
                             match net {
@@ -1815,7 +1733,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                     let mut anomaly_score = 0.0;
                     for p in &recent_prefixes {
-                        if let Some(ph) = rw.prefix_stats.get(p) {
+                        if let Some(ph) = rw.prefix_stats.get(p.as_ref()) {
                             anomaly_score += ph.z_score(now_tick);
                         }
                     }
@@ -1836,7 +1754,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         alerts.push(Alert {
                             alert_type: AlertType::ByCountry.into(),
                             location: Some(livemap_proto::AlertLocation {
-                                city: top_city,
+                                city: (*top_city).clone(),
                                 country: country.clone(),
                                 lat: if latlon_count > 0 {
                                     total_lat / latlon_count as f32
@@ -1887,7 +1805,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut recent_prefixes = std::collections::HashSet::new();
                     for e in v {
                         unique_asns.insert(e.asn);
-                        if unique_prefixes.insert(e.prefix.clone())
+                        if unique_prefixes.insert((*e.prefix).clone())
                             && let Ok(net) = ipnet::IpNet::from_str(&e.prefix)
                         {
                             match net {
@@ -1922,7 +1840,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                     let mut anomaly_score = 0.0;
                     for p in &recent_prefixes {
-                        if let Some(ph) = rw.prefix_stats.get(p) {
+                        if let Some(ph) = rw.prefix_stats.get(p.as_ref()) {
                             anomaly_score += ph.z_score(now_tick);
                         }
                     }
@@ -1948,8 +1866,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         alerts.push(Alert {
                             alert_type: AlertType::ByOrganization.into(),
                             location: Some(livemap_proto::AlertLocation {
-                                city: top_city,
-                                country: top_country,
+                                city: (*top_city).clone(),
+                                country: (*top_country).clone(),
                                 lat: if latlon_count > 0 {
                                     total_lat / latlon_count as f32
                                 } else {

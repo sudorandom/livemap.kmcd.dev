@@ -440,6 +440,70 @@ try {
          <ISPSafetyTest client:visible />
       </ReportCard>
 
+      {/* Tip of the Iceberg Section */}
+      <section class="mt-20 border-t border-slate-500/10 pt-16">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+            <svg class="w-6 h-6 text-cyan-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.12 6.85a2 2 0 0 0 0 3.66l9.05 4.67a2 2 0 0 0 1.66 0l9.05-4.67a2 2 0 0 0 0-3.66z"/><path d="m2.12 13.85 9.05 4.67a2 2 0 0 0 1.66 0l9.05-4.67"/><path d="m2.12 17.85 9.05 4.67a2 2 0 0 0 1.66 0l9.05-4.67"/></svg>
+          </div>
+          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">The Tip of the Iceberg</h2>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div class="space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed">
+            <h3 class="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight">Getting Perspective</h3>
+            <p>
+              Understanding BGP is essential for seeing how thousands of independent networks interconnect to form the global internet, but it is really just the beginning. In real-world environments, operators use the protocol as a flexible policy engine and a global-scale database to manage traffic.
+            </p>
+            <p>
+              Mastering BGP gives you a view of one specific layer, but the full "internet sandwich" goes much deeper. Below this level, you find the physical realities of optical fiber and copper. Above it, the paths BGP discovers support the entire suite of modern protocols. <a href="https://www.cloudflare.com/learning/network-layer/what-is-the-internet-protocol/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">IP</a>, <a href="https://www.cloudflare.com/learning/ddos/glossary/tcp-ip/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">TCP</a>, <a href="https://www.cloudflare.com/learning/ddos/glossary/user-datagram-protocol-udp/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">UDP</a>, and <a href="https://www.cloudflare.com/learning/network-layer/what-is-icmp/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">ICMP</a> rely on BGP to find their way across the globe.
+            </p>
+            <p>
+              Further up the stack, technologies like <strong><a href="https://www.cloudflare.com/learning/performance/what-is-http3/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">HTTP/3</a>, <a href="https://www.cloudflare.com/learning/performance/what-is-quic/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">QUIC</a>, and <a href="https://www.cloudflare.com/learning/cdn/what-is-a-cdn/" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">Anycast-based CDNs</a></strong> build even more complexity on top of these foundations. To truly understand networking, you have to look at how each layer constraints or enables the one above it.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+               <h4 class="text-sm font-cyber font-bold text-slate-900 dark:text-white uppercase mb-3">Physical: Optical vs Electrical</h4>
+               <ul class="text-xs space-y-2 list-disc pl-4 opacity-80">
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Wavelength-division_multiplexing#Dense_WDM" target="_blank" class="hover:underline">DWDM</a>:</strong> Dense Wavelength Division Multiplexing.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Coherent_optical_communication" target="_blank" class="hover:underline">Coherent Transceivers</a>:</strong> High-speed optical processing.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Erbium-doped_fiber_amplifier" target="_blank" class="hover:underline">EDFAs</a>:</strong> Optical signal amplification.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Twisted_pair" target="_blank" class="hover:underline">Twisted pair</a> & <a href="https://en.wikipedia.org/wiki/Direct_Attach_Cable" target="_blank" class="hover:underline">DAC cables</a>:</strong> Copper foundation.</li>
+               </ul>
+            </div>
+
+            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+               <h4 class="text-sm font-cyber font-bold text-slate-900 dark:text-white uppercase mb-3">Tunneling & L2</h4>
+               <ul class="text-xs space-y-2 list-disc pl-4 opacity-80">
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Multiprotocol_Label_Switching" target="_blank" class="hover:underline">MPLS</a> & <a href="https://en.wikipedia.org/wiki/Segment_routing" target="_blank" class="hover:underline">SR</a>:</strong> Label-based traffic engineering.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Virtual_Extensible_LAN" target="_blank" class="hover:underline">VXLAN</a>, <a href="https://en.wikipedia.org/wiki/Generic_Routing_Encapsulation" target="_blank" class="hover:underline">GRE</a>, & <a href="https://en.wikipedia.org/wiki/Generic_UDP_Encapsulation" target="_blank" class="hover:underline">GUE</a>:</strong> Overlay encapsulation.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Address_Resolution_Protocol" target="_blank" class="hover:underline">ARP</a> & <a href="https://en.wikipedia.org/wiki/VLAN" target="_blank" class="hover:underline">VLAN tags</a>:</strong> Local orchestration.</li>
+               </ul>
+            </div>
+
+            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+               <h4 class="text-sm font-cyber font-bold text-slate-900 dark:text-white uppercase mb-3">Upper Layers</h4>
+               <ul class="text-xs space-y-2 list-disc pl-4 opacity-80">
+                 <li><strong><a href="https://en.wikipedia.org/wiki/QUIC" target="_blank" class="hover:underline">QUIC</a> & <a href="https://en.wikipedia.org/wiki/HTTP/3" target="_blank" class="hover:underline">HTTP/3</a>:</strong> Modern transport and application layers.</li>
+                 <li><strong><a href="https://grpc.io/" target="_blank" class="hover:underline">gRPC</a> & <a href="https://en.wikipedia.org/wiki/Service_mesh" target="_blank" class="hover:underline">Service Meshes</a>:</strong> Microservice orchestration.</li>
+                 <li><strong><a href="https://www.cloudflare.com/learning/dns/what-is-dns/" target="_blank" class="hover:underline">DNS</a>:</strong> The global naming service.</li>
+               </ul>
+            </div>
+
+            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+               <h4 class="text-sm font-cyber font-bold text-slate-900 dark:text-white uppercase mb-3">The Control Plane</h4>
+               <ul class="text-xs space-y-2 list-disc pl-4 opacity-80">
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Open_Shortest_Path_First" target="_blank" class="hover:underline">OSPF</a> & <a href="https://en.wikipedia.org/wiki/IS-IS" target="_blank" class="hover:underline">IS-IS</a>:</strong> Interior Gateway Protocols.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/BGP_Flowspec" target="_blank" class="hover:underline">Flowspec</a>:</strong> Distributed firewall policies.</li>
+                 <li><strong><a href="https://en.wikipedia.org/wiki/Software-defined_networking" target="_blank" class="hover:underline">SDN</a>:</strong> Centralized network control.</li>
+               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Advanced Topics Section */}
       <section class="mt-20">
         <div class="flex items-center gap-4 mb-8">
@@ -452,37 +516,67 @@ try {
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <BGPAdvancedTopics client:visible />
 
-          <PanelContainer 
-            client:visible
-            title="Network Tooling & Resources" 
-            description="A Looking Glass allows engineers to view the routing table from the perspective of a specific remote router."
-            className="bg-transparent border-none p-0"
-          >
-            <div class="flex flex-col gap-6 w-full h-full overflow-y-auto custom-scrollbar p-2">
-               <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                 <li class="space-y-1">
-                   <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">Cloudflare Radar</a>
-                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Real-time insights into internet traffic, security, and routing patterns globally.</p>
-                 </li>
-                 <li class="space-y-1">
-                   <a href="https://peeringdb.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">PeeringDB</a>
-                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The industry-standard database for peering locations and network interconnection data.</p>
-                 </li>
-                 <li class="space-y-1">
-                   <a href="https://bgp.he.net" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">HE BGP Toolkit</a>
-                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Extensive BGP routing information, including AS details, prefix propagation, and path history.</p>
-                 </li>
-                 <li class="space-y-1">
-                   <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">RouteViews</a>
-                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">A global project providing real-time BGP data to researchers since 1995 via dozens of collectors.</p>
-                 </li>
-                 <li class="space-y-1">
-                   <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">RIPE NCC RIS</a>
-                   <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions.</p>
-                 </li>
-               </ul>
-            </div>
-          </PanelContainer>
+          <div class="flex flex-col gap-8">
+            <PanelContainer 
+              client:visible
+              title="Network Tooling & Resources" 
+              description="A Looking Glass allows engineers to view the routing table from the perspective of a specific remote router."
+              className="bg-transparent border-none p-0"
+            >
+              <div class="flex flex-col gap-6 w-full h-full overflow-y-auto custom-scrollbar p-2">
+                 <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                   <li class="space-y-1">
+                     <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">Cloudflare Radar</a>
+                     <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Real-time insights into internet traffic, security, and routing patterns globally.</p>
+                   </li>
+                   <li class="space-y-1">
+                     <a href="https://peeringdb.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">PeeringDB</a>
+                     <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The industry-standard database for peering locations and network interconnection data.</p>
+                   </li>
+                   <li class="space-y-1">
+                     <a href="https://bgp.he.net" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">HE BGP Toolkit</a>
+                     <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Extensive BGP routing information, including AS details, prefix propagation, and path history.</p>
+                   </li>
+                   <li class="space-y-1">
+                     <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">RouteViews</a>
+                     <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">A global project providing real-time BGP data to researchers since 1995 via dozens of collectors.</p>
+                   </li>
+                   <li class="space-y-1">
+                     <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">RIPE NCC RIS</a>
+                     <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The Routing Information Service collects and stores BGP routing updates from over 600 peer sessions.</p>
+                   </li>
+                 </ul>
+              </div>
+            </PanelContainer>
+
+            <PanelContainer 
+              client:visible
+              title="Deep Dive Resources" 
+              description="Foundational texts and community archives for mastering the stack."
+              className="bg-transparent border-none p-0"
+            >
+              <div class="flex flex-col gap-6 w-full h-full overflow-y-auto custom-scrollbar p-2">
+                 <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                    <li class="space-y-1">
+                      <a href="https://www.oreilly.com/library/view/bgp/0596002548/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">BGP (O'Reilly)</a>
+                      <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Iljitsch van Beijnum's essential guide to the protocol.</p>
+                    </li>
+                    <li class="space-y-1">
+                      <a href="https://hpbn.co/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">HP Browser Networking</a>
+                      <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">Ilya Grigorik's fantastic book on TCP, UDP, and more.</p>
+                    </li>
+                    <li class="space-y-1">
+                      <a href="https://nanog.org/events/past-events/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">NANOG Archives</a>
+                      <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The best technical presentations from network operators.</p>
+                    </li>
+                    <li class="space-y-1">
+                      <a href="https://www.netacad.com/courses/networking/ccna-introduction-networks" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:text-indigo-500 dark:hover:text-cyan-300 underline decoration-dotted uppercase tracking-tight text-sm">Cisco CCNA Prep</a>
+                      <p class="text-slate-600 dark:text-slate-400 italic text-xs leading-relaxed">The industry standard for learning the fundamentals of the stack.</p>
+                    </li>
+                 </ul>
+              </div>
+            </PanelContainer>
+          </div>
         </div>
       </section>
 

@@ -200,7 +200,6 @@ service LiveMapService {
     rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
     rpc StreamStateTransitions(StreamStateTransitionsRequest) returns (stream StreamStateTransitionsResponse);
     rpc StreamAlerts(StreamAlertsRequest) returns (stream StreamAlertsResponse);
-    rpc StreamPrefixSnapshots(StreamPrefixSnapshotsRequest) returns (stream StreamPrefixSnapshotsResponse);
     rpc GetRecentAlerts(GetRecentAlertsRequest) returns (GetRecentAlertsResponse);
     rpc GetFlappiestNetworks(GetFlappiestNetworksRequest) returns (GetFlappiestNetworksResponse);
 }
@@ -211,18 +210,4 @@ message GetFlappiestNetworksRequest {
 
 message GetFlappiestNetworksResponse {
     repeated FlappiestNetworkStats flappiest_networks = 1;
-}
-
-message StreamPrefixSnapshotsRequest {}
-
-message StreamPrefixSnapshotsResponse {
-    repeated PrefixSnapshot snapshots = 1;
-}
-
-message PrefixSnapshot {
-    string prefix = 1;
-    Classification classification = 2;
-    uint32 asn = 3;
-    int64 last_update_ts = 4;
-    uint32 total_events = 5;
 }

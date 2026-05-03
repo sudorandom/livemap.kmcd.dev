@@ -172,9 +172,6 @@ pub struct StatsBucket {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LastAttrs {
     pub path: String,
-    pub communities: String,
-    pub next_hop: String,
-    pub aggregator: String,
     pub last_path_len: i32,
     pub origin_asn: u32,
     pub med: Option<u32>,
@@ -426,9 +423,6 @@ impl Classifier {
                     session_key,
                     LastAttrs {
                         path: String::new(),
-                        communities: String::new(),
-                        next_hop: String::new(),
-                        aggregator: String::new(),
                         last_path_len: 0,
                         origin_asn: 0,
                         med: None,
@@ -1087,9 +1081,6 @@ impl Classifier {
             session_key,
             LastAttrs {
                 path: ctx.path_str.clone(),
-                communities: ctx.comm_str.clone(),
-                next_hop: String::new(),
-                aggregator: String::new(),
                 last_path_len: ctx.path_len as i32,
                 origin_asn: ctx.origin_asn,
                 med: None,

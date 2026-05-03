@@ -1,5 +1,6 @@
 use crate::classifier::ClassificationType;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct PrefixAnomalyStats {
@@ -81,22 +82,22 @@ impl PrefixAnomalyStats {
 #[allow(dead_code)]
 pub struct WindowEntry {
     pub ts: i64,
-    pub prefix: String,
-    pub city: Option<String>,
-    pub country: Option<String>,
+    pub prefix: Arc<String>,
+    pub city: Option<Arc<String>>,
+    pub country: Option<Arc<String>>,
     pub asn: u32,
-    pub as_name: String,
-    pub org_name: Option<String>,
+    pub as_name: Arc<String>,
+    pub org_name: Option<Arc<String>>,
     pub lat: f32,
     pub lon: f32,
 }
 
 #[derive(Default, Clone)]
 pub struct RollingWindows {
-    pub by_location: HashMap<(i32, i32, ClassificationType), Vec<WindowEntry>>, // lat_q, lon_q, class -> entries
-    pub by_asn: HashMap<(u32, ClassificationType), Vec<WindowEntry>>, // asn, class -> entries
-    pub by_country: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // country, class -> entries
-    pub by_organization: HashMap<(String, ClassificationType), Vec<WindowEntry>>, // org, class -> entries
+    pub by_location: HashMap<(i32, i32, ClassificationType), Vec<Arc<WindowEntry>>>, // lat_q, lon_q, class -> entries
+    pub by_asn: HashMap<(u32, ClassificationType), Vec<Arc<WindowEntry>>>, // asn, class -> entries
+    pub by_country: HashMap<(String, ClassificationType), Vec<Arc<WindowEntry>>>, // country, class -> entries
+    pub by_organization: HashMap<(String, ClassificationType), Vec<Arc<WindowEntry>>>, // org, class -> entries
     pub prefix_stats: HashMap<String, PrefixAnomalyStats>,
 }
 
@@ -120,17 +121,17 @@ impl RollingWindows {
 
         let lat_q = (lat * 10.0) as i32;
         let lon_q = (lon * 10.0) as i32;
-        let entry = WindowEntry {
+        let entry = Arc::new(WindowEntry {
             ts: now,
-            prefix: prefix.clone(),
-            city: city_opt.clone(),
-            country: country_opt.clone(),
+            prefix: Arc::new(prefix.clone()),
+            city: city_opt.map(Arc::new),
+            country: country_opt.clone().map(Arc::new),
             asn,
-            as_name: as_name.clone(),
-            org_name: org_name.clone(),
+            as_name: Arc::new(as_name),
+            org_name: org_name.clone().map(Arc::new),
             lat,
             lon,
-        };
+        });
         self.by_location
             .entry((lat_q, lon_q, class))
             .or_default()
