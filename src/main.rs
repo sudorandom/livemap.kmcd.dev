@@ -736,13 +736,21 @@ fn entry_to_transition(e: &WindowEntry, class: ClassificationType) -> StateTrans
             lon: e.lon,
         }),
         city: e.city.as_ref().map(|s| (**s).clone()).unwrap_or_default(),
-        country: e.country.as_ref().map(|s| (**s).clone()).unwrap_or_default(),
+        country: e
+            .country
+            .as_ref()
+            .map(|s| (**s).clone())
+            .unwrap_or_default(),
         new_state: map_classification(class).into(),
         old_state: map_classification(ClassificationType::None).into(),
         start_time: e.ts,
         end_time: e.ts,
         leak_detail: None,
-        organization: e.org_name.as_ref().map(|s| (**s).clone()).unwrap_or_default(),
+        organization: e
+            .org_name
+            .as_ref()
+            .map(|s| (**s).clone())
+            .unwrap_or_default(),
         anomaly_details: String::new(),
         rpki_status: 0, // rpki_status is not stored in WindowEntry
     }
