@@ -1,5 +1,6 @@
 use crate::classifier::ClassificationType;
 use crate::rolling_windows::*;
+use std::sync::Arc;
 
 #[test]
 fn test_rolling_windows_add_and_cleanup() {
@@ -36,11 +37,11 @@ fn test_rolling_windows_add_and_cleanup() {
 fn test_window_entry_creation() {
     let entry = WindowEntry {
         ts: 100,
-        prefix: "192.168.1.0/24".to_string(),
-        city: Some("Tokyo".to_string()),
-        country: Some("JP".to_string()),
+        prefix: Arc::new("192.168.1.0/24".to_string()),
+        city: Some(Arc::new("Tokyo".to_string())),
+        country: Some(Arc::new("JP".to_string())),
         asn: 4444,
-        as_name: "AS4444".to_string(),
+        as_name: Arc::new("AS4444".to_string()),
         org_name: None,
         lat: 0.0,
         lon: 0.0,
