@@ -118,9 +118,9 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
               <button
                 key={cat}
                 onClick={() => toggleCategory(cat)}
-                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded border transition-all ${
+                className={`text-[11px] md:text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded border transition-all ${
                   isActive 
-                    ? `${info.color} border-current opacity-100` 
+                    ? `${info.color} border-current opacity-100 shadow-[0_0_10px_rgba(0,0,0,0.1)]` 
                     : 'text-slate-500 border-slate-500/20 opacity-40 hover:opacity-60'
                 }`}
               >

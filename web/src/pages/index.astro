@@ -116,199 +116,143 @@ try {
           </div>
         </div>
 
-        {/* DETAILED ARCHITECTURE SECTION */}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          <div class="cyber-box p-8 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800 lg:col-span-2">
-            <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-3">
-              <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19.5 7.1 20.5a.5.5 0 0 1-.6-.5V3.5a.5.5 0 0 1 .6-.5L11 3.5"/><path d="M11 3.5 15.1 4.5a.5.5 0 0 1 .6.5V21.5a.5.5 0 0 1-.6.5L11 20.5"/><path d="M15.1 4.5 19.1 3.5a.5.5 0 0 1 .6.5V19.5a.5.5 0 0 1-.6.5L15.1 19.5"/><path d="M7.1 20.5 3.1 21.5a.5.5 0 0 1-.6-.5V5.5a.5.5 0 0 1 .6-.5L7.1 5.5"/></svg>
-              Path Selection
-            </h3>
-
-            <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
-              <p>
-                A BGP <strong>Path</strong> is the specific chain of <strong>Autonomous Systems</strong> that data follows as it moves across the global internet. Since the web is a "network of networks," there are often dozens of different ways to reach the same destination. BGP's job is to evaluate all those choices and pick the single "best" route from the list.
-              </p>
-              <p>
-                BGP makes routing decisions based on network <strong>policy</strong>. These choices are driven by business relationships, cost, and the overall health of the path. You can see these real-world routing decisions in action using <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">Cloudflare Radar</a> or by looking at the global routing table through <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">RouteViews</a>.
-              </p>
-              <p>
-                Path selection is a deliberate choice negotiated by network operators. These policies are vital for managing transit costs and maintaining link reliability across the Internet.
-              </p>
+        <div class="mt-16 border-t border-slate-500/10 pt-16">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+              <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6.1H3"/><path d="M21 12.1H3"/><path d="M15.1 18.1H3"/></svg>
             </div>
-
-            <div class="mt-8 bg-indigo-500/5 dark:bg-indigo-500/10 p-6 rounded-xl border border-indigo-500/20">
-              <h4 class="text-xs font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-4">How BGP Chooses a Route</h4>
-              <p class="text-xs text-slate-500 dark:text-slate-400 italic mb-6">Note: This is the core decision process. Real routers evaluate many more tie-breakers and vendor-specific attributes (like Cisco Weight).</p>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="flex gap-3">
-                  <span class="font-bold text-indigo-500">01</span>
-                  <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-purple-600 dark:text-purple-400 uppercase text-xs font-bold underline decoration-dotted decoration-purple-500/50 hover:text-purple-500">Local Preference:</a> The primary way networks prioritize outbound paths, often preferring free peering over paid transit.</div>
-                </div>
-                <div class="flex gap-3">
-                  <span class="font-bold text-indigo-500">02</span>
-                  <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-emerald-600 dark:text-emerald-400 uppercase text-xs font-bold underline decoration-dotted decoration-emerald-500/50 hover:text-emerald-500">AS Path Length:</a> BGP typically prefers the shortest chain of networks (ASes), though policies and traffic engineering regularly override this.</div>
-                </div>
-                <div class="flex gap-3">
-                  <span class="font-bold text-indigo-500">03</span>
-                  <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-amber-600 dark:text-amber-400 uppercase text-xs font-bold underline decoration-dotted decoration-amber-500/50 hover:text-amber-500">Route Origin:</a> BGP prefers routes originated directly (locally injected) over those learned from neighbors.</div>
-                </div>
-                <div class="flex gap-3">
-                  <span class="font-bold text-indigo-500">04</span>
-                  <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-rose-600 dark:text-rose-400 uppercase text-xs font-bold underline decoration-dotted decoration-rose-500/50 hover:text-rose-500">MED:</a> A technical "hint" used to tell a neighboring network which entry point into your network is preferred for their inbound traffic.</div>
-                </div>
-                <div class="flex gap-3">
-                  <span class="font-bold text-indigo-500">05</span>
-                  <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-blue-600 dark:text-blue-400 uppercase text-xs font-bold underline decoration-dotted decoration-blue-500/50 hover:text-blue-500">eBGP over iBGP:</a> External paths are strongly preferred over internal paths to ensure traffic exits the local network efficiently.</div>
-                </div>
-                <div class="flex gap-3">
-                  <span class="font-bold text-indigo-500">06</span>
-                  <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-cyan-600 dark:text-cyan-400 uppercase text-xs font-bold underline decoration-dotted decoration-cyan-500/50 hover:text-cyan-500">IGP Cost to Next Hop:</a> Prefers paths with the lowest internal routing cost to reach the exit router.</div>
-                </div>
-              </div>
-            </div>
+            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">The Gossip Protocol</h2>
           </div>
-
-          <div class="space-y-8">
-            <div class="space-y-4">
-              <div id="path-animation-container" class="relative aspect-square bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner cursor-pointer">
-                 <svg viewBox="0 0 200 200" class="w-full h-full">
-                    {/* Dotted Connections (The Mesh) */}
-                    <g class="stroke-slate-300 dark:stroke-slate-700 stroke-[0.5] fill-none" stroke-dasharray="2,2">
-                       <path d="M40,40 L100,20 L160,40 L180,100 L160,160 L100,180 L40,160 L20,100 Z" />
-                       <path d="M40,40 L100,100 L160,40" />
-                       <path d="M20,100 L100,100 L180,100" />
-                       <path d="M40,160 L100,100 L160,160" />
-                       <path d="M100,20 L100,180" />
-                       <path d="M40,40 L40,160" />
-                       <path d="M160,40 L160,160" />
-                    </g>
-
-                    {/* Nodes */}
-                    <g class="fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600 stroke-[1]">
-                       <circle cx="40" cy="40" r="4" />
-                       <circle cx="100" cy="20" r="4" />
-                       <circle cx="160" cy="40" r="4" />
-                       <circle cx="180" cy="100" r="4" />
-                       <circle cx="160" cy="160" r="4" />
-                       <circle cx="100" cy="180" r="4" />
-                       <circle cx="40" cy="160" r="4" />
-                       <circle cx="20" cy="100" r="4" />
-                       <circle cx="100" cy="100" r="4" />
-                    </g>
-
-                    {/* Animated Selected Path */}
-                    <path
-                      id="animated-path"
-                      d="M40,40 L100,20 L160,40 L100,100 L160,160"
-                      class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan transition-all duration-1000 ease-in-out"
-                    />
-
-                    {/* Fixed Highlight Nodes */}
-                    <g id="path-nodes">
-                       <circle id="h-node-40-40" cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500 opacity-100 transition-opacity duration-1000" />
-                       <circle id="h-node-100-20" cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                       <circle id="h-node-160-40" cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                       <circle id="h-node-180-100" cx="180" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                       <circle id="h-node-160-160" cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald opacity-100 transition-opacity duration-1000" />
-                       <circle id="h-node-100-180" cx="100" cy="180" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                       <circle id="h-node-40-160" cx="40" cy="160" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                       <circle id="h-node-20-100" cx="20" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                       <circle id="h-node-100-100" cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
-                    </g>
-                 </svg>
-
-                 {/* Playback Controls */}
-                 <div class="absolute bottom-4 right-4 flex gap-2 pointer-events-none">
-                   <div class="flex items-center p-1 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-xl pointer-events-auto backdrop-blur-sm">
-                      <button id="path-play-pause" class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 active:scale-95" title="Pause/Play">
-                         <svg id="pause-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"></path></svg>
-                         <svg id="play-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                      </button>
-                   </div>
-                 </div>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+            <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p>
+                BGP is fundamentally a <strong>gossip protocol</strong>. It works by spreading information through a chain of trusted neighbors. When a network (an Autonomous System) wants to tell the world about its IP addresses, it "announces" them to its directly connected peers.
+              </p>
+              <p>
+                Each peer that receives the announcement does two things:
+              </p>
+              <ul class="list-decimal pl-5 space-y-2">
+                <li>It records the path the announcement took, appending its own <strong>ASN</strong> to the list.</li>
+                <li>It re-announces the prefix to its own neighbors, continuing the cycle.</li>
+              </ul>
+              <div class="bg-indigo-500/5 dark:bg-indigo-500/10 p-5 rounded-lg border border-indigo-500/20 mt-6">
+                <h4 class="text-sm font-bold text-indigo-600 dark:text-cyan-400 uppercase mb-2">Announcement vs. Traffic</h4>
+                <p class="text-sm">
+                  Crucially, <strong>announcements form paths that are traversed backwards by production traffic</strong>. If an announcement travels from <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">AS1 &rarr; AS2 &rarr; AS3</code>, then the data sent from AS3 to AS1 will flow back through <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">AS3 &rarr; AS2 &rarr; AS1</code>.
+                </p>
               </div>
+            </div>
 
-              <style>
-                .shadow-glow-cyan { filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.5)); }
-                .shadow-glow-emerald { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); }
-                .dark .shadow-glow-cyan { filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.8)); }
-                .dark .shadow-glow-emerald { filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8)); }
-                
-                #animated-path {
-                  transition: d 1s ease-in-out;
-                }
+            <div id="gossip-animation-container" class="relative aspect-video bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner cursor-pointer">
+               <svg viewBox="0 0 400 220" class="w-full h-full">
+                  <g class="stroke-slate-300 dark:stroke-slate-700 stroke-1 fill-none">
+                    <path d="M200,40 L100,100" />
+                    <path d="M200,40 L300,100" />
+                    <path d="M100,100 L50,160" />
+                    <path d="M100,100 L150,160" />
+                    <path d="M300,100 L250,160" />
+                    <path d="M300,100 L350,160" />
+                  </g>
 
-                @media (prefers-reduced-motion: reduce) {
-                  #animated-path {
-                    transition: none !important;
-                  }
-                  .animate-pulse {
-                    animation: none !important;
-                  }
-                }
-              </style>
+                  <g class="fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600 stroke-1">
+                    <circle cx="200" cy="40" r="10" class="fill-indigo-500 dark:fill-cyan-500 stroke-none" />
+                    <circle cx="100" cy="100" r="8" id="node-1" />
+                    <circle cx="300" cy="100" r="8" id="node-2" />
+                    <circle cx="50" cy="160" r="6" id="node-3" />
+                    <circle cx="150" cy="160" r="6" id="node-4" />
+                    <circle cx="250" cy="160" r="6" id="node-5" />
+                    <circle cx="350" cy="160" r="6" id="node-6" />
+                  </g>
 
-              <script>
-                function initPathAnimation() {
-                  const container = document.getElementById('path-animation-container');
-                  const path = document.getElementById('animated-path');
-                  const allHighlightNodes = document.querySelectorAll('#path-nodes circle');
-                  const playPauseBtn = document.getElementById('path-play-pause');
-                  const playIcon = document.getElementById('play-icon');
-                  const pauseIcon = document.getElementById('pause-icon');
+                  <g class="text-[8px] font-bold fill-slate-500 dark:fill-slate-400" text-anchor="middle">
+                    <text x="200" y="25" class="fill-slate-900 dark:fill-white">AS 100</text>
+                    <text x="100" y="118">AS 200</text>
+                    <text x="300" y="118">AS 300</text>
+                    <text x="50" y="178">AS 400</text>
+                    <text x="150" y="178">AS 500</text>
+                    <text x="250" y="178">AS 600</text>
+                    <text x="350" y="178">AS 700</text>
+                  </g>
 
-                  if (!path) return;
+                  {/* Paths */}
+                  <g class="text-[7px] fill-indigo-600 dark:fill-cyan-400 font-mono" text-anchor="middle">
+                    <text id="path-100" x="200" y="58">Path: [100]</text>
+                    <text id="path-1" x="100" y="128" class="opacity-0 transition-opacity duration-500">Path: [200, 100]</text>
+                    <text id="path-2" x="300" y="128" class="opacity-0 transition-opacity duration-500">Path: [300, 100]</text>
+                    <text id="path-3" x="50" y="188" class="opacity-0 transition-opacity duration-500">Path: [400, 200, 100]</text>
+                    <text id="path-4" x="150" y="188" class="opacity-0 transition-opacity duration-500">Path: [500, 200, 100]</text>
+                    <text id="path-5" x="250" y="188" class="opacity-0 transition-opacity duration-500">Path: [600, 300, 100]</text>
+                    <text id="path-6" x="350" y="188" class="opacity-0 transition-opacity duration-500">Path: [700, 300, 100]</text>
+                  </g>
+               </svg>
+
+               {/* Playback Controls */}
+               <div class="absolute bottom-4 right-4 flex gap-2 pointer-events-none">
+                 <div class="flex items-center p-1 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-xl pointer-events-auto backdrop-blur-sm">
+                    <button id="gossip-play-pause" class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 active:scale-95" title="Pause/Play">
+                       <svg id="gossip-pause-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"></path></svg>
+                       <svg id="gossip-play-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                    </button>
+                 </div>
+               </div>
+               
+               <script>
+                function initGossipAnimation() {
+                  const container = document.getElementById('gossip-animation-container');
+                  const playPauseBtn = document.getElementById('gossip-play-pause');
+                  const playIcon = document.getElementById('gossip-play-icon');
+                  const pauseIcon = document.getElementById('gossip-pause-icon');
 
                   const paths = [
-                    {
-                      d: "M40,40 L100,20 L160,40 L100,100 L160,160",
-                      activeNodes: ['h-node-40-40', 'h-node-160-160']
-                    },
-                    {
-                      d: "M40,40 L40,40 L100,100 L160,160 L160,160", 
-                      activeNodes: ['h-node-40-40', 'h-node-160-160']
-                    },
-                    {
-                      d: "M40,40 L40,160 L100,180 L160,160 L160,160",
-                      activeNodes: ['h-node-40-40', 'h-node-160-160']
-                    }
+                    { id: 'path-1' }, { id: 'path-2' },
+                    { id: 'path-3' }, { id: 'path-4' }, { id: 'path-5' }, { id: 'path-6' }
                   ];
 
-                  let current = 0;
+                  let step = 0;
                   let isPlaying = true;
-                  let intervalId: any = null;
-
-                  function updateDisplay() {
-                    allHighlightNodes.forEach(node => {
-                      if (node.id !== 'h-node-40-40') {
-                        (node as HTMLElement).style.opacity = '0';
-                      }
+                  let timeoutId: any = null;
+                  
+                  function reset() {
+                    paths.forEach(p => {
+                      const el = document.getElementById(p.id);
+                      if (el) el.style.opacity = '0';
                     });
+                    step = 0;
+                  }
 
-                    const config = paths[current];
-                    path.setAttribute('d', config.d);
+                  function run() {
+                    if (!isPlaying) return;
 
-                    setTimeout(() => {
-                      const destNode = document.getElementById('h-node-160-160');
-                      if (destNode) {
-                        destNode.style.opacity = '1';
-                      }
-                    }, 1000);
+                    if (step === 0) {
+                      ['path-1', 'path-2'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.opacity = '1';
+                      });
+                      step = 1;
+                      timeoutId = setTimeout(run, 1500);
+                    } else if (step === 1) {
+                      ['path-3', 'path-4', 'path-5', 'path-6'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.opacity = '1';
+                      });
+                      step = 2;
+                      timeoutId = setTimeout(run, 3000);
+                    } else {
+                      reset();
+                      timeoutId = setTimeout(run, 1000);
+                    }
                   }
 
                   function startCycle() {
-                    stopCycle();
-                    intervalId = setInterval(() => {
-                      current = (current + 1) % paths.length;
-                      updateDisplay();
-                    }, 3500);
                     isPlaying = true;
                     playIcon?.classList.add('hidden');
                     pauseIcon?.classList.remove('hidden');
+                    run();
                   }
 
                   function stopCycle() {
-                    if (intervalId) clearInterval(intervalId);
+                    if (timeoutId) clearTimeout(timeoutId);
                     isPlaying = false;
                     playIcon?.classList.remove('hidden');
                     pauseIcon?.classList.add('hidden');
@@ -322,40 +266,12 @@ try {
 
                   container?.addEventListener('click', () => togglePlayback());
                   playPauseBtn?.addEventListener('click', togglePlayback);
-
-                  startCycle();
+                  
+                  run();
                 }
-
-                document.addEventListener('DOMContentLoaded', initPathAnimation);
-              </script>
+                document.addEventListener('DOMContentLoaded', initGossipAnimation);
+               </script>
             </div>
-
-            <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
-               <h3 class="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
-                 <svg class="w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                 BGP Communities
-               </h3>
-               <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
-                 <p>
-                   Metadata "tags" attached to routes that signal instructions to upstream peers. Standardized via <a href="https://datatracker.ietf.org/doc/html/rfc1997" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">RFC 1997</a> and <a href="https://datatracker.ietf.org/doc/html/rfc4360" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">RFC 4360</a>. Important note: most community semantics are <strong>operator-defined</strong> and not universal.
-                 </p>
-                 <ul class="space-y-3 list-disc pl-4">
-                   <li>
-                     <strong>Blackholing:</strong> Used for DDoS mitigation. 
-                     <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">65535:666</code> (Standardized RTBH)</span>
-                   </li>
-                   <li>
-                     <strong>Traffic Steering:</strong> Influencing path priority. 
-                     <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">ASN:70</code> (Common convention to Set Local-Pref 70, but varies per ISP)</span>
-                   </li>
-                   <li>
-                     <strong>Scoping:</strong> Preventing regional leakage. 
-                     <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">NO_EXPORT</code> (Well-known RFC 1997)</span>
-                   </li>
-                 </ul>
-               </div>
-            </div>
-
           </div>
         </div>
 
@@ -405,6 +321,251 @@ try {
                     <div><strong class="text-slate-900 dark:text-slate-200">Notification:</strong> Sent when an error is detected. Immediately closes the session.</div>
                   </li>
                </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* DETAILED ARCHITECTURE SECTION */}
+        <div class="mt-16 border-t border-slate-500/10 pt-16">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="cyber-box p-8 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800 lg:col-span-2">
+              <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-3">
+                <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19.5 7.1 20.5a.5.5 0 0 1-.6-.5V3.5a.5.5 0 0 1 .6-.5L11 3.5"/><path d="M11 3.5 15.1 4.5a.5.5 0 0 1 .6.5V21.5a.5.5 0 0 1-.6.5L11 20.5"/><path d="M15.1 4.5 19.1 3.5a.5.5 0 0 1 .6.5V19.5a.5.5 0 0 1-.6.5L15.1 19.5"/><path d="M7.1 20.5 3.1 21.5a.5.5 0 0 1-.6-.5V5.5a.5.5 0 0 1 .6-.5L7.1 5.5"/></svg>
+                Path Selection
+              </h3>
+
+              <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
+                <p>
+                  A BGP <strong>Path</strong> is the specific chain of <strong>Autonomous Systems</strong> that data follows as it moves across the global internet. Since the web is a "network of networks," there are often dozens of different ways to reach the same destination. BGP's job is to evaluate all those choices and pick the single "best" route from the list.
+                </p>
+                <p>
+                  BGP makes routing decisions based on network <strong>policy</strong>. These choices are driven by business relationships, cost, and the overall health of the path. You can see these real-world routing decisions in action using <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">Cloudflare Radar</a> or by looking at the global routing table through <a href="http://www.routeviews.org/routeviews/" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">RouteViews</a>.
+                </p>
+                <p>
+                  Path selection is a deliberate choice negotiated by network operators. These policies are vital for managing transit costs and maintaining link reliability across the Internet.
+                </p>
+              </div>
+
+              <div class="mt-8 bg-indigo-500/5 dark:bg-indigo-500/10 p-6 rounded-xl border border-indigo-500/20">
+                <h4 class="text-xs font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-4">How BGP Chooses a Route</h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400 italic mb-6">Note: This is the core decision process. Real routers evaluate many more tie-breakers and vendor-specific attributes (like Cisco Weight).</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div class="flex gap-3">
+                    <span class="font-bold text-indigo-500">01</span>
+                    <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.5" target="_blank" class="text-purple-600 dark:text-purple-400 uppercase text-xs font-bold underline decoration-dotted decoration-purple-500/50 hover:text-purple-500">Local Preference:</a> The primary way networks prioritize outbound paths, often preferring free peering over paid transit.</div>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="font-bold text-indigo-500">02</span>
+                    <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.2" target="_blank" class="text-emerald-600 dark:text-emerald-400 uppercase text-xs font-bold underline decoration-dotted decoration-emerald-500/50 hover:text-emerald-500">AS Path Length:</a> BGP typically prefers the shortest chain of networks (ASes), though policies and traffic engineering regularly override this.</div>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="font-bold text-indigo-500">03</span>
+                    <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-amber-600 dark:text-amber-400 uppercase text-xs font-bold underline decoration-dotted decoration-amber-500/50 hover:text-amber-500">Route Origin:</a> BGP prefers routes originated directly (locally injected) over those learned from neighbors.</div>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="font-bold text-indigo-500">04</span>
+                    <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-5.1.4" target="_blank" class="text-rose-600 dark:text-rose-400 uppercase text-xs font-bold underline decoration-dotted decoration-rose-500/50 hover:text-rose-500">MED:</a> A technical "hint" used to tell a neighboring network which entry point into your network is preferred for their inbound traffic.</div>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="font-bold text-indigo-500">05</span>
+                    <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-blue-600 dark:text-blue-400 uppercase text-xs font-bold underline decoration-dotted decoration-blue-500/50 hover:text-blue-500">eBGP over iBGP:</a> External paths are strongly preferred over internal paths to ensure traffic exits the local network efficiently.</div>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="font-bold text-indigo-500">06</span>
+                    <div class="text-sm"><a href="https://datatracker.ietf.org/doc/html/rfc4271#section-9.1.2.2" target="_blank" class="text-cyan-600 dark:text-cyan-400 uppercase text-xs font-bold underline decoration-dotted decoration-cyan-500/50 hover:text-cyan-500">IGP Cost to Next Hop:</a> Prefers paths with the lowest internal routing cost to reach the exit router.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-8 max-lg:hidden">
+              <div class="space-y-4">
+                <div id="path-animation-container" class="relative aspect-square bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner cursor-pointer">
+                   <svg viewBox="0 0 200 200" class="w-full h-full">
+                      {/* Dotted Connections (The Mesh) */}
+                      <g class="stroke-slate-300 dark:stroke-slate-700 stroke-[0.5] fill-none" stroke-dasharray="2,2">
+                         <path d="M40,40 L100,20 L160,40 L180,100 L160,160 L100,180 L40,160 L20,100 Z" />
+                         <path d="M40,40 L100,100 L160,40" />
+                         <path d="M20,100 L100,100 L180,100" />
+                         <path d="M40,160 L100,100 L160,160" />
+                         <path d="M100,20 L100,180" />
+                         <path d="M40,40 L40,160" />
+                         <path d="M160,40 L160,160" />
+                      </g>
+
+                      {/* Nodes */}
+                      <g class="fill-slate-200 dark:fill-slate-800 stroke-slate-400 dark:stroke-slate-600 stroke-[1]">
+                         <circle cx="40" cy="40" r="4" />
+                         <circle cx="100" cy="20" r="4" />
+                         <circle cx="160" cy="40" r="4" />
+                         <circle cx="180" cy="100" r="4" />
+                         <circle cx="160" cy="160" r="4" />
+                         <circle cx="100" cy="180" r="4" />
+                         <circle cx="40" cy="160" r="4" />
+                         <circle cx="20" cy="100" r="4" />
+                         <circle cx="100" cy="100" r="4" />
+                      </g>
+
+                      {/* Animated Selected Path */}
+                      <path
+                        id="animated-path"
+                        d="M40,40 L100,20 L160,40 L100,100 L160,160"
+                        class="stroke-indigo-500 dark:stroke-cyan-500 stroke-[2.5] fill-none stroke-linecap-round stroke-linejoin-round shadow-glow-cyan transition-all duration-1000 ease-in-out"
+                      />
+
+                      {/* Fixed Highlight Nodes */}
+                      <g id="path-nodes">
+                         <circle id="h-node-40-40" cx="40" cy="40" r="6" class="fill-indigo-600 dark:fill-cyan-500 opacity-100 transition-opacity duration-1000" />
+                         <circle id="h-node-100-20" cx="100" cy="20" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-160-40" cx="160" cy="40" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-180-100" cx="180" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-160-160" cx="160" cy="160" r="6" class="fill-emerald-500 shadow-glow-emerald opacity-100 transition-opacity duration-1000" />
+                         <circle id="h-node-100-180" cx="100" cy="180" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-40-160" cx="40" cy="160" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-20-100" cx="20" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                         <circle id="h-node-100-100" cx="100" cy="100" r="4" class="fill-indigo-500 dark:fill-cyan-400 opacity-0 transition-opacity duration-1000" />
+                      </g>
+                   </svg>
+
+                   {/* Playback Controls */}
+                   <div class="absolute bottom-4 right-4 flex gap-2 pointer-events-none">
+                     <div class="flex items-center p-1 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-xl pointer-events-auto backdrop-blur-sm">
+                        <button id="path-play-pause" class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 active:scale-95" title="Pause/Play">
+                           <svg id="pause-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"></path></svg>
+                           <svg id="play-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                        </button>
+                     </div>
+                   </div>
+                </div>
+
+                <style>
+                  .shadow-glow-cyan { filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.5)); }
+                  .shadow-glow-emerald { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); }
+                  .dark .shadow-glow-cyan { filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.8)); }
+                  .dark .shadow-glow-emerald { filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8)); }
+                  
+                  #animated-path {
+                    transition: d 1s ease-in-out;
+                  }
+
+                  @media (prefers-reduced-motion: reduce) {
+                    #animated-path {
+                      transition: none !important;
+                    }
+                    .animate-pulse {
+                      animation: none !important;
+                    }
+                  }
+                </style>
+
+                <script>
+                  function initPathAnimation() {
+                    const container = document.getElementById('path-animation-container');
+                    const path = document.getElementById('animated-path');
+                    const allHighlightNodes = document.querySelectorAll('#path-nodes circle');
+                    const playPauseBtn = document.getElementById('path-play-pause');
+                    const playIcon = document.getElementById('play-icon');
+                    const pauseIcon = document.getElementById('pause-icon');
+
+                    if (!path) return;
+
+                    const paths = [
+                      {
+                        d: "M40,40 L100,20 L160,40 L100,100 L160,160",
+                        activeNodes: ['h-node-40-40', 'h-node-160-160']
+                      },
+                      {
+                        d: "M40,40 L40,40 L100,100 L160,160 L160,160", 
+                        activeNodes: ['h-node-40-40', 'h-node-160-160']
+                      },
+                      {
+                        d: "M40,40 L40,160 L100,180 L160,160 L160,160",
+                        activeNodes: ['h-node-40-40', 'h-node-160-160']
+                      }
+                    ];
+
+                    let current = 0;
+                    let isPlaying = true;
+                    let intervalId: any = null;
+
+                    function updateDisplay() {
+                      allHighlightNodes.forEach(node => {
+                        if (node.id !== 'h-node-40-40') {
+                          (node as HTMLElement).style.opacity = '0';
+                        }
+                      });
+
+                      const config = paths[current];
+                      path.setAttribute('d', config.d);
+
+                      setTimeout(() => {
+                        const destNode = document.getElementById('h-node-160-160');
+                        if (destNode) {
+                          destNode.style.opacity = '1';
+                        }
+                      }, 1000);
+                    }
+
+                    function startCycle() {
+                      stopCycle();
+                      intervalId = setInterval(() => {
+                        current = (current + 1) % paths.length;
+                        updateDisplay();
+                      }, 3500);
+                      isPlaying = true;
+                      playIcon?.classList.add('hidden');
+                      pauseIcon?.classList.remove('hidden');
+                    }
+
+                    function stopCycle() {
+                      if (intervalId) clearInterval(intervalId);
+                      isPlaying = false;
+                      playIcon?.classList.remove('hidden');
+                      pauseIcon?.classList.add('hidden');
+                    }
+
+                    function togglePlayback(e?: Event) {
+                      if (e) e.stopPropagation();
+                      if (isPlaying) stopCycle();
+                      else startCycle();
+                    }
+
+                    container?.addEventListener('click', () => togglePlayback());
+                    playPauseBtn?.addEventListener('click', togglePlayback);
+
+                    startCycle();
+                  }
+
+                  document.addEventListener('DOMContentLoaded', initPathAnimation);
+                </script>
+              </div>
+
+              <div class="cyber-box p-6 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+                 <h3 class="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
+                   <svg class="w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                   BGP Communities
+                 </h3>
+                 <div class="space-y-4 text-[11px] text-slate-600 dark:text-slate-400">
+                   <p>
+                     Metadata "tags" attached to routes that signal instructions to upstream peers. Standardized via <a href="https://datatracker.ietf.org/doc/html/rfc1997" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">RFC 1997</a> and <a href="https://datatracker.ietf.org/doc/html/rfc4360" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted">RFC 4360</a>. Important note: most community semantics are <strong>operator-defined</strong> and not universal.
+                   </p>
+                   <ul class="space-y-3 list-disc pl-4">
+                     <li>
+                       <strong>Blackholing:</strong> Used for DDoS mitigation. 
+                       <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">65535:666</code> (Standardized RTBH)</span>
+                     </li>
+                     <li>
+                       <strong>Traffic Steering:</strong> Influencing path priority. 
+                       <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">ASN:70</code> (Common convention to Set Local-Pref 70, but varies per ISP)</span>
+                     </li>
+                     <li>
+                       <strong>Scoping:</strong> Preventing regional leakage. 
+                       <span class="block opacity-70 mt-0.5 italic">Example: <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">NO_EXPORT</code> (Well-known RFC 1997)</span>
+                     </li>
+                   </ul>
+                 </div>
+              </div>
+
             </div>
           </div>
         </div>
