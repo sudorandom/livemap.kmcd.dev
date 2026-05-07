@@ -422,7 +422,9 @@ impl Classifier {
                 last.last_update_ts = ctx.now;
             } else {
                 // Cap peers even for withdrawals if they are new
-                if state.peer_last_attrs.len() >= 100 && !state.peer_last_attrs.contains_key(&session_key) {
+                if state.peer_last_attrs.len() >= 100
+                    && !state.peer_last_attrs.contains_key(&session_key)
+                {
                     let key_to_remove = state
                         .peer_last_attrs
                         .iter()
@@ -517,7 +519,10 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: state.classified_type,
                 old_classification: old_classified_type,
-                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: if state.leak_type != LeakType::None {
                     Some(LeakDetail {
@@ -562,7 +567,10 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: emitted_classification,
                 old_classification: emitted_classification,
-                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: if state.leak_type != LeakType::None {
                     Some(LeakDetail {
@@ -597,7 +605,10 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: ClassificationType::Discovery,
                 old_classification: ClassificationType::None,
-                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: None,
                 anomaly_details: None,
@@ -624,7 +635,10 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: ClassificationType::None,
                 old_classification: ClassificationType::None,
-                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: None,
                 anomaly_details: None,
@@ -744,18 +758,30 @@ impl Classifier {
             );
             if is_new_bad && !is_old_bad {
                 state.active_incident_id = Some(uuid::Uuid::new_v4().to_string().into());
-                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
+                event.incident_id = state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = ctx.now;
             } else if !is_new_bad && is_old_bad {
-                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
+                event.incident_id = state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = state.classified_time_ts;
                 state.active_incident_id = None;
             } else if is_new_bad && is_old_bad && old_classified_type != event.classification_type {
                 state.active_incident_id = Some(uuid::Uuid::new_v4().to_string().into());
-                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
+                event.incident_id = state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = ctx.now;
             } else {
-                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
+                event.incident_id = state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = if state.classified_time_ts == 0 {
                     ctx.now
                 } else {
@@ -845,7 +871,9 @@ impl Classifier {
                     timestamp: ctx.now,
                     classification_type: ClassificationType::Hijack,
                     old_classification: ClassificationType::None,
-                    incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                    incident_id: active_incident_id
+                        .as_ref()
+                        .map(|s: &SharedStr| s.to_string()),
                     incident_start_time: 0,
                     leak_detail: Some(LeakDetail {
                         leak_type: LeakType::None,
@@ -885,7 +913,9 @@ impl Classifier {
                     timestamp: ctx.now,
                     classification_type: ClassificationType::Outage,
                     old_classification: ClassificationType::None,
-                    incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                    incident_id: active_incident_id
+                        .as_ref()
+                        .map(|s: &SharedStr| s.to_string()),
                     incident_start_time: 0,
                     leak_detail: None,
                     anomaly_details: Some(AnomalyDetails {
@@ -924,7 +954,9 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: classification,
                 old_classification: ClassificationType::None,
-                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: Some(ld),
                 anomaly_details: None,
@@ -948,7 +980,9 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: ClassificationType::PathHunting,
                 old_classification: ClassificationType::None,
-                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: None,
                 anomaly_details: None,
@@ -972,7 +1006,9 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: ClassificationType::Flap,
                 old_classification: ClassificationType::None,
-                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: None,
                 anomaly_details: Some(AnomalyDetails {
@@ -1002,7 +1038,9 @@ impl Classifier {
                 timestamp: ctx.now,
                 classification_type: ClassificationType::DDoSMitigation,
                 old_classification: ClassificationType::None,
-                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: None,
                 anomaly_details: None,
@@ -1571,7 +1609,10 @@ impl Classifier {
                 timestamp: now,
                 classification_type: ClassificationType::Outage,
                 old_classification: ClassificationType::None,
-                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
+                incident_id: state
+                    .active_incident_id
+                    .as_ref()
+                    .map(|s: &SharedStr| s.to_string()),
                 incident_start_time: now,
                 leak_detail: None,
                 anomaly_details: Some(AnomalyDetails {

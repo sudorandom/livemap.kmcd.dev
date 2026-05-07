@@ -376,7 +376,12 @@ async fn process_ris_live_message(
                 geo_data = geo.lookup(elem.peer_ip);
             }
             let (lat, lon, city, country) = match geo_data {
-                Some(gd) => (gd.lat, gd.lon, gd.city.map(|s| Arc::new(s)), gd.country.map(|s| Arc::new(s))),
+                Some(gd) => (
+                    gd.lat,
+                    gd.lon,
+                    gd.city.map(|s| Arc::new(s)),
+                    gd.country.map(|s| Arc::new(s)),
+                ),
                 None => (0.0, 0.0, None, None),
             };
             let ctx = MessageContext {
@@ -385,16 +390,17 @@ async fn process_ris_live_message(
                 peer: Arc::new(elem.peer_ip.to_string()),
                 is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
                 path_str: Arc::new(path_str.clone()),
-                comm_str: Arc::new(elem
-                    .communities
-                    .as_ref()
-                    .map(|c| {
-                        c.iter()
-                            .map(|v| v.to_string())
-                            .collect::<Vec<String>>()
-                            .join(" ")
-                    })
-                    .unwrap_or_default()),
+                comm_str: Arc::new(
+                    elem.communities
+                        .as_ref()
+                        .map(|c| {
+                            c.iter()
+                                .map(|v| v.to_string())
+                                .collect::<Vec<String>>()
+                                .join(" ")
+                        })
+                        .unwrap_or_default(),
+                ),
                 origin_asn,
                 path_len: elem
                     .as_path
@@ -559,7 +565,12 @@ async fn process_routeviews_message(
                     geo_data = geo.lookup(elem.peer_ip);
                 }
                 let (lat, lon, city, country) = match geo_data {
-                    Some(gd) => (gd.lat, gd.lon, gd.city.map(|s| Arc::new(s)), gd.country.map(|s| Arc::new(s))),
+                    Some(gd) => (
+                        gd.lat,
+                        gd.lon,
+                        gd.city.map(|s| Arc::new(s)),
+                        gd.country.map(|s| Arc::new(s)),
+                    ),
                     None => (0.0, 0.0, None, None),
                 };
                 let ctx = MessageContext {
@@ -568,16 +579,17 @@ async fn process_routeviews_message(
                     peer: Arc::new(elem.peer_ip.to_string()),
                     is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
                     path_str: Arc::new(path_str.clone()),
-                    comm_str: Arc::new(elem
-                        .communities
-                        .as_ref()
-                        .map(|c| {
-                            c.iter()
-                                .map(|v| v.to_string())
-                                .collect::<Vec<String>>()
-                                .join(" ")
-                        })
-                        .unwrap_or_default()),
+                    comm_str: Arc::new(
+                        elem.communities
+                            .as_ref()
+                            .map(|c| {
+                                c.iter()
+                                    .map(|v| v.to_string())
+                                    .collect::<Vec<String>>()
+                                    .join(" ")
+                            })
+                            .unwrap_or_default(),
+                    ),
                     origin_asn,
                     path_len: elem
                         .as_path
