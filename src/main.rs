@@ -376,16 +376,16 @@ async fn process_ris_live_message(
                 geo_data = geo.lookup(elem.peer_ip);
             }
             let (lat, lon, city, country) = match geo_data {
-                Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
+                Some(gd) => (gd.lat, gd.lon, gd.city.map(|s| Arc::new(s)), gd.country.map(|s| Arc::new(s))),
                 None => (0.0, 0.0, None, None),
             };
             let ctx = MessageContext {
                 now,
-                host: elem.peer_ip.to_string(),
-                peer: elem.peer_ip.to_string(),
+                host: Arc::new(elem.peer_ip.to_string()),
+                peer: Arc::new(elem.peer_ip.to_string()),
                 is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
-                path_str: path_str.clone(),
-                comm_str: elem
+                path_str: Arc::new(path_str.clone()),
+                comm_str: Arc::new(elem
                     .communities
                     .as_ref()
                     .map(|c| {
@@ -394,7 +394,7 @@ async fn process_ris_live_message(
                             .collect::<Vec<String>>()
                             .join(" ")
                     })
-                    .unwrap_or_default(),
+                    .unwrap_or_default()),
                 origin_asn,
                 path_len: elem
                     .as_path
@@ -442,8 +442,8 @@ async fn process_ris_live_message(
                 source: "ris".to_string(),
                 lat,
                 lon,
-                city,
-                country,
+                city: city.as_ref().map(|s| s.to_string()),
+                country: country.as_ref().map(|s| s.to_string()),
                 num_flaps: 0,
             });
             let _ = tx.blocking_send((pending, is_classified));
@@ -559,16 +559,16 @@ async fn process_routeviews_message(
                     geo_data = geo.lookup(elem.peer_ip);
                 }
                 let (lat, lon, city, country) = match geo_data {
-                    Some(gd) => (gd.lat, gd.lon, gd.city, gd.country),
+                    Some(gd) => (gd.lat, gd.lon, gd.city.map(|s| Arc::new(s)), gd.country.map(|s| Arc::new(s))),
                     None => (0.0, 0.0, None, None),
                 };
                 let ctx = MessageContext {
                     now,
-                    host: "routeviews".to_string(),
-                    peer: elem.peer_ip.to_string(),
+                    host: Arc::new("routeviews".to_string()),
+                    peer: Arc::new(elem.peer_ip.to_string()),
                     is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
-                    path_str: path_str.clone(),
-                    comm_str: elem
+                    path_str: Arc::new(path_str.clone()),
+                    comm_str: Arc::new(elem
                         .communities
                         .as_ref()
                         .map(|c| {
@@ -577,7 +577,7 @@ async fn process_routeviews_message(
                                 .collect::<Vec<String>>()
                                 .join(" ")
                         })
-                        .unwrap_or_default(),
+                        .unwrap_or_default()),
                     origin_asn,
                     path_len: elem
                         .as_path
@@ -627,8 +627,8 @@ async fn process_routeviews_message(
                     source: "routeviews".to_string(),
                     lat,
                     lon,
-                    city,
-                    country,
+                    city: city.as_ref().map(|s| s.to_string()),
+                    country: country.as_ref().map(|s| s.to_string()),
                     num_flaps: 0,
                 });
                 let _ = tx.blocking_send((pending, is_classified));
@@ -798,7 +798,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_for_classifier = db.clone();
     info!("Initializing classifier...");
     let classifier = Arc::new(Classifier::new(
-        200000,
+        50000,
         Some(DiskTrie::new(seen_tree)),
         Some(db_for_classifier),
     ));
@@ -1182,13 +1182,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let hc = heavy_classifier.clone();
             if let Ok(summary) = tokio::task::spawn_blocking(move || {
-                struct Entry {
-                    net: ipnet::Ipv4Net,
-                    class: ClassificationType,
-                    org: Option<Arc<String>>,
-                    rpki: i32,
-                }
-                let mut data = Vec::new();
                 let mut rpki_v6_valid = 0u64;
                 let mut rpki_v6_invalid = 0u64;
                 let mut rpki_v6_missing = 0u64;
@@ -1200,6 +1193,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if !rpki_loaded {
                     info!("[STATS] RPKI data is still loading... skipping RPKI aggregation for this cycle.");
                 }
+
+                let mut nets_by_class: HashMap<ClassificationType, Vec<ipnet::Ipv4Net>> = HashMap::new();
+                let mut nets_all: Vec<ipnet::Ipv4Net> = Vec::new();
+                let mut nets_rpki: [Vec<ipnet::Ipv4Net>; 4] = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+                let mut org_ips_approx: HashMap<Arc<String>, u64> = HashMap::new();
 
                 if let Ok(conn) = pool.get()
                     && let Ok(mut stmt) =
@@ -1215,6 +1213,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let net_parsed = IpNet::from_str(&p_str).ok();
                         match net_parsed {
                             Some(IpNet::V4(v4)) => {
+                                let ct = ClassificationType::from_i32(c_i32);
+                                nets_by_class.entry(ct).or_default().push(v4);
+                                nets_all.push(v4);
+
                                 let mut org = None;
                                 if o_asn > 0 {
                                     org = local_asinfo
@@ -1234,6 +1236,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         .clone();
                                 }
 
+                                if let Some(ref org_name) = org {
+                                    let ips = 1u64 << (32 - v4.prefix_len());
+                                    *org_ips_approx.entry(org_name.clone()).or_default() += ips;
+                                }
+
                                 let rpki = if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
                                     if o_asn > 0 {
                                         match bgpkit.rpki_validate(o_asn, &p_str) {
@@ -1247,13 +1254,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 } else {
                                     0
                                 };
-
-                                data.push(Entry {
-                                    net: v4,
-                                    class: ClassificationType::from_i32(c_i32),
-                                    org,
-                                    rpki,
-                                });
+                                if rpki > 0 {
+                                    nets_rpki[rpki as usize].push(v4);
+                                }
                             }
                             Some(IpNet::V6(_)) => {
                                 if rpki_loaded && let Some(bgpkit) = bgpkit_opt {
@@ -1279,55 +1282,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
 
-                info!("[STATS] Aggregating {} IPv4 prefixes.", data.len());
+                info!("[STATS] Aggregating IPv4 prefixes.");
 
-                let count_ips = |nets: Vec<ipnet::Ipv4Net>| -> u64 {
+                let count_ips_ref = |nets: &Vec<ipnet::Ipv4Net>| -> u64 {
                     if nets.is_empty() {
                         return 0;
                     }
-                    ipnet::Ipv4Net::aggregate(&nets)
+                    ipnet::Ipv4Net::aggregate(nets)
                         .iter()
-                        .map(|n| {
-                            if n.prefix_len() == 0 {
-                                u32::MAX as u64 + 1
-                            } else {
-                                1u64 << (32 - n.prefix_len())
-                            }
-                        })
+                        .map(|n| 1u64 << (32 - n.prefix_len()))
                         .sum::<u64>()
                 };
 
-                let g_ipv4 = count_ips(data.iter().map(|e| e.net).collect());
+                let g_ipv4 = count_ips_ref(&nets_all);
 
                 let mut c_ipv4 = HashMap::new();
-                for &ct in &[
-                    ClassificationType::None,
-                    ClassificationType::Bogon,
-                    ClassificationType::Hijack,
-                    ClassificationType::RouteLeak,
-                    ClassificationType::Outage,
-                    ClassificationType::DDoSMitigation,
-                    ClassificationType::Flap,
-                    ClassificationType::PathHunting,
-                    ClassificationType::Discovery,
-                    ClassificationType::MinorRouteLeak,
-                ] {
-                    let nets: Vec<_> = data.iter().filter(|e| e.class == ct).map(|e| e.net).collect();
-                    if !nets.is_empty() {
-                        c_ipv4.insert(ct, count_ips(nets));
-                    }
-                }
-
-                let mut org_ips_approx: HashMap<Arc<String>, u64> = HashMap::new();
-                for e in &data {
-                    if let Some(ref org) = e.org {
-                        let ips = if e.net.prefix_len() == 0 {
-                            u32::MAX as u64 + 1
-                        } else {
-                            1u64 << (32 - e.net.prefix_len())
-                        };
-                        *org_ips_approx.entry(org.clone()).or_default() += ips;
-                    }
+                for (ct, nets) in nets_by_class {
+                    c_ipv4.insert(ct, count_ips_ref(&nets));
                 }
 
                 let (largest_org_name, largest_org_ips) = org_ips_approx
@@ -1338,9 +1309,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let (rv4, ri4, rm4) = if rpki_loaded {
                     (
-                        count_ips(data.iter().filter(|e| e.rpki == 1).map(|e| e.net).collect()),
-                        count_ips(data.iter().filter(|e| e.rpki == 2).map(|e| e.net).collect()),
-                        count_ips(data.iter().filter(|e| e.rpki == 3).map(|e| e.net).collect()),
+                        count_ips_ref(&nets_rpki[1]),
+                        count_ips_ref(&nets_rpki[2]),
+                        count_ips_ref(&nets_rpki[3]),
                     )
                 } else {
                     (0, 0, 0)

@@ -10,6 +10,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub type SharedStr = Arc<String>;
+
 pub struct DiskTrie {
     tree: sled::Tree,
 }
@@ -171,19 +173,19 @@ pub struct StatsBucket {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LastAttrs {
-    pub path: String,
+    pub path: SharedStr,
     pub last_path_len: i32,
     pub origin_asn: u32,
     pub med: Option<u32>,
     pub local_pref: Option<u32>,
     pub last_update_ts: i64,
-    pub host: String,
+    pub host: SharedStr,
     pub withdrawn: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrefixState {
-    pub peer_last_attrs: HashMap<String, LastAttrs>,
+    pub peer_last_attrs: HashMap<SharedStr, LastAttrs>,
     pub buckets: HashMap<i64, StatsBucket>,
     pub start_time_ts: i64,
     pub last_update_ts: i64,
@@ -197,11 +199,11 @@ pub struct PrefixState {
     pub victim_asn: u32,
     pub fully_withdrawn_ts: Option<i64>,
     pub uncategorized_counted: bool,
-    pub active_incident_id: Option<String>,
+    pub active_incident_id: Option<SharedStr>,
     pub lat: f32,
     pub lon: f32,
-    pub city: Option<String>,
-    pub country: Option<String>,
+    pub city: Option<SharedStr>,
+    pub country: Option<SharedStr>,
 }
 
 impl Default for PrefixState {
@@ -236,11 +238,11 @@ impl Default for PrefixState {
 
 pub struct MessageContext {
     pub now: i64,
-    pub host: String,
-    pub peer: String,
+    pub host: SharedStr,
+    pub peer: SharedStr,
     pub is_withdrawal: bool,
-    pub path_str: String,
-    pub comm_str: String,
+    pub path_str: SharedStr,
+    pub comm_str: SharedStr,
     pub origin_asn: u32,
     pub path_len: usize,
     pub source: String,
@@ -302,10 +304,10 @@ pub struct AggregatedStats {
     pub path_len_inc: u32,
     pub path_len_dec: u32,
     pub total_flaps: u32,
-    pub unique_peers: HashSet<String>,
-    pub unique_hosts: HashSet<String>,
-    pub all_unique_hosts: HashSet<String>,
-    pub withdrawn_peers: HashSet<String>,
+    pub unique_peers: HashSet<SharedStr>,
+    pub unique_hosts: HashSet<SharedStr>,
+    pub all_unique_hosts: HashSet<SharedStr>,
+    pub withdrawn_peers: HashSet<SharedStr>,
     pub peer_attrs_values: Vec<LastAttrs>,
 }
 
@@ -364,8 +366,8 @@ impl Classifier {
         ctx: &MessageContext,
         lat: f32,
         lon: f32,
-        city: Option<String>,
-        country: Option<String>,
+        city: Option<SharedStr>,
+        country: Option<SharedStr>,
     ) -> (Option<PendingEvent>, bool) {
         let shard = self.get_shard(&prefix);
 
@@ -414,15 +416,28 @@ impl Classifier {
 
         if ctx.is_withdrawal {
             state.buckets.entry(minute_ts).or_default().withdrawals += 1;
-            let session_key = format!("{}:{}", ctx.host, ctx.peer);
+            let session_key: SharedStr = format!("{}:{}", ctx.host, ctx.peer).into();
             if let Some(last) = state.peer_last_attrs.get_mut(&session_key) {
                 last.withdrawn = true;
                 last.last_update_ts = ctx.now;
             } else {
+                // Cap peers even for withdrawals if they are new
+                if state.peer_last_attrs.len() >= 100 && !state.peer_last_attrs.contains_key(&session_key) {
+                    let key_to_remove = state
+                        .peer_last_attrs
+                        .iter()
+                        .find(|(_, v)| v.withdrawn)
+                        .map(|(k, _)| k.clone())
+                        .or_else(|| state.peer_last_attrs.keys().next().cloned());
+                    if let Some(k) = key_to_remove {
+                        state.peer_last_attrs.remove(&k);
+                    }
+                }
+
                 state.peer_last_attrs.insert(
                     session_key,
                     LastAttrs {
-                        path: String::new(),
+                        path: Arc::new("".to_string()),
                         last_path_len: 0,
                         origin_asn: 0,
                         med: None,
@@ -497,12 +512,12 @@ impl Classifier {
                 prefix: prefix.clone(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: state.classified_type,
                 old_classification: old_classified_type,
-                incident_id: state.active_incident_id.clone(),
+                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: if state.leak_type != LeakType::None {
                     Some(LeakDetail {
@@ -521,8 +536,8 @@ impl Classifier {
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: transition_count,
             });
             if state.classified_type == ClassificationType::None {
@@ -542,12 +557,12 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: emitted_classification,
                 old_classification: emitted_classification,
-                incident_id: state.active_incident_id.clone(),
+                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: if state.leak_type != LeakType::None {
                     Some(LeakDetail {
@@ -566,8 +581,8 @@ impl Classifier {
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: transition_count,
             });
         }
@@ -577,20 +592,20 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: 0,
                 timestamp: ctx.now,
                 classification_type: ClassificationType::Discovery,
                 old_classification: ClassificationType::None,
-                incident_id: state.active_incident_id.clone(),
+                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: None,
                 anomaly_details: None,
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: transition_count,
             });
             if let Some(ref db) = self.state_db
@@ -604,20 +619,20 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: self.get_as_name(resolved_asn).unwrap_or_default(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: ClassificationType::None,
                 old_classification: ClassificationType::None,
-                incident_id: state.active_incident_id.clone(),
+                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: state.classified_time_ts,
                 leak_detail: None,
                 anomaly_details: None,
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: transition_count,
             });
         }
@@ -659,8 +674,8 @@ impl Classifier {
         ctx: &MessageContext,
         lat: f32,
         lon: f32,
-        city: Option<String>,
-        country: Option<String>,
+        city: Option<SharedStr>,
+        country: Option<SharedStr>,
         old_classified_type: ClassificationType,
     ) -> (Option<PendingEvent>, bool, u32) {
         let stats = self.aggregate_recent_buckets(state, ctx.now, resolved_asn);
@@ -696,6 +711,7 @@ impl Classifier {
             country.clone(),
             fw_ts,
             transition_count,
+            state.active_incident_id.clone(),
         );
 
         if let Some(mut event) = event_opt {
@@ -727,19 +743,19 @@ impl Classifier {
                     | ClassificationType::Outage
             );
             if is_new_bad && !is_old_bad {
-                state.active_incident_id = Some(uuid::Uuid::new_v4().to_string());
-                event.incident_id = state.active_incident_id.clone();
+                state.active_incident_id = Some(uuid::Uuid::new_v4().to_string().into());
+                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = ctx.now;
             } else if !is_new_bad && is_old_bad {
-                event.incident_id = state.active_incident_id.clone();
+                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = state.classified_time_ts;
                 state.active_incident_id = None;
             } else if is_new_bad && is_old_bad && old_classified_type != event.classification_type {
-                state.active_incident_id = Some(uuid::Uuid::new_v4().to_string());
-                event.incident_id = state.active_incident_id.clone();
+                state.active_incident_id = Some(uuid::Uuid::new_v4().to_string().into());
+                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = ctx.now;
             } else {
-                event.incident_id = state.active_incident_id.clone();
+                event.incident_id = state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string());
                 event.incident_start_time = if state.classified_time_ts == 0 {
                     ctx.now
                 } else {
@@ -769,10 +785,11 @@ impl Classifier {
         resolved_asn: u32,
         lat: f32,
         lon: f32,
-        city: Option<String>,
-        country: Option<String>,
+        city: Option<SharedStr>,
+        country: Option<SharedStr>,
         fully_withdrawn_ts: Option<i64>,
         flap_count: u32,
+        active_incident_id: Option<SharedStr>,
     ) -> (Option<PendingEvent>, bool) {
         let as_name = self.get_as_name(resolved_asn).unwrap_or_default();
         let mut candidates = Vec::new();
@@ -784,7 +801,7 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: as_name.clone(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: ClassificationType::Bogon,
@@ -796,8 +813,8 @@ impl Classifier {
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: flap_count,
             });
         }
@@ -823,12 +840,12 @@ impl Classifier {
                     prefix: prefix.to_string(),
                     asn: resolved_asn,
                     as_name: as_name.clone(),
-                    peer_ip: ctx.peer.clone(),
+                    peer_ip: ctx.peer.to_string(),
                     historical_asn: historical_origin_asn,
                     timestamp: ctx.now,
                     classification_type: ClassificationType::Hijack,
                     old_classification: ClassificationType::None,
-                    incident_id: None,
+                    incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                     incident_start_time: 0,
                     leak_detail: Some(LeakDetail {
                         leak_type: LeakType::None,
@@ -843,8 +860,8 @@ impl Classifier {
                     source: ctx.source.clone(),
                     lat,
                     lon,
-                    city: city.clone(),
-                    country: country.clone(),
+                    city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                    country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                     num_flaps: flap_count,
                 });
             }
@@ -863,12 +880,12 @@ impl Classifier {
                     prefix: prefix.to_string(),
                     asn: resolved_asn,
                     as_name: as_name.clone(),
-                    peer_ip: ctx.peer.clone(),
+                    peer_ip: ctx.peer.to_string(),
                     historical_asn: historical_origin_asn,
                     timestamp: ctx.now,
                     classification_type: ClassificationType::Outage,
                     old_classification: ClassificationType::None,
-                    incident_id: None,
+                    incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                     incident_start_time: 0,
                     leak_detail: None,
                     anomaly_details: Some(AnomalyDetails {
@@ -880,8 +897,8 @@ impl Classifier {
                     source: ctx.source.clone(),
                     lat,
                     lon,
-                    city: city.clone(),
-                    country: country.clone(),
+                    city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                    country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                     num_flaps: flap_count,
                 });
             } else {
@@ -902,20 +919,20 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: as_name.clone(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: classification,
                 old_classification: ClassificationType::None,
-                incident_id: None,
+                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: Some(ld),
                 anomaly_details: None,
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: flap_count,
             });
         }
@@ -926,20 +943,20 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: as_name.clone(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: ClassificationType::PathHunting,
                 old_classification: ClassificationType::None,
-                incident_id: None,
+                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: None,
                 anomaly_details: None,
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: flap_count,
             });
         }
@@ -950,12 +967,12 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: as_name.clone(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: ClassificationType::Flap,
                 old_classification: ClassificationType::None,
-                incident_id: None,
+                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: None,
                 anomaly_details: Some(AnomalyDetails {
@@ -968,8 +985,8 @@ impl Classifier {
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: flap_count,
             });
         }
@@ -980,20 +997,20 @@ impl Classifier {
                 prefix: prefix.to_string(),
                 asn: resolved_asn,
                 as_name: as_name.clone(),
-                peer_ip: ctx.peer.clone(),
+                peer_ip: ctx.peer.to_string(),
                 historical_asn: historical_origin_asn,
                 timestamp: ctx.now,
                 classification_type: ClassificationType::DDoSMitigation,
                 old_classification: ClassificationType::None,
-                incident_id: None,
+                incident_id: active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: 0,
                 leak_detail: None,
                 anomaly_details: None,
                 source: ctx.source.clone(),
                 lat,
                 lon,
-                city: city.clone(),
-                country: country.clone(),
+                city: city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: flap_count,
             });
         }
@@ -1034,8 +1051,6 @@ impl Classifier {
             if attr.withdrawn {
                 s.withdrawn_peers.insert(peer.clone());
             } else {
-                // Count ANY peer seeing the prefix, regardless of ASN
-                // This ensures is_fully_withdrawn is only true if NO one sees it.
                 s.unique_peers.insert(peer.clone());
                 s.unique_hosts.insert(attr.host.clone());
             }
@@ -1049,7 +1064,7 @@ impl Classifier {
         minute_ts: i64,
         ctx: &MessageContext,
     ) {
-        let session_key = format!("{}:{}", ctx.host, ctx.peer);
+        let session_key: SharedStr = format!("{}:{}", ctx.host, ctx.peer).into();
         let (path_changed, len_inc, len_dec, was_withdrawn) =
             if let Some(last) = state.peer_last_attrs.get(&session_key) {
                 let pc = last.path != ctx.path_str;
@@ -1077,6 +1092,20 @@ impl Classifier {
             bucket.path_length_increases += len_inc;
             bucket.path_length_decreases += len_dec;
         }
+
+        // Cap peers to prevent memory explosion
+        if state.peer_last_attrs.len() >= 100 && !state.peer_last_attrs.contains_key(&session_key) {
+            let key_to_remove = state
+                .peer_last_attrs
+                .iter()
+                .find(|(_, v)| v.withdrawn)
+                .map(|(k, _)| k.clone())
+                .or_else(|| state.peer_last_attrs.keys().next().cloned());
+            if let Some(k) = key_to_remove {
+                state.peer_last_attrs.remove(&k);
+            }
+        }
+
         state.peer_last_attrs.insert(
             session_key,
             LastAttrs {
@@ -1518,7 +1547,7 @@ impl Classifier {
             state.classified_type = ClassificationType::Outage;
             state.classified_time_ts = now;
             if state.active_incident_id.is_none() {
-                state.active_incident_id = Some(uuid::Uuid::new_v4().to_string());
+                state.active_incident_id = Some(uuid::Uuid::new_v4().to_string().into());
             }
 
             let resolved_asn = if state.last_origin_asn != 0 {
@@ -1542,7 +1571,7 @@ impl Classifier {
                 timestamp: now,
                 classification_type: ClassificationType::Outage,
                 old_classification: ClassificationType::None,
-                incident_id: state.active_incident_id.clone(),
+                incident_id: state.active_incident_id.as_ref().map(|s: &SharedStr| s.to_string()),
                 incident_start_time: now,
                 leak_detail: None,
                 anomaly_details: Some(AnomalyDetails {
@@ -1554,8 +1583,8 @@ impl Classifier {
                 source: "timer".to_string(),
                 lat: state.lat,
                 lon: state.lon,
-                city: state.city.clone(),
-                country: state.country.clone(),
+                city: state.city.as_ref().map(|s: &SharedStr| s.to_string()),
+                country: state.country.as_ref().map(|s: &SharedStr| s.to_string()),
                 num_flaps: 0,
             };
 
@@ -1596,15 +1625,15 @@ mod tests {
     ) -> MessageContext {
         MessageContext {
             now,
-            host: host.to_string(),
-            peer: peer.to_string(),
+            host: host.to_string().into(),
+            peer: peer.to_string().into(),
             is_withdrawal,
             path_str: if is_withdrawal {
-                String::new()
+                String::new().into()
             } else {
-                format!("1 2 {}", origin_asn)
+                format!("1 2 {}", origin_asn).into()
             },
-            comm_str: String::new(),
+            comm_str: String::new().into(),
             origin_asn: if is_withdrawal { 0 } else { origin_asn },
             path_len: if is_withdrawal { 0 } else { 3 },
             source: "test".to_string(),
