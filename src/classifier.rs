@@ -1962,11 +1962,11 @@ mod tests {
         // 3. Trigger DDoS Mitigation (Priority 50) while Hijack is active -> Should NOT override
         let ctx_ddos = MessageContext {
             now: 1020,
-            host: "h1".to_string(),
-            peer: "p1".to_string(),
+            host: "h1".to_string().into(),
+            peer: "p1".to_string().into(),
             is_withdrawal: false,
-            path_str: "1 2 400".to_string(),
-            comm_str: "65535:666".to_string(),
+            path_str: "1 2 400".to_string().into(),
+            comm_str: "65535:666".to_string().into(),
             origin_asn: 400,
             path_len: 3,
             source: "test".to_string(),
