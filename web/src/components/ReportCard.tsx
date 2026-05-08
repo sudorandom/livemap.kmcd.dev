@@ -358,6 +358,10 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
     { name: 'Invalid', value: Number(data.rpkiInvalidIpv4 || 0) + Number(data.rpkiInvalidIpv6 || 0), fill: RPKI_COLORS.invalid },
   ].filter(d => d.value > 0);
 
+  const totalRpkiCount = rpkiDataOverall.reduce((acc, d) => acc + d.value, 0) || 1;
+  const validRpkiEntry = rpkiDataOverall.find(d => d.name === 'Valid');
+  const validRpkiPercent = validRpkiEntry ? ((validRpkiEntry.value / totalRpkiCount) * 100).toFixed(1) : '0.0';
+
   // Filter and sort classification counts for the summary row
   const activeClassifications = (data.classificationCounts || [])
     .filter((c: any) => c.prefixCount > 0)
@@ -603,7 +607,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
             <div className="bg-indigo-500/5 dark:bg-indigo-500/10 p-6 rounded-xl border border-indigo-500/20">
               <h4 className="text-xs font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-3">Benchmarking Visibility</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                The data observed by this project provides a high-fidelity view of global RPKI deployment. At current reporting, our observed RPKI validity stands at <strong>53.7%</strong>, which closely mirrors the <strong>55%</strong> adoption rate reported by the <a href="https://www.manrs.org/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline font-bold">MANRS</a> initiative. This alignment confirms that the telemetry captured here is representative of the broader internet's move toward a cryptographically verified routing table.
+                The data observed by this project provides a high-fidelity view of global RPKI deployment. At current reporting, our observed RPKI validity stands at <strong>{validRpkiPercent}%</strong>, which closely mirrors the <strong>55%</strong> adoption rate reported by the <a href="https://www.manrs.org/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline font-bold">MANRS</a> initiative. This alignment confirms that the telemetry captured here is representative of the broader internet's move toward a cryptographically verified routing table.
               </p>
             </div>
           </div>
