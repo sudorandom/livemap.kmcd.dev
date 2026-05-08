@@ -558,20 +558,17 @@ try {
 </Layout>
 
 <style is:global>
-  :root {
-    --cyber-neon-blue: #00f2ff;
-    --cyber-neon-pink: #ff00ff;
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
   }
-  .font-cyber { font-family: 'Inter', system-ui, sans-serif; }
-  .cyber-text-gradient {
-    background: linear-gradient(90deg, var(--cyber-neon-blue), var(--cyber-neon-pink));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
-  .cyber-box {
-    position: relative;
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(12px);
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 243, 255, 0.2);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 243, 255, 0.4);
   }
 </style>
-/style>

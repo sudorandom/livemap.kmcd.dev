@@ -434,32 +434,104 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
               <BGPSecurityExplainer />
             </div>
 
-            <div className="space-y-6 pt-12 border-t border-slate-500/10">
-              <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">The Evolution of Trust</h3>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Internet routing previously relied on <strong>IRR (Internet Routing Registry)</strong> databases. While used for filter generation, IRR records are often unauthenticated or outdated. 
-              </p>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Modern security uses <a href="https://blog.cloudflare.com/rpki/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">RPKI</a> to verify route ownership through cryptographic proofs.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-                <div className="bg-amber-500/5 dark:bg-amber-500/10 p-4 rounded-lg border border-amber-500/20">
-                  <p className="text-xs text-amber-700 dark:text-amber-400 font-bold uppercase tracking-tight mb-2"><a href="https://blog.cloudflare.com/aspa-secure-internet/" target="_blank" className="hover:underline">ASPA (AS Provider Authorization)</a></p>
+            <div className="space-y-12 pt-12 border-t border-slate-500/10">
+              <div className="space-y-4">
+                <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase">The Evolution of Trust</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">
+                  The history of BGP is a decades-long transition from <strong>implicit trust</strong> to <strong>cryptographic verification</strong>. This shift has occurred in three distinct eras, each attempting to solve the fundamental flaw: <em>any network can say anything about any address.</em>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="space-y-4 p-6 bg-slate-500/5 rounded-xl border border-slate-500/10">
+                  <div className="text-indigo-600 dark:text-cyan-500 font-cyber font-bold text-sm tracking-widest uppercase">Phase 1: 1989—1995</div>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white uppercase">Implicit Trust</h4>
                   <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Standard RPKI validates the <strong>Origin AS</strong>. It does not prevent path hijacks. <strong>ASPA</strong> is a proposed extension that defines authorized providers, making it possible to detect and prevent route leaks.
+                    In the "small" internet, operators knew each other. Security was a handshake. This era ended in 1997 with the <strong>AS 7007 incident</strong>, where a minor misconfiguration took down most of the global internet, proving that the system was too fragile for growth.
                   </p>
                 </div>
-                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-4 rounded-lg border border-emerald-500/20">
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-tight mb-2">MANRS</p>
+                <div className="space-y-4 p-6 bg-slate-500/5 rounded-xl border border-slate-500/10">
+                  <div className="text-indigo-600 dark:text-cyan-500 font-cyber font-bold text-sm tracking-widest uppercase">Phase 2: 1995—2012</div>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white uppercase">The IRR Era</h4>
                   <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    The <a href="https://www.manrs.org/" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-bold">MANRS</a> initiative provides baseline security actions for ISPs to maintain global routing stability.
+                    The industry created <a href="https://www.irr.net/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">IRR (Internet Routing Registries)</a> to document routing policy. While a step forward, IRR suffered from "garbage in, garbage out." Records were often unauthenticated, outdated, or conflicting, making automated filtering unreliable.
+                  </p>
+                </div>
+                <div className="space-y-4 p-6 bg-indigo-500/5 dark:bg-cyan-500/5 rounded-xl border border-indigo-500/20 dark:border-cyan-500/20">
+                  <div className="text-indigo-600 dark:text-cyan-500 font-cyber font-bold text-sm tracking-widest uppercase">Phase 3: 2012—Present</div>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white uppercase">Cryptographic Truth</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    We are now in the era of <a href="https://blog.cloudflare.com/rpki/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">RPKI</a>. By using a distributed ledger of cryptographically signed assertions (ROAs), we can finally prove who owns what. But deployment is a massive "network effect" challenge.
                   </p>
                 </div>
               </div>
 
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Routing security requires registration and active filtering by ISPs. Real-world deployment status is available at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
+              <div className="space-y-8">
+                <h4 className="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase flex items-center gap-3">
+                  <ShieldAlert className="text-amber-500" size={24} />
+                  What stops a safer internet?
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                  <div className="space-y-3">
+                    <h5 className="font-bold text-slate-900 dark:text-slate-200 uppercase text-sm tracking-tight">The Incentive Misalignment</h5>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Deploying RPKI protects <em>others</em> from your mistakes, but filtering others' routes (ROV) protects <em>you</em>. Many networks are hesitant to drop "Invalid" routes because a clerical error at a large provider could accidentally disconnect their customers.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <h5 className="font-bold text-slate-900 dark:text-slate-200 uppercase text-sm tracking-tight">Technical Complexity & Risk</h5>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Running an RPKI validator is an additional operational burden. If the validator fails or the cache gets corrupted, a router might drop valid traffic. This "fear of self-inflicted outage" is the #1 barrier to <strong>Reject Invalid</strong> policies.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <h5 className="font-bold text-slate-900 dark:text-slate-200 uppercase text-sm tracking-tight">Legacy Hardware Limitations</h5>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      While modern routers handle RPKI tables easily, older "edge" hardware may lack the CPU or memory to maintain a real-time validation feed. Upgrading global infrastructure takes decades and billions of dollars in capital expenditure.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <h5 className="font-bold text-slate-900 dark:text-slate-200 uppercase text-sm tracking-tight">The "AS Path" Problem</h5>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Current RPKI only validates the <strong>Origin</strong>. A clever attacker can still "forge" a path to that origin. Solving this requires <strong>ASPA</strong> (for path verification) or <strong>BGPsec</strong> (for full signing), both of which are significantly more complex to deploy.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-amber-500/5 dark:bg-amber-500/10 p-5 rounded-lg border border-amber-500/20 group hover:bg-amber-500/10 transition-colors">
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-bold uppercase tracking-tight mb-2 flex items-center gap-2">
+                    <Activity size={14} />
+                    ASPA (Provider Auth)
+                  </p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Standard RPKI validates the <strong>Origin</strong>. It does not prevent path hijacks. <strong>ASPA</strong> defines authorized providers, making it possible to detect sophisticated route leaks and path hijacks.
+                  </p>
+                </div>
+                <div className="bg-indigo-500/5 dark:bg-indigo-500/10 p-5 rounded-lg border border-indigo-500/20 group hover:bg-indigo-500/10 transition-colors">
+                  <p className="text-xs text-indigo-700 dark:text-indigo-400 font-bold uppercase tracking-tight mb-2 flex items-center gap-2">
+                    <ShieldAlert size={14} />
+                    BGPsec (RFC 8205)
+                  </p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    The "gold standard" of security. <a href="https://datatracker.ietf.org/doc/html/rfc8205" target="_blank" className="underline decoration-dotted font-bold">BGPsec</a> signs every hop in the AS Path. While highly secure, it is computationally expensive and requires global hardware upgrades.
+                  </p>
+                </div>
+                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-5 rounded-lg border border-emerald-500/20 group hover:bg-emerald-500/10 transition-colors">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-tight mb-2 flex items-center gap-2">
+                    <ShieldCheck size={14} />
+                    MANRS Compliance
+                  </p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    The <a href="https://www.manrs.org/" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-bold">MANRS</a> initiative (Mutually Agreed Norms for Routing Security) provides a collaborative framework for ISPs to implement baseline security actions.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed italic text-sm">
+                Real-world deployment status and ISP report cards are available at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
               </p>
             </div>
 

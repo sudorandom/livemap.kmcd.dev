@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Zap, Filter, CheckCircle2 } from 'lucide-react';
 
-export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext, isFirst, isLast, nextHighlighted }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string, className?: string, onPrev?: () => void, onNext?: () => void, isFirst?: boolean, isLast?: boolean, nextHighlighted?: boolean }) => (
+export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext, isFirst, isLast, nextHighlighted }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string | React.ReactNode, className?: string, onPrev?: () => void, onNext?: () => void, isFirst?: boolean, isLast?: boolean, nextHighlighted?: boolean }) => (
   <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
@@ -1714,7 +1714,7 @@ export const BGPSecurityExplainer = () => {
         {activeTab === 1 && (
           <PanelContainer 
             title="2. RPKI Route Filtering" 
-            description="ISPs use Route Origin Validation (ROV) to mathematically prove route announcements. Routes are evaluated against ROAs (Route Origin Authorizations) and placed into states: Valid, Invalid, or Not-Found. Invalid routes are dropped at the border, protecting the user."
+            description={<>ISPs use <a href="https://datatracker.ietf.org/doc/html/rfc6811" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Route Origin Validation (ROV)</a> to mathematically prove route announcements. Routes are evaluated against ROAs (Route Origin Authorizations) and placed into states: Valid, Invalid, or Not-Found. Invalid routes are dropped at the border, protecting the user.</>}
             onPrev={handlePrev}
             onNext={handleNext}
             nextHighlighted={completedTabs.includes(1)}
