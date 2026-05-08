@@ -1321,9 +1321,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let (rv4, ri4, rm4) = if rpki_loaded {
                     (
-                        count_ips_ref(&nets_rpki[1]),
-                        count_ips_ref(&nets_rpki[2]),
-                        count_ips_ref(&nets_rpki[3]),
+                        nets_rpki[1].len() as u64,
+                        nets_rpki[2].len() as u64,
+                        nets_rpki[3].len() as u64,
                     )
                 } else {
                     (0, 0, 0)

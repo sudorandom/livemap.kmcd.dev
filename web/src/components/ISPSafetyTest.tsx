@@ -74,7 +74,7 @@ export function ISPSafetyTest() {
   return (
     <div className="w-full transition-all duration-500 flex flex-col">
       {status === 'idle' && (
-       <div className="py-12 flex flex-col items-center justify-center w-full max-w-xl mx-auto">
+       <div className="py-8 flex flex-col items-center justify-center w-full">
          <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-8 leading-relaxed">
            <strong className="text-indigo-600 dark:text-cyan-400">Verify your network's integrity.</strong> This probe attempts to connect to known <strong>RPKI-invalid</strong> prefixes. A secure ISP will drop these invalid paths, preventing a connection. If the connection succeeds, your network may be vulnerable to BGP route hijacks. <strong>Initiate the probe below to test your connection.</strong>
          </p>
@@ -89,7 +89,7 @@ export function ISPSafetyTest() {
        </div>
       )}
       {status === 'testing' && (
-        <div className="py-20 flex flex-col items-center justify-center gap-4">
+        <div className="py-12 flex flex-col items-center justify-center gap-4">
           <div className="relative">
             <div className="w-12 h-12 border-2 border-indigo-600/20 dark:border-cyan-500/20 rounded-full"></div>
             <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-indigo-600 dark:border-cyan-500 rounded-full animate-spin"></div>
@@ -101,7 +101,7 @@ export function ISPSafetyTest() {
       {(status === 'safe' || status === 'unsafe' || status === 'error') && (
         <div 
           aria-live="polite"
-          className={`w-full animate-in slide-in-from-left-4 duration-500 transition-all flex flex-col border-2 rounded-xl p-8 ${
+          className={`w-full animate-in slide-in-from-left-4 duration-500 transition-all flex flex-col border-2 rounded-xl p-6 ${
           status === 'safe' ? 'bg-emerald-500/10 border-emerald-500/40' :
           status === 'unsafe' ? 'bg-red-500/10 border-red-500/40' :
           'bg-slate-500/10 border-slate-500/40'
@@ -137,7 +137,7 @@ export function ISPSafetyTest() {
             </div>
           </div>
 
-          <p className="text-sm text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-6 max-w-3xl">
+          <p className="text-sm text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-6">
             {status === 'safe'
               ? <>Your ISP is successfully filtering invalid BGP routes. You are protected from the most common forms of routing hijacks and leaks.</>
               : status === 'unsafe'
@@ -146,7 +146,7 @@ export function ISPSafetyTest() {
             }
           </p>
 
-          <div className="text-left bg-black/20 dark:bg-white/5 border border-slate-500/10 rounded-lg p-5 font-mono text-xs space-y-3 max-w-2xl">
+          <div className="text-left bg-black/20 dark:bg-white/5 border border-slate-500/10 rounded-lg p-5 font-mono text-xs space-y-3">
             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
               <div className="w-1 h-1 bg-indigo-600 dark:bg-cyan-500"></div>
               Technical Probe Details

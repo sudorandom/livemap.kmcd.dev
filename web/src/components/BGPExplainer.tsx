@@ -20,32 +20,34 @@ export const PanelContainer = ({ title, children, footer, description, className
     >
       {children}
     </div>
-    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
-      {(onPrev || onNext) && (
-        <div className="flex items-center gap-2 order-2 sm:order-1">
-           <button 
-             onClick={onPrev} 
-             disabled={isFirst}
-             className={`p-2.5 rounded-lg border transition-all shadow-sm active:scale-95 ${isFirst ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700'}`}
-             aria-label="Previous Diagram"
-           >
-             <ChevronLeft className="w-5 h-5" />
-           </button>
-           <button 
-             onClick={onNext} 
-             disabled={isLast}
-             className={`p-2.5 rounded-lg border transition-all shadow-sm active:scale-95 ${isLast ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : (nextHighlighted ? 'bg-indigo-600 text-white border-indigo-400 animate-bounce-once shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700')}`}
-             aria-label="Next Diagram"
-           >
-             <ChevronRight className="w-5 h-5" />
-           </button>
-        </div>
-      )}
+    {(onPrev || onNext || footer) && (
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 relative">
+        {(onPrev || onNext) && (
+          <div className="flex items-center gap-2 order-2 sm:order-1">
+             <button 
+               onClick={onPrev} 
+               disabled={isFirst}
+               className={`p-2.5 rounded-lg border transition-all shadow-sm active:scale-95 ${isFirst ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700'}`}
+               aria-label="Previous Diagram"
+             >
+               <ChevronLeft className="w-5 h-5" />
+             </button>
+             <button 
+               onClick={onNext} 
+               disabled={isLast}
+               className={`p-2.5 rounded-lg border transition-all shadow-sm active:scale-95 ${isLast ? 'bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed' : (nextHighlighted ? 'bg-indigo-600 text-white border-indigo-400 animate-bounce-once shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-slate-700')}`}
+               aria-label="Next Diagram"
+             >
+               <ChevronRight className="w-5 h-5" />
+             </button>
+          </div>
+        )}
 
-      <div className="flex flex-1 justify-center sm:justify-end gap-4 order-1 sm:order-2">
-        {footer}
+        <div className="flex flex-1 justify-center sm:justify-end gap-4 order-1 sm:order-2">
+          {footer}
+        </div>
       </div>
-    </div>
+    )}
   </div>
 );
 
@@ -632,7 +634,7 @@ export const BGPRoutingExplainer = () => {
         {activeTab === 1 && (
           <PanelContainer 
             title="2. Routing" 
-            description="Data follows the established paths. BGP selects the shortest route to reach the destination AS."
+            description="Data follows the established paths. BGP selects the best path using a strict tie-breaking algorithm (e.g., Local Preference, AS Path length, MED)."
             onPrev={handlePrev}
             onNext={handleNext}
             nextHighlighted={completedTabs.includes(1)}
@@ -1231,13 +1233,107 @@ export const BGPMessageAnatomy = () => {
   );
 };
 
+export const BGPConceptsExplainer = () => {
+  const concepts = [
+    {
+      title: "BGP Communities",
+      color: "purple",
+      bg: "bg-purple-500",
+      description: "Metadata \"tags\" attached to routes that signal instructions to upstream peers. Standardized via RFC 1997 and RFC 4360.",
+      details: [
+        { 
+          label: "BLACKHOLING (RTBH)", 
+          value: <>A "nuclear option" for DDoS mitigation. It tells providers to drop all traffic to an IP to protect the bandwidth of the rest of the network.<br/><span className="block opacity-70 mt-1 italic">Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">65535:666</code> (Standardized RTBH)</span></>
+        },
+        { 
+          label: "TRAFFIC STEERING", 
+          value: <>Influencing path priority. Most community semantics are operator-defined and not universal.<br/><span className="block opacity-70 mt-1 italic">Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">ASN:70</code> (Common convention to set Local-Pref 70, but varies per ISP)</span></> 
+        },
+        { 
+          label: "SCOPING", 
+          value: <>Preventing regional leakage.<br/><span className="block opacity-70 mt-1 italic">Example: <a href="https://datatracker.ietf.org/doc/html/rfc1997#section-2" target="_blank" rel="noopener noreferrer" className="hover:underline"><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">NO_EXPORT</code> (Well-known RFC 1997)</a></span></> 
+        }
+      ]
+    },
+    {
+      title: "The Internet Hierarchy",
+      color: "blue",
+      bg: "bg-blue-500",
+      description: "Networks are grouped into tiers based on how they connect to the global internet.",
+      details: [
+        { label: "TIER 1 (The Backbone)", value: "A small number of global networks (including Lumen, Arelion, and AT&T) that peer with each other without settlement and do not purchase transit. These networks form the core backbone." },
+        { label: "TIER 2 (Regional)", value: "Providers that peer with some networks but must purchase transit from Tier 1 networks to reach the global internet." },
+        { label: "TIER 3 (Local)", value: "Local ISPs and organizations that primarily purchase transit for connectivity." }
+      ]
+    },
+    {
+      title: "Transit vs. Peering",
+      color: "emerald",
+      bg: "bg-emerald-500",
+      description: "BGP routing is dictated by business relationships, resulting in 'Valley-Free' routing policies.",
+      details: [
+        { label: "TRANSIT", value: "A commercial relationship where a network pays a provider for access to the entire internet. The provider advertises all global routes to the customer." },
+        { label: "PEERING", value: "A relationship where two networks connect directly to exchange traffic between their respective customers. No fees are typically involved, and they do not provide transit for each other." },
+        { 
+          label: "PEERINGDB", 
+          value: <>Networks coordinate these relationships using <a href="https://peeringdb.com/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold">PeeringDB</a>, a public database for published peering policies and exchange locations.</> 
+        }
+      ]
+    },
+    {
+      title: "Looking Glasses",
+      color: "cyan",
+      bg: "bg-cyan-500",
+      description: "Looking Glasses are public, read-only interfaces used by engineers to debug BGP behavior.",
+      details: [
+        { label: "PERSPECTIVE", value: "BGP paths vary based on network location. Debugging global routing requires viewing the table from different points on the internet." },
+        { 
+          label: "REAL-WORLD USE", 
+          value: <>Public projects like <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 hover:underline font-bold">RIPE RIS</a> and <a href="http://www.routeviews.org/routeviews/" target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 hover:underline font-bold">RouteViews</a> collect global routing updates from hundreds of peers for analysis.</> 
+        },
+        { label: "COMMANDS", value: "Interfaces support diagnostic commands like 'show ip bgp <prefix>' or 'traceroute' to reveal AS Paths, Local Preference, and Communities." }
+      ]
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {concepts.map((concept, idx) => (
+        <div key={idx} className="cyber-box flex flex-col h-full bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 rounded-xl overflow-hidden">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+            <h4 className="text-lg font-cyber font-bold text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+              <div className={`w-2 h-6 ${concept.bg}`}></div> {concept.title}
+            </h4>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mt-3">
+              {concept.description}
+            </p>
+          </div>
+          <div className="flex-1 bg-slate-50 dark:bg-slate-900/80 p-5">
+            <dl className="space-y-4">
+              {concept.details.map((field, i) => (
+                <div key={i} className="space-y-1">
+                  <dt className={`text-[10px] font-bold uppercase tracking-wider text-${concept.color}-600 dark:text-${concept.color}-400`}>
+                    {field.label}
+                  </dt>
+                  <dd className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {field.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const BGPAdvancedTopics = () => (
-  <PanelContainer 
-    title="Advanced BGP Topics" 
+  <PanelContainer
+    title="Advanced BGP Topics"
     description="Explore the complex protocols and architectural standards built on top of BGP's extensible framework."
-    className="bg-transparent border-none p-0"
-  >
-    <div className="flex flex-col gap-6 w-full h-full overflow-y-auto custom-scrollbar p-2">
+    className="bg-transparent border-none p-0 !min-h-0"
+  >    <div className="flex flex-col gap-6 w-full h-full overflow-y-auto custom-scrollbar p-2">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
         <div className="space-y-4 border-b border-slate-500/10 pb-4 md:border-b-0">
           <h4 className="text-indigo-600 dark:text-cyan-400 text-sm font-bold uppercase tracking-tight mb-1 flex items-center gap-2">
@@ -1370,7 +1466,7 @@ export const BGPSecurityExplainer = () => {
     { title: "Route Hijack", icon: ShieldAlert, description: "Path stealing via malicious announcements" },
     { title: "RPKI Filtering", icon: ShieldCheck, description: "Automated mitigation of invalid routes" },
     { title: "Route Leak", icon: Activity, description: "Unintentional transit via misconfiguration" },
-    { title: "BGP RTBH", icon: Ban, description: "Remote Triggered Black Hole for DDoS mitigation" },
+    { title: "BGP RTBH", icon: Ban, description: "The 'nuclear option' for DDoS mitigation via black-holing" },
     { title: "BGP FlowSpec", icon: Filter, description: "Granular traffic filtering across AS boundaries" }
   ];
 
