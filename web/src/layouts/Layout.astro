@@ -30,6 +30,9 @@ const { title } = Astro.props;
     <meta property="twitter:image" content="/assets/map.png" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <meta name="generator" content={Astro.generator} />
     <script is:inline>
       const theme = (() => {
@@ -56,8 +59,6 @@ const { title } = Astro.props;
   </body>
 </html>
 <style is:global>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
-
   :root {
     --cyber-neon-blue: #00f3ff;
     --cyber-neon-pink: #ff00ff;
