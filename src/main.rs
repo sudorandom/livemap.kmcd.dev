@@ -379,8 +379,8 @@ async fn process_ris_live_message(
                 Some(gd) => (
                     gd.lat,
                     gd.lon,
-                    gd.city.map(|s| Arc::new(s)),
-                    gd.country.map(|s| Arc::new(s)),
+                    gd.city.map(Arc::new),
+                    gd.country.map(Arc::new),
                 ),
                 None => (0.0, 0.0, None, None),
             };
@@ -568,8 +568,8 @@ async fn process_routeviews_message(
                     Some(gd) => (
                         gd.lat,
                         gd.lon,
-                        gd.city.map(|s| Arc::new(s)),
-                        gd.country.map(|s| Arc::new(s)),
+                        gd.city.map(Arc::new),
+                        gd.country.map(Arc::new),
                     ),
                     None => (0.0, 0.0, None, None),
                 };
