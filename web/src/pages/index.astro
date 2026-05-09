@@ -27,7 +27,7 @@ try {
               BGP LiveMap
             </h1>
             <p class="text-indigo-200 dark:text-cyan-200 mt-2 text-sm font-medium uppercase tracking-widest opacity-80">
-              Real-time telemetry and visual guide to global internet routing.
+              Visual guide to global internet routing
             </p>
           </div>
           <div class="flex flex-col items-center md:items-end gap-4">
@@ -56,7 +56,7 @@ try {
               The Border Gateway Protocol (BGP) connects thousands of independent networks to form the global internet. While interior protocols handle traffic within a single organization, BGP is built for scale and policy-driven routing between <a href="https://datatracker.ietf.org/doc/html/rfc1930" target="_blank" class="text-indigo-600 dark:text-cyan-400 underline decoration-dotted font-bold">Autonomous Systems</a> (ASes).
             </p>
             <p>
-              Networks use BGP to announce IP address ownership and discover paths to reach the rest of the world. Because the protocol relies on implicit trust, it is susceptible to security issues like route hijacks and leaks.
+              Networks use BGP to announce IP address ownership and discover paths to reach the rest of the world. Because the protocol relies on implicit trust, it is susceptible to security issues like route hijacks and leaks. We will dive into how BGP works, its vulnerabilities, and how operators mitigate risks to keep the global Internet running smoothly.
             </p>
           </div>
 
@@ -89,7 +89,7 @@ try {
           <div class="grid grid-cols-1 2xl:grid-cols-2 gap-12">
             <div class="space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
               <p>
-                BGP is a <strong>gossip protocol</strong>. Routers learn reachability information from direct neighbors. When an Autonomous System announces its IP addresses, it passes the news to its peers.
+                BGP is a <strong>gossip protocol</strong>. BGP builds routing tables through neighbor-to-neighbor updates. Because routers lack a global map, they rely on direct peers to tell them which IP addresses are reachable. When an Autonomous System announces a prefix, it essentially tells its neighbors 'send traffic for these IPs to me,' and those neighbors relay the message outward.
               </p>
               <p>
                 Each peer records the path, appends its own <strong>ASN</strong>, and re-announces the prefix to its neighbors.
@@ -184,7 +184,7 @@ try {
               <div class="bg-amber-500/5 dark:bg-amber-500/10 p-6 rounded-xl border border-amber-500/20">
                 <h5 class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-[0.2em] mb-3">TTL Security (GTSM)</h5>
                 <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  The <a href="https://datatracker.ietf.org/doc/html/rfc5082" target="_blank" class="text-amber-700 dark:text-amber-300 font-bold underline decoration-dotted">Generalized TTL Security Mechanism</a> protects sessions by requiring the IP Time-to-Live (TTL) to be 255. Since TTL decrements at each hop, this ensures the peer is directly connected.
+                  The <a href="https://datatracker.ietf.org/doc/html/rfc5082" target="_blank" class="text-amber-700 dark:text-amber-300 font-bold underline decoration-dotted">Generalized TTL Security Mechanism</a> protects sessions by having routers send packets with an IP Time-to-Live (TTL) of 255 and configuring the receiver to <i>only accept</i> packets with a TTL of 255. Since TTL decrements at every router hop, an attacker multiple hops away cannot spoof a packet that arrives with a TTL of 255, proving the legitimate peer must be directly connected.
                 </p>
               </div>
             </div>
@@ -236,7 +236,7 @@ try {
 
                 <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
                   <p>
-                    A BGP <strong>Path</strong> is the chain of Autonomous Systems that data follows. BGP evaluates multiple choices to select the single best route.
+                    A BGP <strong>Path</strong> is the chain of Autonomous Systems that data follows. Because routers often learn multiple paths to the same destination, BGP uses a strict, step-by-step tie-breaking algorithm (evaluating metrics like Local Preference, AS Path length, and MED) to select the single best route.
                   </p>
                   <p>
                     Routing decisions are based on network <strong>policy</strong>, business relationships, and cost. Real-world decisions can be viewed on <a href="https://radar.cloudflare.com" target="_blank" class="text-indigo-600 dark:text-cyan-400 font-bold hover:underline">Cloudflare Radar</a>.
@@ -248,7 +248,7 @@ try {
                       Pro Tip: Topology vs. Geography
                     </h4>
                     <p class="text-xs leading-relaxed">
-                      BGP is <strong>topologically aware</strong> and <strong>geographically blind</strong>. It counts AS hops rather than physical distance. A path crossing the Atlantic can appear shorter to BGP than a neighbor across the street if that neighbor is more AS hops away.
+                      By default, BGP's pathing metric is <strong>topologically aware</strong> but lacks geographic context. It evaluates "AS hops" rather than physical distance or latency. Without operator-defined policies to steer traffic geographically, a path crossing the Atlantic could technically appear "shorter" to a router than a neighbor across the street if that neighbor requires more AS hops.
                     </p>
                   </div>
                 </div>
@@ -343,10 +343,12 @@ try {
               </div>
               <h2 class="text-xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">ISP Safety Test</h2>
             </div>
-            <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+            <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Verify if your ISP filters invalid BGP routes using RPKI. A good global citizen drops invalid paths at the network edge.
             </p>
-            <ISPSafetyTest client:load />
+            <div class="pt-4">
+              <ISPSafetyTest client:load />
+            </div>
           </div>
         </ReportCard>
 

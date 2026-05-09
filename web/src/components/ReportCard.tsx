@@ -39,7 +39,7 @@ const RPKIPieChart = ({ data, isMobile }: { data: any[], isMobile?: boolean }) =
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+        <PieChart margin={{ top: 0, right: 0, bottom: 100, left: 0 }}>
           <Pie
             data={data}
             dataKey="value"
@@ -72,7 +72,7 @@ const RPKIPieChart = ({ data, isMobile }: { data: any[], isMobile?: boolean }) =
         {sortedData.map((entry, index) => {
           const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0.0';
           return (
-            <div key={index} className="flex items-center gap-2 text-[11px] pointer-events-auto group/legend relative cursor-help">
+            <div key={index} className="flex items-center gap-2 text-[11px] pointer-events-auto group/legend relative cursor-help bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-slate-200/50 dark:border-slate-800/50">
               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.fill }}></div>
               <span className="text-slate-700 dark:text-slate-300 whitespace-nowrap">
                 {entry.name}: <span className="font-mono font-bold text-slate-900 dark:text-white">{percentage}%</span>
@@ -535,7 +535,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
               </div>
 
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed italic text-sm">
-                Real-world deployment status and ISP report cards are available at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>.
+                Real-world deployment status and ISP report cards are available at <a href="https://isbgpsafeyet.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">isbgpsafeyet.com</a>. You can also learn about the collaborative routing security initiative at <a href="https://www.manrs.org/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-400 hover:underline font-bold">MANRS</a>.
               </p>
             </div>
 
@@ -607,7 +607,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
             <div className="bg-indigo-500/5 dark:bg-indigo-500/10 p-6 rounded-xl border border-indigo-500/20">
               <h4 className="text-xs font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] mb-3">Benchmarking Visibility</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                The data observed by this project provides a high-fidelity view of global RPKI deployment. At current reporting, our observed RPKI validity stands at <strong>{validRpkiPercent}%</strong>, which closely mirrors the <strong>55%</strong> adoption rate reported by the <a href="https://www.manrs.org/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline font-bold">MANRS</a> initiative. This alignment confirms that the telemetry captured here is representative of the broader internet's move toward a cryptographically verified routing table.
+                The data observed by this project provides a high-fidelity view of global RPKI deployment. At current reporting, our observed RPKI validity stands at <strong>{validRpkiPercent}%</strong> of prefixes, which closely mirrors the <strong>55%</strong> adoption rate reported by the <a href="https://www.manrs.org/" target="_blank" className="text-indigo-600 dark:text-cyan-400 underline font-bold">MANRS</a> initiative. This alignment confirms that the telemetry captured here is representative of the broader internet's move toward a cryptographically verified routing table.
               </p>
             </div>
           </div>
@@ -647,7 +647,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                      <AlertTriangle size={20} className="text-orange-500" /> Route Leaks
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                     A <strong>Route Leak</strong> is typically a configuration error where an AS (often a customer) re-broadcasts routes from one upstream provider to another. This accidentally turns a small network into a <a href="https://en.wikipedia.org/wiki/Internet_transit" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">transit hub</a> for global traffic, quickly overwhelming its links and causing massive regional slowdowns or outages.
+                     A <strong>Route Leak</strong> is typically a configuration error that violates the <strong>'valley-free'</strong> routing principle. This occurs when an AS (often a customer) receives a route from one upstream provider and accidentally re-broadcasts it to another provider or peer. By inadvertently providing free transit between providers, this leak turns a small network into a <a href="https://en.wikipedia.org/wiki/Internet_transit" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">transit hub</a> for global traffic, quickly overwhelming its links and causing massive regional slowdowns or outages.
                    </p>
                  </div>
 

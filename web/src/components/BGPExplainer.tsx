@@ -1239,19 +1239,19 @@ export const BGPConceptsExplainer = () => {
       title: "BGP Communities",
       color: "purple",
       bg: "bg-purple-500",
-      description: "Metadata \"tags\" attached to routes that signal instructions to upstream peers. Standardized via RFC 1997 and RFC 4360.",
+      description: "BGP Communities are metadata \"tags\" attached to routes that signal instructions to upstream peers. They are standardized via RFC 1997 and RFC 4360.",
       details: [
         { 
           label: "BLACKHOLING (RTBH)", 
-          value: <>A "nuclear option" for DDoS mitigation. It tells providers to drop all traffic to an IP to protect the bandwidth of the rest of the network.<br/><span className="block opacity-70 mt-1 italic">Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">65535:666</code> (Standardized RTBH)</span></>
+          value: <>This is a "nuclear option" for DDoS mitigation. It tells providers to drop all traffic to an IP to protect the resources of the rest of the network.<br/><span className="block opacity-70 mt-1 italic">Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">65535:666</code> (Standardized RTBH)</span></>
         },
         { 
           label: "TRAFFIC STEERING", 
-          value: <>Influencing path priority. Most community semantics are operator-defined and not universal.<br/><span className="block opacity-70 mt-1 italic">Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">ASN:70</code> (Common convention to set Local-Pref 70, but varies per ISP)</span></> 
+          value: <>Communities are used for influencing path priority. Most community semantics are operator-defined and not universal.<br/><span className="block opacity-70 mt-1 italic">Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">ASN:70</code> (Common convention to set Local-Pref 70, but varies per ISP)</span></> 
         },
         { 
           label: "SCOPING", 
-          value: <>Preventing regional leakage.<br/><span className="block opacity-70 mt-1 italic">Example: <a href="https://datatracker.ietf.org/doc/html/rfc1997#section-2" target="_blank" rel="noopener noreferrer" className="hover:underline"><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">NO_EXPORT</code> (Well-known RFC 1997)</a></span></> 
+          value: <>They are also used for preventing regional route leakage.<br/><span className="block opacity-70 mt-1 italic">Example: <a href="https://datatracker.ietf.org/doc/html/rfc1997#section-2" target="_blank" rel="noopener noreferrer" className="hover:underline"><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded not-italic font-mono text-[10px]">NO_EXPORT</code> (Well-known RFC 1997)</a></span></> 
         }
       ]
     },
@@ -1261,23 +1261,19 @@ export const BGPConceptsExplainer = () => {
       bg: "bg-blue-500",
       description: "Networks are grouped into tiers based on how they connect to the global internet.",
       details: [
-        { label: "TIER 1 (The Backbone)", value: "A small number of global networks (including Lumen, Arelion, and AT&T) that peer with each other without settlement and do not purchase transit. These networks form the core backbone." },
-        { label: "TIER 2 (Regional)", value: "Providers that peer with some networks but must purchase transit from Tier 1 networks to reach the global internet." },
-        { label: "TIER 3 (Local)", value: "Local ISPs and organizations that primarily purchase transit for connectivity." }
+        { label: "TIER 1 (The Backbone)", value: "These are a small number of global networks (including Lumen, Arelion, and AT&T) that peer with each other without settlement and do not purchase transit. These networks form the core backbone." },
+        { label: "TIER 2 (Regional)", value: "These are providers that peer with some networks but must purchase transit from Tier 1 networks to reach the global internet." },
+        { label: "TIER 3 (Local)", value: "These are local ISPs and organizations that primarily purchase transit for connectivity." }
       ]
     },
     {
       title: "Transit vs. Peering",
       color: "emerald",
       bg: "bg-emerald-500",
-      description: "BGP routing is dictated by business relationships, resulting in 'Valley-Free' routing policies.",
+      description: "The physical connections that make up the internet are driven by business agreements. Networks connect to each other either by purchasing access from a larger provider or by mutually agreeing to swap traffic for free.",
       details: [
-        { label: "TRANSIT", value: "A commercial relationship where a network pays a provider for access to the entire internet. The provider advertises all global routes to the customer." },
-        { label: "PEERING", value: "A relationship where two networks connect directly to exchange traffic between their respective customers. No fees are typically involved, and they do not provide transit for each other." },
-        { 
-          label: "PEERINGDB", 
-          value: <>Networks coordinate these relationships using <a href="https://peeringdb.com/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold">PeeringDB</a>, a public database for published peering policies and exchange locations.</> 
-        }
+        { label: "TRANSIT", value: "Transit is a commercial relationship where a network pays a provider for access to the entire internet. The provider advertises all global routes, meaning the customer can reach any destination on the internet." },
+        { label: "PEERING", value: <>Peering is a relationship where two networks connect directly to exchange traffic. Crucially, they only provide access to each other's specific networks and customers, not the global internet. Networks coordinate these relationships using <a href="https://peeringdb.com/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold">PeeringDB</a>, a public database for published peering policies and exchange locations.</> }
       ]
     },
     {
@@ -1286,12 +1282,12 @@ export const BGPConceptsExplainer = () => {
       bg: "bg-cyan-500",
       description: "Looking Glasses are public, read-only interfaces used by engineers to debug BGP behavior.",
       details: [
-        { label: "PERSPECTIVE", value: "BGP paths vary based on network location. Debugging global routing requires viewing the table from different points on the internet." },
+        { label: "PERSPECTIVE", value: "Because BGP paths vary based on network location, debugging global routing requires viewing the table from different points on the internet." },
         { 
           label: "REAL-WORLD USE", 
           value: <>Public projects like <a href="https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/" target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 hover:underline font-bold">RIPE RIS</a> and <a href="http://www.routeviews.org/routeviews/" target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 hover:underline font-bold">RouteViews</a> collect global routing updates from hundreds of peers for analysis.</> 
         },
-        { label: "COMMANDS", value: "Interfaces support diagnostic commands like 'show ip bgp <prefix>' or 'traceroute' to reveal AS Paths, Local Preference, and Communities." }
+        { label: "COMMANDS", value: "These interfaces support diagnostic commands like 'show ip bgp <prefix>' or 'traceroute' to reveal AS Paths, Local Preference, and Communities." }
       ]
     }
   ];
@@ -1451,8 +1447,9 @@ export const BGPSecurityExplainer = () => {
 
   const fullPathR = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ORIGIN.x},${COORDS.ORIGIN.y} L${COORDS.MID_R.x},${COORDS.MID_R.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
   const hijackPath = useMemo(() => `M${COORDS.USER.x},${COORDS.USER.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.MALICIOUS.x},${COORDS.MALICIOUS.y} L${COORDS.MID_L.x},${COORDS.MID_L.y} L${COORDS.ENTRY.x},${COORDS.ENTRY.y} L${COORDS.USER.x},${COORDS.USER.y}`, []);
-  const leakPathIntended = useMemo(() => `M300,80 L100,80`, []); // Provider B -> Provider A (Direct)
-  const leakPathLeaked = useMemo(() => `M300,80 L200,220 L100,80`, []); // Provider B -> Customer -> Provider A
+  const leakPathIntended = useMemo(() => `M350,220 L300,80 L100,80 L50,220`, []); // Source -> Provider B -> Provider A -> Dest
+  const leakPathLeaked = useMemo(() => `M350,220 L300,80 L200,220 L100,80 L50,220`, []); // Source -> Provider B -> Customer -> Provider A -> Dest
+  const leakPathDropped = useMemo(() => `M350,220 L300,80 L200,220`, []); // Source -> Provider B -> Customer (Dropped)
 
   const pathUserToProvider = useMemo(() => `M100,40 L100,120 L200,210`, []);
   const pathAttackerToProvider1 = useMemo(() => `M300,40 L100,120 L200,210`, []);
@@ -1496,8 +1493,13 @@ export const BGPSecurityExplainer = () => {
 
       // Leak Panel Pulse
       if (isL) {
-         // Traffic from B leaks through Customer to A
-         spawnPulse(setLeakPulses, 3000, { path: leakPathLeaked, color: "red", duration: "3000ms" });
+         // Traffic from B leaks through Customer to A, with 50% chance of dropping due to congestion
+         const dropPacket = Math.random() < 0.5;
+         spawnPulse(setLeakPulses, dropPacket ? 1500 : 3000, { 
+           path: dropPacket ? leakPathDropped : leakPathLeaked, 
+           color: "red", 
+           duration: dropPacket ? "1500ms" : "3000ms" 
+         });
       } else {
          // Normal: Traffic from B goes directly to A
          spawnPulse(setLeakPulses, 3000, { path: leakPathIntended, color: "white", duration: "3000ms" });
@@ -1537,7 +1539,7 @@ export const BGPSecurityExplainer = () => {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [fullPathR, hijackPath, leakPathIntended, leakPathLeaked, pathUserToProvider, pathAttackerToProvider1, pathAttackerToProvider2, pathFullUser, pathFullAttacker1, pathFullAttacker2]);
+  }, [fullPathR, hijackPath, leakPathIntended, leakPathLeaked, leakPathDropped, pathUserToProvider, pathAttackerToProvider1, pathAttackerToProvider2, pathFullUser, pathFullAttacker1, pathFullAttacker2]);
 
   const handlePrev = () => setActiveTab(prev => (prev - 1 + tabs.length) % tabs.length);
   const handleNext = () => setActiveTab(prev => (prev + 1) % tabs.length);
@@ -1813,23 +1815,37 @@ export const BGPSecurityExplainer = () => {
           >
             <svg viewBox="0 0 400 350" className="w-full h-full" role="img" aria-labelledby="leak-svg-title">
               <title id="leak-svg-title">BGP Route Leak Diagram</title>
+              <defs>
+                <marker id="arrowhead-red" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                  <polygon points="0 0, 6 3, 0 6" fill="#ef4444" />
+                </marker>
+              </defs>
               {/* Main Provider-to-Provider intended path */}
               <Path from={{x: 300, y: 80}} to={{x: 100, y: 80}} state={leaked ? "secondary" : "primary"} />
               
               {/* Customer Links */}
               <Path from={{x: 200, y: 220}} to={{x: 100, y: 80}} state="primary" />
               <Path from={{x: 300, y: 80}} to={{x: 200, y: 220}} state={leaked ? "announcing" : "primary"} color={leaked ? "red" : "white"} />
+
+              {/* Source/Dest Links */}
+              <Path from={{x: 350, y: 220}} to={{x: 300, y: 80}} state="primary" />
+              <Path from={{x: 50, y: 220}} to={{x: 100, y: 80}} state="primary" />
               
               <Node x={100} y={80} type="router" label="Provider A" color="emerald" labelPos="top" />
               <Node x={300} y={80} type="router" label="Provider B" color="emerald" labelPos="top" />
               <Node x={200} y={220} type="router" label="Customer AS" color="indigo" labelPos="bottom" />
+              <Node x={50} y={220} type="router" label="Dest AS" color="slate" labelPos="bottom" />
+              <Node x={350} y={220} type="router" label="Source AS" color="slate" labelPos="bottom" />
 
               <text x="200" y="55" textAnchor="middle" className="fill-slate-500 text-[10px] uppercase font-bold tracking-tighter">High-Speed Backbone</text>
               
               {leaked && (
-                <g className="animate-pulse">
-                   <rect x={155} y={270} width={90} height={16} rx={8} className="fill-red-500/20 stroke-red-500 stroke-1" />
-                   <text x={200} y={281} textAnchor="middle" className="fill-red-600 dark:fill-red-400 text-[10px] font-bold uppercase">Congested Leak</text>
+                <g className="animate-[pulse_3s_ease-in-out_infinite]">
+                   <path d="M 280 100 Q 200 180 120 100" fill="none" className="stroke-red-500 stroke-[3px]" strokeDasharray="4 4" markerEnd="url(#arrowhead-red)" />
+                   <text x={200} y={160} textAnchor="middle" className="fill-red-500 text-[10px] font-bold uppercase tracking-widest">Valley-Free Violation</text>
+
+                   <rect x={140} y={268} width={120} height={20} rx={10} className="fill-red-500/20 stroke-red-500 stroke-1" />
+                   <text x={200} y={282} textAnchor="middle" className="fill-red-600 dark:fill-red-400 text-[10px] font-bold uppercase">Congested Leak</text>
                    
                    <g transform="translate(0, 20)">
                       <text x={200} y={285} textAnchor="middle" className="fill-red-500/80 text-[7px] font-bold uppercase">High Latency</text>
