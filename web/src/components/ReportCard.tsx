@@ -637,7 +637,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                      <ShieldAlert size={20} className="text-[#FF0000]" /> Route Hijacks
                    </h4>
                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                     A <strong>Hijack</strong> occurs when an <a href="https://www.cloudflare.com/learning/network-layer/what-is-an-autonomous-system/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Autonomous System (AS)</a> announces an <a href="https://community.cisco.com/t5/routing-and-sd-wan/bgp-prefix-concept/td-p/500111" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">IP prefix</a> it does not own. This can be a malicious attempt to intercept traffic or a simple "fat-finger" typo. Because BGP prefers the "most specific" route, a hijacker announcing a /24 can steal traffic from a legitimate /23 announcement globally.
+                     A <strong>Hijack</strong> occurs when an <a href="https://www.cloudflare.com/learning/network-layer/what-is-an-autonomous-system/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-cyan-500 hover:underline decoration-dotted underline-offset-4">Autonomous System (AS)</a> announces an IP prefix it does not own. This can be a malicious attempt to intercept traffic or a simple "fat-finger" typo. Because BGP prefers the "most specific" route, a hijacker announcing a /24 can steal traffic from a legitimate /23 announcement globally.
                    </p>
                  </div>
 
