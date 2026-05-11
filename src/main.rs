@@ -954,7 +954,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if should_attempt {
                         info!(
                             "[REFRESH] Dataset '{}' is due. Refresh={}, Retry={}, Overdue={}",
-                            config.name, due_for_refresh, due_for_retry, (now_ts >= (last_success + config.refresh_interval))
+                            config.name,
+                            due_for_refresh,
+                            due_for_retry,
+                            (now_ts >= (last_success + config.refresh_interval))
                         );
                         db_refresh.set_refresh_timestamp(config.name, "attempt", now_ts);
 
