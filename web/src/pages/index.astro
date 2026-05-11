@@ -111,6 +111,11 @@ try {
             </div>
 
             <div id="gossip-animation-container" class="relative aspect-video bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 shadow-inner cursor-pointer">
+               <div id="gossip-pause-indicator" class="absolute inset-0 flex items-center justify-center bg-slate-900/10 dark:bg-slate-900/20 opacity-0 pointer-events-none transition-opacity duration-300 z-20">
+                  <div class="p-3 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-lg border border-slate-200 dark:border-slate-700">
+                    <svg class="w-8 h-8 text-slate-900 dark:text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  </div>
+               </div>
                <svg viewBox="0 0 400 220" class="w-full h-full">
                   <g class="stroke-slate-300 dark:stroke-slate-700 stroke-1 fill-none">
                     <path d="M200,40 L100,100" />
@@ -256,6 +261,11 @@ try {
 
               <div class="lg:w-[320px] shrink-0 space-y-8 max-lg:hidden pt-12">
                   <div id="path-animation-container" class="relative aspect-square bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 group shadow-inner cursor-pointer">
+                    <div id="path-pause-indicator" class="absolute inset-0 flex items-center justify-center bg-slate-900/10 dark:bg-slate-900/20 opacity-0 pointer-events-none transition-opacity duration-300 z-20">
+                      <div class="p-3 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-lg border border-slate-200 dark:border-slate-700">
+                        <svg class="w-8 h-8 text-slate-900 dark:text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                      </div>
+                    </div>
                     <svg viewBox="0 0 200 200" class="w-full h-full">
                         <g class="stroke-slate-300 dark:stroke-slate-700 stroke-[0.5] fill-none" stroke-dasharray="2,2">
                            <path d="M40,40 L100,20 L160,40 L180,100 L160,160 L100,180 L40,160 L20,100 Z" />
@@ -519,7 +529,17 @@ try {
 
     // Gossip animation
     let gossipStep = 0;
+    let gossipPaused = false;
+    const gossipContainer = document.getElementById('gossip-animation-container');
+    const gossipIndicator = document.getElementById('gossip-pause-indicator');
+    
+    gossipContainer?.addEventListener('click', () => {
+      gossipPaused = !gossipPaused;
+      if (gossipIndicator) gossipIndicator.style.opacity = gossipPaused ? '1' : '0';
+    });
+
     setInterval(() => {
+      if (gossipPaused) return;
       const paths = ['path-1', 'path-2', 'path-3', 'path-4', 'path-5', 'path-6'];
       if (gossipStep === 0) {
         document.getElementById('path-1').style.opacity = '1';
@@ -542,18 +562,29 @@ try {
 
     // Path animation
     let pathStep = 0;
-    const paths = [
+    let pathPaused = false;
+    const pathContainer = document.getElementById('path-animation-container');
+    const pathIndicator = document.getElementById('path-pause-indicator');
+    
+    pathContainer?.addEventListener('click', () => {
+      pathPaused = !pathPaused;
+      if (pathIndicator) pathIndicator.style.opacity = pathPaused ? '1' : '0';
+    });
+
+    const pathData = [
       "M40,40 L100,20 L160,40 L100,100 L160,160",
-      "M40,40 L40,40 L100,100 L160,160",
-      "M40,40 L40,160 L100,180 L160,160"
+      "M40,40 L40,40 L100,100 L160,160 L160,160",
+      "M40,40 L40,160 L100,180 L160,160 L160,160"
     ];
+
     setInterval(() => {
+      if (pathPaused) return;
       const p = document.getElementById('animated-path');
       const n = document.getElementById('h-node-160-160');
       if (!p || !n) return;
       
-      pathStep = (pathStep + 1) % paths.length;
-      p.setAttribute('d', paths[pathStep]);
+      pathStep = (pathStep + 1) % pathData.length;
+      p.setAttribute('d', pathData[pathStep]);
       n.style.opacity = '1';
     }, 3000);
   </script>
