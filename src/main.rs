@@ -941,10 +941,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let due_for_retry = (last_attempt > last_success)
                         && (now_ts >= (last_attempt + config.retry_interval));
 
-                    if due_for_refresh || due_for_retry {
+                    // Only attempt if due for refresh AND not recently failed, OR if specifically due for retry
+                    let should_attempt = if due_for_retry {
+                        true
+                    } else if due_for_refresh {
+                        // If overdue for refresh, still respect the retry interval if the last attempt failed
+                        now_ts >= (last_attempt + config.retry_interval)
+                    } else {
+                        false
+                    };
+
+                    if should_attempt {
                         info!(
-                            "[REFRESH] Dataset '{}' is due. Refresh={}, Retry={}",
-                            config.name, due_for_refresh, due_for_retry
+                            "[REFRESH] Dataset '{}' is due. Refresh={}, Retry={}, Overdue={}",
+                            config.name, due_for_refresh, due_for_retry, (now_ts >= (last_success + config.refresh_interval))
                         );
                         db_refresh.set_refresh_timestamp(config.name, "attempt", now_ts);
 
@@ -1007,8 +1017,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         *c_bg = Some(current_master);
                         classifier_bg.clear_cache();
 
-                        // Background worker starts fresh for next cycle
-                        *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
+                        // Background worker starts fresh for next cycle, but we MUST load cached data
+                        // so we don't lose it in the next swap.
+                        let mut next_master = bgpkit_commons::BgpkitCommons::new();
+                        let _ = next_master.load_asinfo_cached();
+                        let _ = next_master.load_bogons();
+                        *MASTER_BGPKIT.lock() = Some(next_master);
                     }
                 }
 
@@ -1153,19 +1167,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let mut new_flappiest = Vec::new();
                 for f in ts.flappiest_networks {
-                    let mut network_name = String::new();
-                    if let Some(bgpkit) = &*c_stats.bgpkit.read() {
-                        if let Ok(Some(info)) = bgpkit.asinfo_get(f.asn) {
-                            if let Some(org) = info.as2org {
-                                network_name = org.org_name.clone();
-                            } else if !info.name.is_empty() {
-                                network_name = info.name.clone();
-                            }
-                        }
-                    }
-                    if network_name.is_empty() {
-                        network_name = format!("AS{}", f.asn);
-                    }
+                    let network_name = c_stats
+                        .get_as_name(f.asn)
+                        .unwrap_or_else(|| format!("AS{}", f.asn));
                     new_flappiest.push(livemap_proto::FlappiestNetworkStats {
                         asn: f.asn,
                         network_name,

@@ -1481,10 +1481,27 @@ impl Classifier {
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
             let name = bgpkit.asinfo_get(asn).ok().flatten().and_then(|i| {
+                // Prefer Org name if it exists and is descriptive
+                if let Some(org) = &i.as2org {
+                    if !org.org_name.is_empty() {
+                        return Some(org.org_name.clone());
+                    }
+                }
+
+                // Fallback to name if it's not empty and doesn't just repeat the ASN
                 if !i.name.is_empty() {
-                    Some(i.name)
+                    let name_upper = i.name.to_uppercase();
+                    let asn_str = format!("AS{}", asn);
+                    if name_upper != asn_str && name_upper != format!("AS {}", asn) {
+                        return Some(i.name.clone());
+                    }
+                }
+
+                // Last resort: if we have any name at all
+                if !i.name.is_empty() {
+                    Some(i.name.clone())
                 } else {
-                    i.as2org.map(|o| o.org_name)
+                    i.as2org.as_ref().map(|o| o.org_name.clone())
                 }
             });
 
