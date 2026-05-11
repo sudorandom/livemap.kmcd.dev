@@ -729,7 +729,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
                  <div className="cyber-box rounded-xl overflow-hidden shadow-2xl aspect-video bg-black group relative">
                     <iframe
                       src="https://www.youtube.com/embed/live_stream?channel=UCA9eO4Gt-Ua6lAEGzWQHQFA"
-                      title="BGP Live Telemetry Stream"
+                      title="BGP Live Stream"
                       className="w-full h-full"
                       frameBorder="0"
                       referrerPolicy="strict-origin-when-cross-origin"
