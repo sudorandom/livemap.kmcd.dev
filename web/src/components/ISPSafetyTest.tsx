@@ -101,7 +101,7 @@ export function ISPSafetyTest() {
       {(status === 'safe' || status === 'unsafe' || status === 'error') && (
         <div 
           aria-live="polite"
-          className={`w-full animate-in slide-in-from-left-4 duration-500 transition-all flex flex-col border-2 rounded-xl p-6 ${
+          className={`w-full animate-in slide-in-from-left-4 duration-500 transition-all flex flex-col border-2 rounded-xl p-3 sm:p-6 ${
           status === 'safe' ? 'bg-emerald-500/10 border-emerald-500/40' :
           status === 'unsafe' ? 'bg-red-500/10 border-red-500/40' :
           'bg-slate-500/10 border-slate-500/40'

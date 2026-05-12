@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Router, Share2, User, ShieldAlert, ArrowRight, Ban, Activity, ShieldCheck, Globe, ChevronLeft, ChevronRight, RotateCcw, Zap, Filter, CheckCircle2 } from 'lucide-react';
 
 export const PanelContainer = ({ title, children, footer, description, className = "", onPrev, onNext, isFirst, isLast, nextHighlighted }: { title: string, children: React.ReactNode, footer?: React.ReactNode, description: string | React.ReactNode, className?: string, onPrev?: () => void, onNext?: () => void, isFirst?: boolean, isLast?: boolean, nextHighlighted?: boolean }) => (
-  <div className="cyber-box p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
+  <div className="cyber-box p-3 sm:p-4 md:p-6 rounded-xl bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-500/20 flex flex-col h-full relative">
     <div className="mb-4 flex justify-between items-start">
       <div className="flex-1">
         <h3 className="text-lg font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-wider mb-1">{title}</h3>
@@ -276,7 +276,7 @@ export const BGPStateMachine = () => {
   }, []);
 
   return (
-    <div className="py-12 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 px-6 relative overflow-hidden">
+    <div className="py-8 sm:py-12 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 px-3 sm:px-6 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
       
       <ol className="flex flex-col md:flex-row justify-between items-center gap-4 relative z-10 list-none p-0">
@@ -1166,7 +1166,7 @@ export const BGPMessageAnatomy = () => {
         ))}
       </div>
       
-      <div aria-live="polite" className="p-6 md:p-8 animate-in fade-in duration-500">
+      <div aria-live="polite" className="p-3 sm:p-6 md:p-8 animate-in fade-in duration-500">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-lg border-b border-slate-700">

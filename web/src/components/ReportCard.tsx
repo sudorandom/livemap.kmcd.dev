@@ -106,7 +106,7 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
   }, [alerts, selectedCategories]);
 
   return (
-    <div className="cyber-box p-6 rounded-lg flex flex-col group shadow-xl h-full">
+    <div className="cyber-box p-3 sm:p-6 rounded-lg flex flex-col group shadow-xl h-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-500/10 pb-4 mb-6 shrink-0">
         <h2 className="text-xl font-cyber font-bold flex items-center gap-2">
           <span className="w-2 h-2 bg-red-500 animate-pulse"></span>
@@ -387,7 +387,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
           <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">BGP Security</h2>
         </div>
 
-        <div className="cyber-box p-8 md:p-12 rounded-xl space-y-12 shadow-2xl">
+        <div className="cyber-box p-4 sm:p-8 md:p-12 rounded-xl space-y-12 shadow-2xl">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed">
                 <div className="space-y-4">
@@ -541,7 +541,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* RPKI Overall */}
-              <div className="cyber-box p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
+              <div className="cyber-box p-4 sm:p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
                 <div className="group flex flex-col h-full">
                   <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                     <span className="w-1.5 h-1.5 bg-emerald-500"></span>
@@ -562,7 +562,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
               </div>
 
               {/* RPKI IPv4 */}
-              <div className="cyber-box p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
+              <div className="cyber-box p-4 sm:p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
                 <div className="group flex flex-col h-full">
                   <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                     <span className="w-1.5 h-1.5 bg-emerald-500"></span>
@@ -583,7 +583,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
               </div>
 
               {/* RPKI IPv6 */}
-              <div className="cyber-box p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
+              <div className="cyber-box p-4 sm:p-6 rounded-xl bg-white/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/30 transition-all">
                 <div className="group flex flex-col h-full">
                   <h2 className="text-lg font-cyber font-bold mb-2 flex items-center gap-2 text-emerald-500">
                     <span className="w-1.5 h-1.5 bg-emerald-500"></span>
@@ -621,7 +621,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
         </div>
 
         <div className="grid grid-cols-1 gap-8">
-          <div className="cyber-box p-8 md:p-12 rounded-xl flex flex-col space-y-12 shadow-2xl">
+          <div className="cyber-box p-4 sm:p-8 md:p-12 rounded-xl flex flex-col space-y-12 shadow-2xl">
             <div className="space-y-8 text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
               <div>
                <h3 className="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase mb-4">Internet Routing Dynamics</h3>
@@ -830,7 +830,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
           <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Network Evolution</h2>
         </div>
 
-        <div className="cyber-box p-8 md:p-12 rounded-xl flex flex-col lg:flex-row gap-12 items-start shadow-2xl">
+        <div className="cyber-box p-4 sm:p-8 md:p-12 rounded-xl flex flex-col lg:flex-row gap-12 items-start shadow-2xl">
           <div className="flex-1 space-y-6 text-slate-600 dark:text-slate-400 leading-relaxed">
             <h3 className="text-xl font-cyber font-bold text-slate-900 dark:text-white uppercase">The IPv4 to IPv6 Transition</h3>
             <p>
