@@ -107,10 +107,13 @@ const AlertsList = React.memo(({ alerts }: { alerts: any[] }) => {
 
   return (
     <div className="cyber-box p-3 sm:p-6 rounded-lg flex flex-col group shadow-xl h-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-500/10 pb-4 mb-6 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-500/10 pb-4 mb-6 shrink-0 group/h2">
         <h2 className="text-xl font-cyber font-bold flex items-center gap-2">
           <span className="w-2 h-2 bg-red-500 animate-pulse"></span>
           CRITICAL ALERTS
+          <a href="#health" className="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+            <ExternalLink size={16} />
+          </a>
         </h2>
         <div className="flex flex-wrap gap-2">
           {[2, 3, 4].map(cat => {
@@ -382,9 +385,14 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
 
       {/* BGP SECURITY SECTION */}
       <section className="space-y-8" id="security">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 group/h2">
           <ShieldCheck className="text-indigo-600 dark:text-cyan-500" size={32} aria-hidden="true" />
-          <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">BGP Security</h2>
+          <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+            BGP Security
+            <a href="#security" className="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+              <ExternalLink size={20} />
+            </a>
+          </h2>
         </div>
 
         <div className="cyber-box p-4 sm:p-8 md:p-12 rounded-xl space-y-12 shadow-2xl">
@@ -615,9 +623,14 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
 
       {/* INTERNET HEALTH SECTION */}
       <section className="space-y-8" id="health">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 group/h2">
           <HeartPulse className="text-orange-500" size={32} aria-hidden="true" />
-          <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Internet Health</h2>
+          <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+            Internet Health
+            <a href="#health" className="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+              <ExternalLink size={20} />
+            </a>
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-8">
@@ -747,15 +760,19 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
         {/* Live Monitoring Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
           {/* Flappiest Networks */}
-          <div className="cyber-box p-6 rounded-lg group flex flex-col shadow-xl h-[750px]">
-            <div className="mb-6 border-b border-slate-500/10 pb-4 shrink-0">
+          <div className="cyber-box p-4 sm:p-6 rounded-lg group flex flex-col shadow-xl h-[750px]">
+            <div className="mb-6 border-b border-slate-500/10 pb-4 shrink-0 group/h2">
               <h2 className="text-xl font-cyber font-bold flex items-center justify-between uppercase">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-orange-500"></span>
                   Top Flappy Networks
+                  <a href="#health" className="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                    <ExternalLink size={16} />
+                  </a>
                 </div>
                 <span className="text-xs font-mono opacity-50 uppercase tracking-widest">Last 24 Hours</span>
               </h2>
+
               <p className="text-xs font-bold text-orange-500/60 uppercase tracking-[0.2em] mt-1">Networking Hall of Shame</p>
             </div>
             <div className="overflow-y-auto flex-grow pr-2 custom-scrollbar">
@@ -825,9 +842,14 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
 
       {/* NETWORK EVOLUTION SECTION */}
       <section className="space-y-8" id="evolution">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 group/h2">
           <Globe className="text-blue-500" size={32} aria-hidden="true" />
-          <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Network Evolution</h2>
+          <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+            Network Evolution
+            <a href="#evolution" className="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+              <ExternalLink size={20} />
+            </a>
+          </h2>
         </div>
 
         <div className="cyber-box p-4 sm:p-8 md:p-12 rounded-xl flex flex-col lg:flex-row gap-12 items-start shadow-2xl">

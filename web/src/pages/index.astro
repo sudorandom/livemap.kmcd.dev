@@ -48,9 +48,11 @@ try {
 
     <div id="scroll-indicator" class="fixed top-0 left-0 w-full z-50 transform -translate-y-full transition-transform duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-indigo-500/20 dark:border-cyan-500/20 py-2 px-4 shadow-lg">
       <div class="container mx-auto flex justify-between items-center">
-        <span class="text-xs font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] truncate mr-4" id="current-section-name">
-          The Internet's Control Plane
-        </span>
+        <a href="#intro" id="current-section-link" class="truncate mr-4 group/navlink">
+          <span class="text-xs font-cyber font-bold text-indigo-600 dark:text-cyan-400 uppercase tracking-[0.2em] group-hover/navlink:text-indigo-500 dark:group-hover/navlink:text-cyan-300 transition-colors" id="current-section-name">
+            The Internet's Control Plane
+          </span>
+        </a>
         <div class="flex gap-4 shrink-0">
            <a href="#" class="text-[10px] font-bold text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-widest">Back to top</a>
         </div>
@@ -90,11 +92,16 @@ try {
 
       {/* THE GOSSIP PROTOCOL */}
       <section id="gossip">
-          <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-4 mb-8 group/h2">
             <div class="p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
               <svg class="w-6 h-6 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">The Gossip Protocol</h2>
+            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+              The Gossip Protocol
+              <a href="#gossip" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </a>
+            </h2>
           </div>
           
           <div class="grid grid-cols-1 2xl:grid-cols-2 gap-12">
@@ -169,22 +176,32 @@ try {
         </section>
 
         <section id="concepts">
-          <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-4 mb-8 group/h2">
             <div class="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
               <svg class="w-6 h-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
             </div>
-            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Core Concepts & Economics</h2>
+            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+              Core Concepts & Economics
+              <a href="#concepts" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </a>
+            </h2>
           </div>
           <BGPConceptsExplainer client:visible />
         </section>
 
         {/* THE SESSION LIFECYCLE */}
         <section id="lifecycle">
-          <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-4 mb-8 group/h2">
             <div class="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
               <svg class="w-6 h-6 text-indigo-600 dark:text-cyan-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
-            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">The Session Lifecycle</h2>
+            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+              The Session Lifecycle
+              <a href="#lifecycle" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </a>
+            </h2>
           </div>
           <p class="text-slate-600 dark:text-slate-400 mb-12 max-w-4xl leading-relaxed">
             Before routes are exchanged, routers establish a session through states in the <strong>BGP Finite State Machine (FSM)</strong>. This sequence ensures peers are ready and authorized over <strong>TCP Port 179</strong>.
@@ -231,11 +248,16 @@ try {
 
         {/* ANATOMY OF BGP MESSAGES */}
         <section id="anatomy">
-          <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-4 mb-8 group/h2">
             <div class="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
-              <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10h10V2z"/><path d="M22 2h-10v10h10V2z"/><path d="M12 12H2v10h10V12z"/><path d="M22 12h-10v10h10V12z"/></svg>
+              <svg class="w-6 h-6 text-indigo-600 dark:text-cyan-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10h10V2z"/><path d="M22 2h-10v10h10V2z"/><path d="M12 12H2v10h10V12z"/><path d="M22 12h-10v10h10V12z"/></svg>
             </div>
-            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Anatomy of BGP Messages</h2>
+            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+              Anatomy of BGP Messages
+              <a href="#anatomy" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </a>
+            </h2>
           </div>
           <BGPMessageAnatomy client:visible />
         </section>
@@ -244,10 +266,13 @@ try {
         <section id="path-selection">
           <div class="cyber-box p-4 sm:p-8 md:p-12 rounded-xl bg-slate-50/50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800">
             <div class="flex flex-col lg:flex-row gap-12">
-              <div class="flex-grow space-y-6">
+              <div class="flex-grow space-y-6 group/h3">
                 <h3 class="text-2xl font-cyber font-bold text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-3">
                   <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19.5 7.1 20.5a.5.5 0 0 1-.6-.5V3.5a.5.5 0 0 1 .6-.5L11 3.5"/><path d="M11 3.5 15.1 4.5a.5.5 0 0 1 .6.5V21.5a.5.5 0 0 1-.6.5L11 20.5"/><path d="M15.1 4.5 19.1 3.5a.5.5 0 0 1 .6.5V19.5a.5.5 0 0 1-.6.5L15.1 19.5"/><path d="M7.1 20.5 3.1 21.5a.5.5 0 0 1-.6-.5V5.5a.5.5 0 0 1 .6-.5L7.1 5.5"/></svg>
                   Path Selection
+                  <a href="#path-selection" class="opacity-0 group-hover/h3:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  </a>
                 </h3>
 
                 <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
@@ -343,11 +368,16 @@ try {
 
         {/* BGP IN MOTION */}
         <section id="action">
-          <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-4 mb-8 group/h2">
             <div class="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
               <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>
             </div>
-            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">BGP in Action</h2>
+            <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+              BGP in Action
+              <a href="#action" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </a>
+            </h2>
           </div>
           <p class="text-slate-600 dark:text-slate-400 mb-12 max-w-4xl leading-relaxed">
             See BGP in motion. Walk through the lifecycle of a route, from announcement and path selection to failure handling and anycast failover.
@@ -358,11 +388,16 @@ try {
         {/* LIVE REPORT CARD */}
         <ReportCard client:load initialData={initialData}>
           <div class="space-y-6" id="safety-test">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 group/h2">
               <div class="p-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                 <svg class="w-5 h-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
               </div>
-              <h2 class="text-xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">ISP Safety Test</h2>
+              <h2 class="text-xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+                ISP Safety Test
+                <a href="#safety-test" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+                  <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                </a>
+              </h2>
             </div>
             <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Verify if your ISP filters invalid BGP routes using RPKI. A good global citizen drops invalid paths at the network edge.
@@ -375,11 +410,16 @@ try {
 
       {/* Tip of the Iceberg Section */}
       <section id="iceberg" class="border-t border-slate-500/10 pt-16">
-        <div class="flex items-center gap-4 mb-8">
+        <div class="flex items-center gap-4 mb-8 group/h2">
           <div class="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
             <svg class="w-6 h-6 text-cyan-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.12 6.85a2 2 0 0 0 0 3.66l9.05 4.67a2 2 0 0 0 1.66 0l9.05-4.67a2 2 0 0 0 0-3.66z"/><path d="m2.12 13.85 9.05 4.67a2 2 0 0 0 1.66 0l9.05-4.67"/><path d="m2.12 17.85 9.05 4.67a2 2 0 0 0 1.66 0l9.05-4.67"/></svg>
           </div>
-          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">The Tip of the Iceberg</h2>
+          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+            The Tip of the Iceberg
+            <a href="#iceberg" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+              <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </a>
+          </h2>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -439,11 +479,16 @@ try {
 
       {/* Advanced Topics Section */}
       <section id="references">
-        <div class="flex items-center gap-4 mb-8">
+        <div class="flex items-center gap-4 mb-8 group/h2">
           <div class="p-2 bg-indigo-500/10 dark:bg-cyan-500/10 rounded-lg border border-indigo-500/20 dark:border-cyan-500/20">
             <svg class="w-6 h-6 text-indigo-600 dark:text-cyan-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
           </div>
-          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">References</h2>
+          <h2 class="text-3xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
+            References
+            <a href="#references" class="opacity-0 group-hover/h2:opacity-100 transition-opacity text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400" aria-label="Link to this section">
+              <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </a>
+          </h2>
         </div>
         
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -603,6 +648,7 @@ try {
     function initScrollTracking() {
       const scrollIndicator = document.getElementById('scroll-indicator');
       const sectionNameDisplay = document.getElementById('current-section-name');
+      const sectionLinkDisplay = document.getElementById('current-section-link');
       
       const sectionNames = {
         'intro': "The Internet's Control Plane",
@@ -612,7 +658,6 @@ try {
         'anatomy': "Anatomy of BGP Messages",
         'path-selection': "Path Selection",
         'action': "BGP in Action",
-        'safety-test': "ISP Safety Test",
         'security': "BGP Security",
         'health': "Internet Health",
         'evolution': "Network Evolution",
@@ -634,6 +679,10 @@ try {
             
             if (name && sectionNameDisplay) {
               sectionNameDisplay.innerText = name;
+            }
+
+            if (sectionLinkDisplay) {
+              sectionLinkDisplay.setAttribute('href', id === 'intro' ? '#' : `#${id}`);
             }
 
             if (id !== 'intro' && window.location.hash !== `#${id}`) {
