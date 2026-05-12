@@ -381,7 +381,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
     <div className="space-y-20">
 
       {/* BGP SECURITY SECTION */}
-      <section className="space-y-8">
+      <section className="space-y-8" id="security">
         <div className="flex items-center gap-4">
           <ShieldCheck className="text-indigo-600 dark:text-cyan-500" size={32} aria-hidden="true" />
           <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">BGP Security</h2>
@@ -614,7 +614,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
       </section>
 
       {/* INTERNET HEALTH SECTION */}
-      <section className="space-y-8">
+      <section className="space-y-8" id="health">
         <div className="flex items-center gap-4">
           <HeartPulse className="text-orange-500" size={32} aria-hidden="true" />
           <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Internet Health</h2>
@@ -824,7 +824,7 @@ export function ReportCard({ children, initialData }: { children?: React.ReactNo
       </section>
 
       {/* NETWORK EVOLUTION SECTION */}
-      <section className="space-y-8">
+      <section className="space-y-8" id="evolution">
         <div className="flex items-center gap-4">
           <Globe className="text-blue-500" size={32} aria-hidden="true" />
           <h2 className="text-4xl font-cyber font-bold tracking-tight text-slate-900 dark:text-white uppercase">Network Evolution</h2>
