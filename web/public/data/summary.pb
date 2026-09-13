@@ -1,5 +1,5 @@
-åÒÃÏ†µ ğàr8ˆ¯[@è±H€€€€P›Ÿ6X—`Øøh»âpÙóxÒÛ‚B»°!HGC Global Communications Limited0–|? Ã“*203.90.245.77/32‚.ı€Amazon.com, Inc.åë? –¶*13.32.19.0/24‚>ßóHostinger International Limited:m > Ş#*93.127.199.0/24‚+‰ColocationIX GmbH ù"*185.124.197.0/29‚Aõ·Siamdata Communication Co.,ltd.=
-×> ò!*103.117.150.248/32Š¼
+åÒÃÏ‡µ –ár8£¯[@ó±H€€€€P¬Ÿ6X‰—`ìøhÁâpØóxÚÛ‚B»°!HGC Global Communications Limited
+×#< â“*203.90.245.92/32‚.ı€Amazon.com, Inc.)\¿@ Ãº*13.32.20.0/24‚>ßóHostinger International LimitedŞİİ> ‚$*93.127.199.0/24‚+‰ColocationIX GmbH û"*185.124.197.0/29‚Aõ·Siamdata Communication Co.,ltd.‰ˆˆ= Æ"*103.117.150.248/32Š¼
 SydneyAU: Â%_C"AU(0ø8Î@‡Á™ÕH€ÖP]rÜÌEp}¾«E‚VÙ·	PT Moroton Cipta TeknologiPT Moroton Cipta Teknologi"163.128.138.0/2408€Á™Õ‚]”ãCorrs Support Services Pty LtdCorrs Support Services Pty Ltd"38.226.137.0/2408€Á™Õ‚Lİ¸	Politeknik Caltex RiauPoliteknik Caltex Riau"160.236.1.0/2408øÀ™Õ‚8ÌAAPT LimitedAAPT Limited"203.32.177.0/2408öÀ™Õ‚8ÌAAPT LimitedAAPT Limited"103.252.10.0/2408öÀ™ÕŠı+
 Paripark (World Cup buk-ro)KRB%p0şB½‹(0’8¶@‚ƒ˜ÕP’]Ñ…éDb	LGTELECOMp}sD£E‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c0cc::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c24e::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c26a::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c054::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c1a6::/4708â‚˜ÕŠù+
 Paripark (World Cup buk-ro)KRB%p0şB(0’8¶@‚ƒ˜ÕP’]Ñ…éDj	LGTELECOMp}sD£E‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c0cc::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c24e::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c26a::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c054::/4708â‚˜Õ‚7½‹	LGTELECOM	LGTELECOM"2001:4430:c1a6::/4708â‚˜ÕŠÛ+
@@ -35,6 +35,6 @@ AlexandriaUSïRB%ŞİÄÂ"US(
 8Åä˜Õ‚sÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.136.210.0/230
 8Áä˜Õ‚rÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.137.96.0/240
 8Áä˜Õ‚sÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.136.176.0/220
-8Áä˜Õ’«ªª= G(æ0Û8@€€€€H˜÷’"ÿww™A Ç1(ÈÆ0ğœ8Ø)@ıâ HÌëøH’'Şºï.ÇC ı­(ßç 0§ç8¸€@¨ĞÃöHóçÙÊ’!‰ˆˆ= Ù(ƒî0‹Å8ø(@êØ²HÅ•ÿ’ ¿<ÍC ‚(ÌR0°H8œ
-@Ì§ªHäúÁ{’!îDfæC ‡(„0Ò8²
-@¬©«H°›¡²’!Ş «ª‹B İ(*0»8ã@ñà¦HÜíû¯’(	íş!DF ü«(ÈK0êé=8³Ş@–‚Ô	HÕ’ƒ‹Ã
+8Áä˜Õ’ G(ä0Ú8
+@€€€€HÎ÷’"è	ww§A Ğ5(ŠÜ0¤¦8æ5@ší$HòşH’'Å¸ °&D ì¥(›0ú8¤‹@èòHõÖÈË’!‰ˆˆ= Ö(ïí0Å8â(@ğÖ²HÇ˜ÿ’ ıc‰HUC Æ(øT0İH8›@ÄáºHèöä{’!ôeffYC ô(Ä0Ê8ú
+@ªíHÅÅ¸²’!ÍÌMB ÷(Î'0”8º@ğÔŸHÏ‰°’(	Äú"÷E âÀ(Ø‚N0´¼?8¤Æ@¼Ÿ¦Ú	HìÛ³—Ã
