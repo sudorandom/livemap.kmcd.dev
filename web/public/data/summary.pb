@@ -1,4 +1,5 @@
-åÒÃÏŒµ ªår8²±[@ø³H€€€€PÇ 6X¥—`Åùh†äpÊóx§Ü‚>»°!HGC Global Communications Limited Ú*203.90.245.214/32‚.ı€Amazon.com, Inc.ö(Ü? ÄĞ*13.32.19.0/24‚<õ·Siamdata Communication Co.,ltd. †>*103.117.150.248/32‚<ßóHostinger International Limitedj> Í5*77.37.87.0/24‚,‰ColocationIX GmbH í(*185.124.197.16/29Šó
+åÒÃÏŠµ Úår8Ù±[@´H€€€€PÕ 6X­—`Íùh“äpÆóx§Ü‚C»°!HGC Global Communications Limited Ó@ ŒŒ*203.90.245.214/32‚.ı€Amazon.com, Inc.Ãõ@ ôÃ*13.32.19.0/24‚@õ·Siamdata Communication Co.,ltd.‘? –@*157.85.107.255/32‚<ßóHostinger International Limited=
+×? ”5*77.37.87.0/24‚,‰ColocationIX GmbH Ñ(*185.124.197.16/29Šó
 SydneyAUšñÂ%R$C(0Ù8¼@ÚÏÕH€¬P]UõxFjAAPT Limitedp}JF‚8ÌAAPT LimitedAAPT Limited"2405:800:9::/4808ÒÏÕ‚8ÌAAPT LimitedAAPT Limited"14.201.196.0/2308ÍÏÕ‚8ÌAAPT LimitedAAPT Limited"2405:800:3::/4808ÀÏÕ‚;ÌAAPT LimitedAAPT Limited"2001:df0:ab00::/4808»ÏÕ‚9ÌAAPT LimitedAAPT Limited"220.240.231.0/2408ºÏÕŠö
 SydneyAUgğÂ%[ CÌ(0Ö8¹@ÚÏÕH€¦P]U-xFbAAPT Limitedp}p‹F‚8ÌAAPT LimitedAAPT Limited"2405:800:9::/4808ÒÏÕ‚8ÌAAPT LimitedAAPT Limited"14.201.196.0/2308ÍÏÕ‚8ÌAAPT LimitedAAPT Limited"2405:800:3::/4808ÀÏÕ‚;ÌAAPT LimitedAAPT Limited"2001:df0:ab00::/4808»ÏÕ‚9ÌAAPT LimitedAAPT Limited"220.240.231.0/2408ºÏÕŠ¼
 SydneyAU: Â%_C"AU(0ø8Î@‡Á™ÕH€ÖP]rÜÌEp}¾«E‚VÙ·	PT Moroton Cipta TeknologiPT Moroton Cipta Teknologi"163.128.138.0/2408€Á™Õ‚]”ãCorrs Support Services Pty LtdCorrs Support Services Pty Ltd"38.226.137.0/2408€Á™Õ‚Lİ¸	Politeknik Caltex RiauPoliteknik Caltex Riau"160.236.1.0/2408øÀ™Õ‚8ÌAAPT LimitedAAPT Limited"203.32.177.0/2408öÀ™Õ‚8ÌAAPT LimitedAAPT Limited"103.252.10.0/2408öÀ™ÕŠÛ+
@@ -35,13 +36,4 @@ SÃ£o PauloBR¤Ó˜Á%…<Â"BR(
 8¶¨œÕ‚n„â'UAI TELECOM COMUNICACAO MULTIMIDIA LTDA'UAI TELECOM COMUNICACAO MULTIMIDIA LTDA"170.78.66.0/240
 8¶¨œÕ‚TÎãBahialink Technology LtdaBahialink Technology Ltda"143.137.196.0/240
 8²¨œÕ‚D‰ÃCBN NET LTDA - MECBN NET LTDA - ME"177.221.152.0/220
-8®¨œÕŠœ
-DallasUSXB%‘âÂÂ"US(
-0¢8@Çä˜ÕH€ğP*]—ĞÖBp!}l@‚<¬Dongyu ZhangDongyu Zhang"2a06:de02:5cc::/480
-8Æä˜Õ‚<¬Dongyu ZhangDongyu Zhang"2a06:de02:5ce::/480
-8Åä˜Õ‚sÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.136.210.0/230
-8Áä˜Õ‚rÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.137.96.0/240
-8Áä˜Õ‚sÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.136.176.0/220
-8Áä˜Õ’ÍÌL= F(ä0Û8	@€€€€H¥ÿ’"õ	33©A ä2(®Ï0×¤8×*@µ´ë!Hƒš–I’'´æf&?D ÿÀ(¿•#0§‹8˜Š@ „ıùHù×ŒÒ’!‰ˆˆ< Õ(…î0­Å8Ø(@‘Õ²Hªÿ’ æ9š™öB (ïJ0ª@8Å
-@ÔáŠHàÅ}’!¬gww\C (¦0Ë8Û@«ó£H²ªÍ´’!¥«ªÀA (Ê%0š8°@ñØ¤H‡ ³±’(	äì
-¼+9E ®(´¬I0Ñ×;8ãÔ@Ï’º©H×‹ò€Ä
+8®¨œÕ’ïîn> G(ë0à8@€€€€H¿€	’"Á  <A Æ4(×0Ê«8Ä+@ò—ó H¼‘™I’'áö«šD ÜÊ(ã†%0ÇÓ8œ³@ğ”öÀHñºöÒ’!ÍÌÌ= Ö(‰î0¯Å8Ú(@’Õ²H®¬ÿ’ ƒ=ï.C æ(H0á>8¼	@ë£ƒH®¡Ù}’"õ…w×C ‘(ÿ0÷8ˆ@°­€H³˜í´’!’UU#B Û(“,0«8è@ôğÁH§©Å±’(	ĞáqõE ùš(àªG0ô:8ì¨@Áú¶ëHø§èŒÄ
