@@ -1,5 +1,4 @@
-åÒÃÏˆµ úär8±[@ë³H€€€€Pš 6X³—`¼ùhúãpÉóx¦Ü‚C»°!HGC Global Communications Limited
-×£= È•*203.90.249.237/32‚.ı€Amazon.com, Inc.µÎ@ ·Æ*13.32.19.0/24‚Aõ·Siamdata Communication Co.,ltd.tÚ; Ä;*103.117.150.248/32‚<ßóHostinger International LimitedıbI> Ç5*77.37.87.0/24‚,‰ColocationIX GmbH ›'*185.124.197.16/29Šó
+åÒÃÏŒµ ªår8²±[@ø³H€€€€PÇ 6X¥—`Åùh†äpÊóx§Ü‚>»°!HGC Global Communications Limited Ú*203.90.245.214/32‚.ı€Amazon.com, Inc.ö(Ü? ÄĞ*13.32.19.0/24‚<õ·Siamdata Communication Co.,ltd. †>*103.117.150.248/32‚<ßóHostinger International Limitedj> Í5*77.37.87.0/24‚,‰ColocationIX GmbH í(*185.124.197.16/29Šó
 SydneyAUšñÂ%R$C(0Ù8¼@ÚÏÕH€¬P]UõxFjAAPT Limitedp}JF‚8ÌAAPT LimitedAAPT Limited"2405:800:9::/4808ÒÏÕ‚8ÌAAPT LimitedAAPT Limited"14.201.196.0/2308ÍÏÕ‚8ÌAAPT LimitedAAPT Limited"2405:800:3::/4808ÀÏÕ‚;ÌAAPT LimitedAAPT Limited"2001:df0:ab00::/4808»ÏÕ‚9ÌAAPT LimitedAAPT Limited"220.240.231.0/2408ºÏÕŠö
 SydneyAUgğÂ%[ CÌ(0Ö8¹@ÚÏÕH€¦P]U-xFbAAPT Limitedp}p‹F‚8ÌAAPT LimitedAAPT Limited"2405:800:9::/4808ÒÏÕ‚8ÌAAPT LimitedAAPT Limited"14.201.196.0/2308ÍÏÕ‚8ÌAAPT LimitedAAPT Limited"2405:800:3::/4808ÀÏÕ‚;ÌAAPT LimitedAAPT Limited"2001:df0:ab00::/4808»ÏÕ‚9ÌAAPT LimitedAAPT Limited"220.240.231.0/2408ºÏÕŠ¼
 SydneyAU: Â%_C"AU(0ø8Î@‡Á™ÕH€ÖP]rÜÌEp}¾«E‚VÙ·	PT Moroton Cipta TeknologiPT Moroton Cipta Teknologi"163.128.138.0/2408€Á™Õ‚]”ãCorrs Support Services Pty LtdCorrs Support Services Pty Ltd"38.226.137.0/2408€Á™Õ‚Lİ¸	Politeknik Caltex RiauPoliteknik Caltex Riau"160.236.1.0/2408øÀ™Õ‚8ÌAAPT LimitedAAPT Limited"203.32.177.0/2408öÀ™Õ‚8ÌAAPT LimitedAAPT Limited"103.252.10.0/2408öÀ™ÕŠÛ+
@@ -43,5 +42,6 @@ SÃ£o PauloBR¤Ó˜Á%…<Â"BR(
 8Åä˜Õ‚sÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.136.210.0/230
 8Áä˜Õ‚rÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.137.96.0/240
 8Áä˜Õ‚sÔ.)United States Department of Defense (DoD))United States Department of Defense (DoD)"138.136.176.0/220
-8Áä˜Õ’‰ˆˆ< G(â0Ø8
-@€€€€HÀş’"°UUA è4(¹Ú0ß«8Ú.@§óÌ Hıä’I’'›ö PD ìÂ(±‰&0ğ¶8ÁÒ@ •ÉÚHÂÂ–Ñ’!«ªª= Ø(—î0®Å8é(@Õ²HÇ§ÿ’ êÍÌ$A Ø(O0ó<8ª@ÛÛûH€ ­}’!¾UŞ]6C ¾(›0˜8ƒ@¬ûªHÁå©´’!¸y‰ˆC °	(€90¾ 8Â@ñúÉH™å¡±’(	¥‚DZ³E —›(’F0±’98Şÿ@”ËÂ¦	HØÀŸôÃ
+8Áä˜Õ’ÍÌL= F(ä0Û8	@€€€€H¥ÿ’"õ	33©A ä2(®Ï0×¤8×*@µ´ë!Hƒš–I’'´æf&?D ÿÀ(¿•#0§‹8˜Š@ „ıùHù×ŒÒ’!‰ˆˆ< Õ(…î0­Å8Ø(@‘Õ²Hªÿ’ æ9š™öB (ïJ0ª@8Å
+@ÔáŠHàÅ}’!¬gww\C (¦0Ë8Û@«ó£H²ªÍ´’!¥«ªÀA (Ê%0š8°@ñØ¤H‡ ³±’(	äì
+¼+9E ®(´¬I0Ñ×;8ãÔ@Ï’º©H×‹ò€Ä
