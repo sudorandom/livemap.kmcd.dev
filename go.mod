@@ -1,14 +1,14 @@
 module github.com/sudorandom/bgp-stream
 
-go 1.25.0
+go 1.26.6
 
 require (
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
 	github.com/hajimehoshi/ebiten/v2 v2.9.8
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/paulmach/go.geojson v1.5.0
-	golang.org/x/text v0.36.0
-	google.golang.org/grpc v1.80.0
+	golang.org/x/text v0.40.0
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -20,9 +20,9 @@ require (
 	github.com/go-text/typesetting v0.3.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/image v0.39.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
+	golang.org/x/image v0.43.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
 )

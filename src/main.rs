@@ -815,7 +815,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(db_for_classifier),
     ));
     info!("Loading BGPKIT AS data in foreground...");
-    let bgpkit = tokio::task::spawn_blocking(|| {
+    let db_fg = db.clone();
+    let bgpkit = tokio::task::spawn_blocking(move || {
         let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
         let start_asinfo = Instant::now();
 
@@ -832,6 +833,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "Fresh BGPKIT AS info loaded (took {}s).",
                     start_asinfo.elapsed().as_secs()
                 );
+                db_fg.set_refresh_timestamp("as_info", "success", Utc::now().timestamp());
             }
         } else {
             info!(
@@ -842,6 +844,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if let Err(e) = bgpkit.load_bogons() {
             warn!("Failed to load bogons: {}", e);
+        } else {
+            db_fg.set_refresh_timestamp("bogons", "success", Utc::now().timestamp());
         }
 
         bgpkit
@@ -876,6 +880,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             warn!("Failed to load BGPKIT RPKI data: {}", e);
         } else {
             info!("BGPKIT RPKI data loaded successfully.");
+            db_bg.set_refresh_timestamp("rpki", "success", Utc::now().timestamp());
         }
         {
             *classifier_bg.bgpkit.write() = Some(bgpkit);
@@ -966,39 +971,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let mut bgpkit_to_update = MASTER_BGPKIT.lock().take().unwrap();
 
                         let refresh_op = tokio::task::spawn_blocking(
-                            move || -> anyhow::Result<bgpkit_commons::BgpkitCommons> {
-                                match name {
+                            move || -> (bgpkit_commons::BgpkitCommons, Option<anyhow::Error>) {
+                                let res = match name {
                                     "as_info" => {
-                                        bgpkit_to_update.load_asinfo(true, true, true, true)?
+                                        bgpkit_to_update.load_asinfo(true, true, true, true).map_err(|e| anyhow::anyhow!("{}", e))
                                     }
-                                    "rpki" => bgpkit_to_update.load_rpki(None)?,
-                                    "bogons" => bgpkit_to_update.load_bogons()?,
-                                    _ => return Err(anyhow::anyhow!("Unknown dataset")),
+                                    "rpki" => bgpkit_to_update.load_rpki(None).map_err(|e| anyhow::anyhow!("{}", e)),
+                                    "bogons" => bgpkit_to_update.load_bogons().map_err(|e| anyhow::anyhow!("{}", e)),
+                                    _ => Err(anyhow::anyhow!("Unknown dataset")),
+                                };
+                                match res {
+                                    Ok(_) => (bgpkit_to_update, None),
+                                    Err(e) => (bgpkit_to_update, Some(e)),
                                 }
-                                Ok(bgpkit_to_update)
                             },
                         )
                         .await;
 
                         match refresh_op {
-                            Ok(Ok(updated_bgpkit)) => {
+                            Ok((updated_bgpkit, None)) => {
                                 info!("[REFRESH] Successfully updated dataset: {}", config.name);
                                 db_refresh.set_refresh_timestamp(config.name, "success", now_ts);
                                 *MASTER_BGPKIT.lock() = Some(updated_bgpkit);
                                 anything_changed = true;
                             }
-                            Ok(Err(e)) => {
+                            Ok((recovered_bgpkit, Some(e))) => {
                                 warn!(
                                     "[REFRESH] Failed to update dataset '{}': {}. Will retry in {} seconds.",
                                     config.name, e, config.retry_interval
                                 );
-                                // Put it back even on failure so we don't lose the other data
-                                // We have to move it back, but wait, the closure consumed it.
-                                // In the Err case, we don't have bgpkit_to_update anymore unless we return it.
-                                // Actually, I'll just re-initialize it for now if it fails, or better,
-                                // change the closure to return (BgpkitCommons, Result).
-                                // For now, creating a new one is safe but lose some cached info.
-                                *MASTER_BGPKIT.lock() = Some(bgpkit_commons::BgpkitCommons::new());
+                                *MASTER_BGPKIT.lock() = Some(recovered_bgpkit);
                             }
                             Err(e) => {
                                 warn!(
@@ -1986,20 +1988,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
         let mut last_emitted_transitions: HashMap<String, i64> = HashMap::new();
+        
+        let mut batched = Vec::with_capacity(5000);
+        let mut transitions = Vec::new();
+        let mut rw_updates = Vec::new();
+        let mut local_as_names: HashMap<u32, String> = HashMap::new();
+        let mut local_as_orgs: HashMap<u32, Option<String>> = HashMap::new();
+        
         loop {
             tokio::select! {
                 Some(first_msg) = rx.recv() => {
-                    let now = Utc::now().timestamp(); let mut batched = vec![first_msg];
+                    let now = Utc::now().timestamp(); 
+                    batched.push(first_msg);
                     while let Ok(msg) = rx.try_recv() { batched.push(msg); if batched.len() >= 5000 { break; } }
                     let mut max_lag = 0;
-                    let mut transitions = Vec::new();
-                    let mut rw_updates = Vec::new();
+                    transitions.clear();
+                    rw_updates.clear();
 
                     // Per-batch local cache to avoid redundant lookups and Mutex contention
-                    let mut local_as_names: HashMap<u32, String> = HashMap::new();
-                    let mut local_as_orgs: HashMap<u32, Option<String>> = HashMap::new();
+                    local_as_names.clear();
+                    local_as_orgs.clear();
 
-                    for (pending, _) in batched {
+                    for (pending, _) in batched.drain(..) {
                         let lag = now - pending.timestamp;
                         if lag > max_lag {
                             max_lag = lag;
@@ -2156,7 +2166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     if !rw_updates.is_empty() {
                         let mut rw = rw_ingest.write();
-                        for u in rw_updates {
+                        for u in rw_updates.drain(..) {
                             rw.add_event(
                                 u.0, u.1, u.2, u.3, u.4, u.5, u.6, u.7, u.8, u.9,
                             );

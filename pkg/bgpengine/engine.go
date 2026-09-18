@@ -970,8 +970,15 @@ func (e *Engine) Draw(screen *ebiten.Image) {
 
 func (e *Engine) Layout(w, h int) (width, height int) { return e.Width, e.Height }
 
+type batchKey struct {
+	lat, lng float64
+	c        color.RGBA
+	shape    EventShape
+}
+
 func (e *Engine) runEventWorker() {
 	batch := make([]*bgpEvent, 0, 1000)
+	localBatch := make(map[batchKey]int)
 	ticker := time.NewTicker(10 * time.Millisecond)
 	for {
 		select {
@@ -981,25 +988,20 @@ func (e *Engine) runEventWorker() {
 			}
 			batch = append(batch, ev)
 			if len(batch) >= 1000 {
-				e.processEventBatch(batch)
+				e.processEventBatch(batch, localBatch)
 				batch = batch[:0]
 			}
 		case <-ticker.C:
 			if len(batch) > 0 {
-				e.processEventBatch(batch)
+				e.processEventBatch(batch, localBatch)
 				batch = batch[:0]
 			}
 		}
 	}
 }
 
-func (e *Engine) processEventBatch(batch []*bgpEvent) {
-	type batchKey struct {
-		lat, lng float64
-		c        color.RGBA
-		shape    EventShape
-	}
-	localBatch := make(map[batchKey]int)
+func (e *Engine) processEventBatch(batch []*bgpEvent, localBatch map[batchKey]int) {
+	clear(localBatch)
 
 	for _, ev := range batch {
 		c, _, shape := e.getClassificationVisuals(ev.classificationType)
@@ -1330,11 +1332,10 @@ func (e *Engine) updateCriticalStream() {
 	// 1. Animate offset towards 0
 	if math.Abs(e.streamOffset) > 0.1 {
 		e.streamOffset *= 0.85
-		e.streamDirty = true
+		// Do not dirty the stream here, it's just a visual offset now!
 		e.streamUpdatedAt = time.Now()
 	} else if e.streamOffset != 0 {
 		e.streamOffset = 0
-		e.streamDirty = true
 		e.streamUpdatedAt = time.Now()
 	}
 
@@ -1380,8 +1381,8 @@ func (e *Engine) updateCriticalStream() {
 				e.CriticalStream = e.CriticalStream[:5]
 			}
 
-			// Push the stream down visually
-			e.streamOffset += 1.0
+			// Push the stream down visually by approx the height of one event
+			e.streamOffset += 100.0
 			e.streamDirty = true
 			e.streamUpdatedAt = time.Now()
 			e.lastCriticalAddedAt = time.Now()
@@ -1992,12 +1993,13 @@ func (e *Engine) drainCityBuffer() []QueuedPulse {
 			}
 		}
 		// Reset and return to pool
-		d.Counts = nil
-		*d = BufferedCity{}
+		clear(d.Counts)
+		d.Lat = 0
+		d.Lng = 0
 		e.cityBufferPool.Put(d)
 	}
 	// Clear the map after iteration to avoid concurrent modification
-	e.cityBuffer = make(map[uint64]*BufferedCity)
+	clear(e.cityBuffer)
 	return nextBatch
 }
 

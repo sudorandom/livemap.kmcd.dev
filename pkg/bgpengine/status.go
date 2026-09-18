@@ -2,7 +2,6 @@ package bgpengine
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"math"
 	"strings"
@@ -315,61 +314,63 @@ func (e *Engine) calculateStreamBoxHeight(fontSize, maxHeight float64) float64 {
 func (e *Engine) drawCriticalStream(screen *ebiten.Image, margin, yBase, boxW, boxH, fontSize float64) {
 	if e.streamBuffer == nil || e.streamBuffer.Bounds().Dx() != int(boxW*1.1) || e.streamBuffer.Bounds().Dy() != int(boxH) {
 		e.streamBuffer = ebiten.NewImage(int(boxW*1.1), int(boxH))
-		e.streamClipBuffer = ebiten.NewImage(int(boxW*1.1), int(boxH))
+		// Make the clip buffer a bit taller to allow for events moving down
+		e.streamClipBuffer = ebiten.NewImage(int(boxW*1.1), int(boxH+100))
 		e.streamDirty = true
 	}
 
+	boxW *= 1.1
+	localX, localY := 10.0, fontSize+15.0
+
+	// 1. Redraw the text to clip buffer ONLY when content changes
 	if e.streamDirty {
-		e.streamBuffer.Clear()
+		e.streamClipBuffer.Clear()
+		currentY := 0.0 // Do not use streamOffset here!
 
-		boxW *= 1.1
-		localX, localY := 10.0, fontSize+15.0
-		vector.FillRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), color.RGBA{0, 0, 0, 100}, false)
-		vector.StrokeRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), 1, color.RGBA{36, 42, 53, 255}, false)
-
-		streamTitle := "RECENT MAJOR ANOMALIES"
-		vector.FillRect(e.streamBuffer, 0, 0, 4, float32(fontSize+10), color.RGBA{255, 50, 50, 255}, false)
-
-		textOp := &text.DrawOptions{}
-		textOp.GeoM.Translate(localX+5, localY-fontSize-5)
-		textOp.ColorScale.Scale(1, 1, 1, 0.5)
-		text.Draw(e.streamBuffer, streamTitle, e.titleFace, textOp)
-
-		if len(e.CriticalStream) == 0 {
-			textOp.GeoM.Reset()
-			textOp.GeoM.Translate(localX+5, localY+5)
-			textOp.ColorScale.Reset()
-			textOp.ColorScale.Scale(1, 1, 1, 0.3)
-			text.Draw(e.streamBuffer, "Waiting for major anomalies...", e.subMonoFace, textOp)
-		} else {
-			e.streamClipBuffer.Clear()
-			currentY := e.streamOffset
-
-			// Use all events for display
-			displayStream := e.CriticalStream
-
+		displayStream := e.CriticalStream
+		if len(displayStream) > 0 {
 			for i, ce := range displayStream {
 				nextY := e.drawCriticalEvent(ce, localX, currentY, boxW, fontSize)
 
-				// Draw a subtle separator if not the last one
-				if i < len(displayStream)-1 && nextY+12 < boxH {
+				if i < len(displayStream)-1 && nextY+12 < boxH+100 {
 					vector.StrokeLine(e.streamClipBuffer, float32(localX+10), float32(nextY+10), float32(boxW-10), float32(nextY+10), 2, color.RGBA{255, 255, 255, 30}, false)
 				}
-
-				currentY = nextY + 25.0 // Increased spacer
+				currentY = nextY + 25.0
 				if currentY > boxH+100 {
 					break
 				}
 			}
-
-			// Draw clipped events onto stream buffer below title area
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(0, localY+5)
-			// Create a sub-image for the events area to ensure clipping
-			e.streamBuffer.DrawImage(e.streamClipBuffer.SubImage(image.Rect(0, 0, int(boxW), int(boxH-localY-5))).(*ebiten.Image), op)
 		}
 		e.streamDirty = false
 	}
+
+	// 2. Recompose the stream buffer every frame (cheap)
+	e.streamBuffer.Clear()
+	vector.FillRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), color.RGBA{0, 0, 0, 100}, false)
+
+	if len(e.CriticalStream) == 0 {
+		textOp := &text.DrawOptions{}
+		textOp.GeoM.Translate(localX+5, localY+5)
+		textOp.ColorScale.Scale(1, 1, 1, 0.3)
+		text.Draw(e.streamBuffer, "Waiting for major anomalies...", e.subMonoFace, textOp)
+	} else {
+		op := &ebiten.DrawImageOptions{}
+		// Apply offset here, visually shifting the prerendered text
+		op.GeoM.Translate(0, localY+5+e.streamOffset)
+		e.streamBuffer.DrawImage(e.streamClipBuffer, op)
+	}
+
+	// 3. Draw the title background to occlude any scrolling text
+	vector.FillRect(e.streamBuffer, 0, 0, float32(boxW), float32(localY+5), color.RGBA{0, 0, 0, 255}, false) // Solid black header
+	vector.StrokeRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), 1, color.RGBA{36, 42, 53, 255}, false)
+
+	// 4. Draw the Title
+	streamTitle := "RECENT MAJOR ANOMALIES"
+	vector.FillRect(e.streamBuffer, 0, 0, 4, float32(fontSize+10), color.RGBA{255, 50, 50, 255}, false)
+	textOp := &text.DrawOptions{}
+	textOp.GeoM.Translate(localX+5, localY-fontSize-5)
+	textOp.ColorScale.Scale(1, 1, 1, 0.5)
+	text.Draw(e.streamBuffer, streamTitle, e.titleFace, textOp)
 
 	now := e.Now()
 	timeSinceUpdate := now.Sub(e.streamUpdatedAt)
