@@ -23,7 +23,8 @@
         </Feature>
 
         <Feature Id="AutoStartFeature" Title="Run on Startup" Description="Automatically start the Livemap Collector and Viewer when Windows boots." Level="1">
-            <ComponentRef Id="AutoStart" />
+            <ComponentRef Id="AutoStartViewer" />
+            <ComponentRef Id="AutoStartCollector" />
         </Feature>
 
         <Directory Id="TARGETDIR" Name="SourceDir">
@@ -63,9 +64,11 @@
         </DirectoryRef>
 
         <DirectoryRef Id="INSTALLFOLDER">
-            <Component Id="AutoStart" Guid="8b518b2c-687f-4402-bde1-123456789abc">
+            <Component Id="AutoStartViewer" Guid="8b518b2c-687f-4402-bde1-123456789abc">
                 <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapViewer" Type="string" Value="&quot;[INSTALLFOLDER]bgp-viewer.exe&quot;" KeyPath="yes"/>
-                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapCollector" Type="string" Value="&quot;[INSTALLFOLDER]bgp-collector.exe&quot; --mmdb &quot;[INSTALLFOLDER]dbip-city-lite.mmdb&quot;" />
+            </Component>
+            <Component Id="AutoStartCollector" Guid="9c629c3d-7980-5513-cef2-234567890bcd">
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapCollector" Type="string" Value="&quot;[INSTALLFOLDER]bgp-collector.exe&quot; --mmdb &quot;[INSTALLFOLDER]dbip-city-lite.mmdb&quot;" KeyPath="yes"/>
             </Component>
         </DirectoryRef>
     </Product>
