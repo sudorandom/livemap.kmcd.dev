@@ -1238,7 +1238,9 @@ impl Classifier {
         for i in 0..path.len() - 1 {
             let p = path[i];
             let c = path[i + 1];
-            if self.is_tier1(p) || self.is_large_network(p) {
+            // Infer provider-customer relationship if `p` is a large network
+            // and `c` is explicitly NOT a Tier1 (Tier1s are never customers)
+            if (self.is_tier1(p) || self.is_large_network(p)) && !self.is_tier1(c) {
                 db.entry(p).or_default().insert(c);
             }
         }
