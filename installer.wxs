@@ -49,6 +49,9 @@
             <Component Id="Assets" Guid="6f518b2c-687f-4402-bde1-123456789abc">
                 <File Id="DbipCityLiteMmdb" Source="build\dbip-city-lite.mmdb" KeyPath="yes" />
             </Component>
+            <Component Id="LauncherScript" Guid="a1234567-89ab-cdef-0123-456789abcdef">
+                <File Id="LaunchLivemapVbs" Source="launch_livemap.vbs" KeyPath="yes" />
+            </Component>
         </ComponentGroup>
 
         <DirectoryRef Id="ApplicationProgramsFolder">
@@ -56,7 +59,20 @@
                 <Shortcut Id="ApplicationStartMenuShortcut" 
                           Name="Livemap Viewer"
                           Description="Livemap BGP Viewer"
-                          Target="[INSTALLFOLDER]bgp-viewer.exe"
+                          Target="[SystemFolder]wscript.exe"
+                          Arguments="&quot;[INSTALLFOLDER]launch_livemap.vbs&quot;"
+                          WorkingDirectory="INSTALLFOLDER"/>
+                <Shortcut Id="CollectorStartMenuShortcut" 
+                          Name="Livemap Collector"
+                          Description="Livemap BGP Collector"
+                          Target="[INSTALLFOLDER]bgp-collector.exe"
+                          Arguments="--mmdb &quot;[INSTALLFOLDER]dbip-city-lite.mmdb&quot; --db-dir &quot;%LOCALAPPDATA%\Livemap\db&quot;"
+                          WorkingDirectory="INSTALLFOLDER"/>
+                <Shortcut Id="IndexerStartMenuShortcut" 
+                          Name="Livemap Indexer"
+                          Description="Livemap BGP Indexer"
+                          Target="[INSTALLFOLDER]bgp-indexer.exe"
+                          Arguments="&quot;%LOCALAPPDATA%\Livemap\indexer_data&quot;"
                           WorkingDirectory="INSTALLFOLDER"/>
                 <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
                 <RegistryValue Root="HKCU" Key="Software\Livemap" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
