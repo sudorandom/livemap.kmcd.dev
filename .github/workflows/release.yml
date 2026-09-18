@@ -141,6 +141,23 @@ jobs:
           cp target/${{ matrix.rust_target }}/release/bgp-collector${{ matrix.ext }} build/
           cp target/${{ matrix.rust_target }}/release/bgp-indexer${{ matrix.ext }} build/
 
+      - name: Download DB-IP Database
+        shell: bash
+        run: |
+          YEAR_MONTH=$(date +"%Y-%m")
+          URL="https://download.db-ip.com/free/dbip-city-lite-${YEAR_MONTH}.mmdb.gz"
+          curl -sL "$URL" -o build/dbip.mmdb.gz || true
+          if gzip -t build/dbip.mmdb.gz 2>/dev/null; then
+              gunzip build/dbip.mmdb.gz
+              mv build/dbip.mmdb build/dbip-city-lite.mmdb
+          else
+              PREV_MONTH=$(date -d "1 month ago" +"%Y-%m" 2>/dev/null || date -v-1m +"%Y-%m")
+              URL="https://download.db-ip.com/free/dbip-city-lite-${PREV_MONTH}.mmdb.gz"
+              curl -sL "$URL" -o build/dbip.mmdb.gz
+              gunzip build/dbip.mmdb.gz
+              mv build/dbip.mmdb build/dbip-city-lite.mmdb
+          fi
+
       - name: Create Archive
         shell: bash
         run: |
@@ -151,7 +168,7 @@ jobs:
           cd build
           
           # Only include README if it was copied
-          INCLUDE_FILES="bgp-viewer${{ matrix.ext }} bgp-collector${{ matrix.ext }} bgp-indexer${{ matrix.ext }}"
+          INCLUDE_FILES="bgp-viewer${{ matrix.ext }} bgp-collector${{ matrix.ext }} bgp-indexer${{ matrix.ext }} dbip-city-lite.mmdb"
           if [ -f "README.md" ]; then INCLUDE_FILES="$INCLUDE_FILES README.md"; fi
 
           if [ "${{ runner.os }}" == "Windows" ]; then
@@ -159,6 +176,13 @@ jobs:
           else
             tar -czvf ../livemap_${{ matrix.arch_name }}.tar.gz $INCLUDE_FILES
           fi
+
+      - name: Create MSI Installer (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          "%WIX%\bin\candle.exe" installer.wxs -out installer.wixobj
+          "%WIX%\bin\light.exe" -ext WixUIExtension installer.wixobj -out livemap_${{ matrix.arch_name }}.msi
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
