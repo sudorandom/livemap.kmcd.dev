@@ -677,6 +677,7 @@ async fn consume_routeviews(
             .set("heartbeat.interval.ms", "20000")
             .set("max.poll.interval.ms", "900000") // 15 minutes
             .set("enable.auto.commit", "true")
+            .set("broker.address.family", "v4") // Force IPv4 to prevent IPv6 routing failures
             .create();
         if let Ok(consumer) = res
             && consumer.subscribe(&[pattern]).is_ok()
