@@ -345,131 +345,129 @@ fn process_ris_live_message_sync(
     tx: mpsc::Sender<(PendingEvent, bool)>,
     handle: tokio::runtime::Handle,
 ) {
-        let bgp_msg = match parse_ris_live_message(&text) {
-            Ok(msg) => msg,
-            Err(_) => {
-                return;
-            }
+    let bgp_msg = match parse_ris_live_message(&text) {
+        Ok(msg) => msg,
+        Err(_) => {
+            return;
+        }
+    };
+    let now = Utc::now().timestamp();
+    for elem in bgp_msg {
+        let path_str = elem
+            .as_path
+            .as_ref()
+            .map(|p| p.to_string())
+            .unwrap_or_default();
+        let mut origin_asn = elem
+            .origin_asns
+            .as_ref()
+            .and_then(|v| v.first())
+            .map(|asn: &Asn| u32::from(*asn))
+            .unwrap_or_default();
+        if origin_asn == 0
+            && let Some(last_asn) = path_str.split_whitespace().last()
+            && let Ok(asn) = last_asn.parse::<u32>()
+        {
+            origin_asn = asn;
+        }
+        let net = IpNet::from_str(&elem.prefix.to_string()).ok();
+        let mut geo_data = None;
+        if let Some(n) = net {
+            geo_data = geo.lookup(n.addr());
+        }
+        if geo_data.is_none() {
+            geo_data = geo.lookup(elem.peer_ip);
+        }
+        let (lat, lon, city, country) = match geo_data {
+            Some(gd) => (
+                gd.lat,
+                gd.lon,
+                gd.city.map(Arc::new),
+                gd.country.map(Arc::new),
+            ),
+            None => (0.0, 0.0, None, None),
         };
-        let now = Utc::now().timestamp();
-        for elem in bgp_msg {
-            let path_str = elem
+        let ctx = MessageContext {
+            now,
+            host: Arc::new(elem.peer_ip.to_string()),
+            peer: Arc::new(elem.peer_ip.to_string()),
+            is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
+            path_str: Arc::new(path_str.clone()),
+            comm_str: Arc::new(
+                elem.communities
+                    .as_ref()
+                    .map(|c| {
+                        c.iter()
+                            .map(|v| v.to_string())
+                            .collect::<Vec<String>>()
+                            .join(" ")
+                    })
+                    .unwrap_or_default(),
+            ),
+            origin_asn,
+            path_len: elem
                 .as_path
                 .as_ref()
-                .map(|p| p.to_string())
-                .unwrap_or_default();
-            let mut origin_asn = elem
-                .origin_asns
-                .as_ref()
-                .and_then(|v| v.first())
-                .map(|asn: &Asn| u32::from(*asn))
-                .unwrap_or_default();
-            if origin_asn == 0
-                && let Some(last_asn) = path_str.split_whitespace().last()
-                && let Ok(asn) = last_asn.parse::<u32>()
-            {
-                origin_asn = asn;
-            }
-            let net = IpNet::from_str(&elem.prefix.to_string()).ok();
-            let mut geo_data = None;
-            if let Some(n) = net {
-                geo_data = geo.lookup(n.addr());
-            }
-            if geo_data.is_none() {
-                geo_data = geo.lookup(elem.peer_ip);
-            }
-            let (lat, lon, city, country) = match geo_data {
-                Some(gd) => (
-                    gd.lat,
-                    gd.lon,
-                    gd.city.map(Arc::new),
-                    gd.country.map(Arc::new),
-                ),
-                None => (0.0, 0.0, None, None),
-            };
-            let ctx = MessageContext {
-                now,
-                host: Arc::new(elem.peer_ip.to_string()),
-                peer: Arc::new(elem.peer_ip.to_string()),
-                is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
-                path_str: Arc::new(path_str.clone()),
-                comm_str: Arc::new(
-                    elem.communities
-                        .as_ref()
-                        .map(|c| {
-                            c.iter()
-                                .map(|v| v.to_string())
-                                .collect::<Vec<String>>()
-                                .join(" ")
+                .map(|p| {
+                    p.segments
+                        .iter()
+                        .map(|s| match s {
+                            bgpkit_parser::models::AsPathSegment::AsSet(asns) => asns.len(),
+                            bgpkit_parser::models::AsPathSegment::AsSequence(asns) => asns.len(),
+                            bgpkit_parser::models::AsPathSegment::ConfedSequence(asns) => {
+                                asns.len()
+                            }
+                            bgpkit_parser::models::AsPathSegment::ConfedSet(asns) => asns.len(),
                         })
-                        .unwrap_or_default(),
-                ),
-                origin_asn,
-                path_len: elem
-                    .as_path
-                    .as_ref()
-                    .map(|p| {
-                        p.segments
-                            .iter()
-                            .map(|s| match s {
-                                bgpkit_parser::models::AsPathSegment::AsSet(asns) => asns.len(),
-                                bgpkit_parser::models::AsPathSegment::AsSequence(asns) => {
-                                    asns.len()
-                                }
-                                bgpkit_parser::models::AsPathSegment::ConfedSequence(asns) => {
-                                    asns.len()
-                                }
-                                bgpkit_parser::models::AsPathSegment::ConfedSet(asns) => asns.len(),
-                            })
-                            .sum()
-                    })
-                    .unwrap_or(0),
-                source: "ris".to_string(),
-            };
-            let (event_opt, needs_timer) = classifier.classify_event(
-                elem.prefix.to_string(),
-                &ctx,
-                lat,
-                lon,
-                city.clone(),
-                country.clone(),
-            );
-            let is_classified = event_opt.is_some();
-            let pending = event_opt.unwrap_or_else(|| PendingEvent {
-                prefix: elem.prefix.to_string(),
-                asn: origin_asn,
-                as_name: String::new(),
-                peer_ip: elem.peer_ip.to_string(),
-                historical_asn: 0,
-                timestamp: now,
-                classification_type: ClassificationType::None,
-                old_classification: ClassificationType::None,
-                incident_id: None,
-                incident_start_time: 0,
-                leak_detail: None,
-                anomaly_details: None,
-                source: "ris".to_string(),
-                lat,
-                lon,
-                city: city.as_ref().map(|s| s.to_string()),
-                country: country.as_ref().map(|s| s.to_string()),
-                num_flaps: 0,
-            });
-            let _ = tx.blocking_send((pending, is_classified));
+                        .sum()
+                })
+                .unwrap_or(0),
+            source: "ris".to_string(),
+        };
+        let (event_opt, needs_timer) = classifier.classify_event(
+            elem.prefix.to_string(),
+            &ctx,
+            lat,
+            lon,
+            city.clone(),
+            country.clone(),
+        );
+        let is_classified = event_opt.is_some();
+        let pending = event_opt.unwrap_or_else(|| PendingEvent {
+            prefix: elem.prefix.to_string(),
+            asn: origin_asn,
+            as_name: String::new(),
+            peer_ip: elem.peer_ip.to_string(),
+            historical_asn: 0,
+            timestamp: now,
+            classification_type: ClassificationType::None,
+            old_classification: ClassificationType::None,
+            incident_id: None,
+            incident_start_time: 0,
+            leak_detail: None,
+            anomaly_details: None,
+            source: "ris".to_string(),
+            lat,
+            lon,
+            city: city.as_ref().map(|s| s.to_string()),
+            country: country.as_ref().map(|s| s.to_string()),
+            num_flaps: 0,
+        });
+        let _ = tx.blocking_send((pending, is_classified));
 
-            if needs_timer {
-                let p = elem.prefix.to_string();
-                let c = classifier.clone();
-                let t = tx.clone();
-                handle.spawn(async move {
-                    tokio::time::sleep(Duration::from_secs(10)).await;
-                    let check_now = Utc::now().timestamp();
-                    if let Some(event) = c.check_outage(&p, check_now) {
-                        let _ = t.send((event, true)).await;
-                    }
-                });
-            }
+        if needs_timer {
+            let p = elem.prefix.to_string();
+            let c = classifier.clone();
+            let t = tx.clone();
+            handle.spawn(async move {
+                tokio::time::sleep(Duration::from_secs(10)).await;
+                let check_now = Utc::now().timestamp();
+                if let Some(event) = c.check_outage(&p, check_now) {
+                    let _ = t.send((event, true)).await;
+                }
+            });
         }
+    }
 }
 
 async fn consume_ris_live(
@@ -522,142 +520,139 @@ fn process_routeviews_message_sync(
     tx: mpsc::Sender<(PendingEvent, bool)>,
     handle: tokio::runtime::Handle,
 ) {
-        let mut bytes = Bytes::copy_from_slice(&payload);
-        let header = match parse_openbmp_header(&mut bytes) {
-            Ok(h) => h,
-            Err(_) => return,
-        };
-        let msg = match parse_bmp_msg(&mut bytes) {
-            Ok(m) => m,
-            Err(_) => return,
-        };
-        let now = Utc::now().timestamp();
-        if let (Some(ph), BmpMessageBody::RouteMonitoring(rm)) =
-            (msg.per_peer_header, msg.message_body)
+    let mut bytes = Bytes::copy_from_slice(&payload);
+    let header = match parse_openbmp_header(&mut bytes) {
+        Ok(h) => h,
+        Err(_) => return,
+    };
+    let msg = match parse_bmp_msg(&mut bytes) {
+        Ok(m) => m,
+        Err(_) => return,
+    };
+    let now = Utc::now().timestamp();
+    if let (Some(ph), BmpMessageBody::RouteMonitoring(rm)) = (msg.per_peer_header, msg.message_body)
+    {
+        for elem in
+            Elementor::bgp_to_elems(rm.bgp_message, header.timestamp, &ph.peer_ip, &ph.peer_asn)
         {
-            for elem in
-                Elementor::bgp_to_elems(rm.bgp_message, header.timestamp, &ph.peer_ip, &ph.peer_asn)
+            let path_str = elem
+                .as_path
+                .as_ref()
+                .map(|p| p.to_string())
+                .unwrap_or_default();
+            let mut origin_asn = elem
+                .origin_asns
+                .as_ref()
+                .and_then(|v| v.first())
+                .map(|asn: &Asn| u32::from(*asn))
+                .unwrap_or_default();
+            if origin_asn == 0
+                && let Some(last_asn) = path_str.split_whitespace().last()
+                && let Ok(asn) = last_asn.parse::<u32>()
             {
-                let path_str = elem
+                origin_asn = asn;
+            }
+            let net = IpNet::from_str(&elem.prefix.to_string()).ok();
+            let mut geo_data = None;
+            if let Some(n) = net {
+                geo_data = geo.lookup(n.addr());
+            }
+            if geo_data.is_none() {
+                geo_data = geo.lookup(elem.peer_ip);
+            }
+            let (lat, lon, city, country) = match geo_data {
+                Some(gd) => (
+                    gd.lat,
+                    gd.lon,
+                    gd.city.map(Arc::new),
+                    gd.country.map(Arc::new),
+                ),
+                None => (0.0, 0.0, None, None),
+            };
+            let ctx = MessageContext {
+                now,
+                host: Arc::new("routeviews".to_string()),
+                peer: Arc::new(elem.peer_ip.to_string()),
+                is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
+                path_str: Arc::new(path_str.clone()),
+                comm_str: Arc::new(
+                    elem.communities
+                        .as_ref()
+                        .map(|c| {
+                            c.iter()
+                                .map(|v| v.to_string())
+                                .collect::<Vec<String>>()
+                                .join(" ")
+                        })
+                        .unwrap_or_default(),
+                ),
+                origin_asn,
+                path_len: elem
                     .as_path
                     .as_ref()
-                    .map(|p| p.to_string())
-                    .unwrap_or_default();
-                let mut origin_asn = elem
-                    .origin_asns
-                    .as_ref()
-                    .and_then(|v| v.first())
-                    .map(|asn: &Asn| u32::from(*asn))
-                    .unwrap_or_default();
-                if origin_asn == 0
-                    && let Some(last_asn) = path_str.split_whitespace().last()
-                    && let Ok(asn) = last_asn.parse::<u32>()
-                {
-                    origin_asn = asn;
-                }
-                let net = IpNet::from_str(&elem.prefix.to_string()).ok();
-                let mut geo_data = None;
-                if let Some(n) = net {
-                    geo_data = geo.lookup(n.addr());
-                }
-                if geo_data.is_none() {
-                    geo_data = geo.lookup(elem.peer_ip);
-                }
-                let (lat, lon, city, country) = match geo_data {
-                    Some(gd) => (
-                        gd.lat,
-                        gd.lon,
-                        gd.city.map(Arc::new),
-                        gd.country.map(Arc::new),
-                    ),
-                    None => (0.0, 0.0, None, None),
-                };
-                let ctx = MessageContext {
-                    now,
-                    host: Arc::new("routeviews".to_string()),
-                    peer: Arc::new(elem.peer_ip.to_string()),
-                    is_withdrawal: elem.elem_type == bgpkit_parser::models::ElemType::WITHDRAW,
-                    path_str: Arc::new(path_str.clone()),
-                    comm_str: Arc::new(
-                        elem.communities
-                            .as_ref()
-                            .map(|c| {
-                                c.iter()
-                                    .map(|v| v.to_string())
-                                    .collect::<Vec<String>>()
-                                    .join(" ")
+                    .map(|p| {
+                        p.segments
+                            .iter()
+                            .map(|s| match s {
+                                bgpkit_parser::models::AsPathSegment::AsSet(asns) => asns.len(),
+                                bgpkit_parser::models::AsPathSegment::AsSequence(asns) => {
+                                    asns.len()
+                                }
+                                bgpkit_parser::models::AsPathSegment::ConfedSequence(asns) => {
+                                    asns.len()
+                                }
+                                bgpkit_parser::models::AsPathSegment::ConfedSet(asns) => asns.len(),
                             })
-                            .unwrap_or_default(),
-                    ),
-                    origin_asn,
-                    path_len: elem
-                        .as_path
-                        .as_ref()
-                        .map(|p| {
-                            p.segments
-                                .iter()
-                                .map(|s| match s {
-                                    bgpkit_parser::models::AsPathSegment::AsSet(asns) => asns.len(),
-                                    bgpkit_parser::models::AsPathSegment::AsSequence(asns) => {
-                                        asns.len()
-                                    }
-                                    bgpkit_parser::models::AsPathSegment::ConfedSequence(asns) => {
-                                        asns.len()
-                                    }
-                                    bgpkit_parser::models::AsPathSegment::ConfedSet(asns) => {
-                                        asns.len()
-                                    }
-                                })
-                                .sum()
-                        })
-                        .unwrap_or(0),
-                    source: "routeviews".to_string(),
-                };
-                let (event_opt, needs_timer) = classifier.classify_event(
-                    elem.prefix.to_string(),
-                    &ctx,
-                    lat,
-                    lon,
-                    city.clone(),
-                    country.clone(),
-                );
-                let is_classified = event_opt.is_some();
-                let pending = event_opt.unwrap_or_else(|| PendingEvent {
-                    prefix: elem.prefix.to_string(),
-                    asn: origin_asn,
-                    as_name: String::new(),
-                    peer_ip: "routeviews".to_string(),
-                    historical_asn: 0,
-                    timestamp: now,
-                    classification_type: ClassificationType::None,
-                    old_classification: ClassificationType::None,
-                    incident_id: None,
-                    incident_start_time: 0,
-                    leak_detail: None,
-                    anomaly_details: None,
-                    source: "routeviews".to_string(),
-                    lat,
-                    lon,
-                    city: city.as_ref().map(|s| s.to_string()),
-                    country: country.as_ref().map(|s| s.to_string()),
-                    num_flaps: 0,
-                });
-                let _ = tx.blocking_send((pending, is_classified));
+                            .sum()
+                    })
+                    .unwrap_or(0),
+                source: "routeviews".to_string(),
+            };
+            let (event_opt, needs_timer) = classifier.classify_event(
+                elem.prefix.to_string(),
+                &ctx,
+                lat,
+                lon,
+                city.clone(),
+                country.clone(),
+            );
+            let is_classified = event_opt.is_some();
+            let pending = event_opt.unwrap_or_else(|| PendingEvent {
+                prefix: elem.prefix.to_string(),
+                asn: origin_asn,
+                as_name: String::new(),
+                peer_ip: "routeviews".to_string(),
+                historical_asn: 0,
+                timestamp: now,
+                classification_type: ClassificationType::None,
+                old_classification: ClassificationType::None,
+                incident_id: None,
+                incident_start_time: 0,
+                leak_detail: None,
+                anomaly_details: None,
+                source: "routeviews".to_string(),
+                lat,
+                lon,
+                city: city.as_ref().map(|s| s.to_string()),
+                country: country.as_ref().map(|s| s.to_string()),
+                num_flaps: 0,
+            });
+            let _ = tx.blocking_send((pending, is_classified));
 
-                if needs_timer {
-                    let p = elem.prefix.to_string();
-                    let c = classifier.clone();
-                    let t = tx.clone();
-                    handle.spawn(async move {
+            if needs_timer {
+                let p = elem.prefix.to_string();
+                let c = classifier.clone();
+                let t = tx.clone();
+                handle.spawn(async move {
                     tokio::time::sleep(Duration::from_secs(10)).await;
-                        let check_now = Utc::now().timestamp();
-                        if let Some(event) = c.check_outage(&p, check_now) {
-                            let _ = t.send((event, true)).await;
-                        }
-                    });
-                }
+                    let check_now = Utc::now().timestamp();
+                    if let Some(event) = c.check_outage(&p, check_now) {
+                        let _ = t.send((event, true)).await;
+                    }
+                });
             }
         }
+    }
 }
 
 async fn consume_routeviews(
