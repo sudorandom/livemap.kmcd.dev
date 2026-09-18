@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="Livemap" Language="1033" Version="1.0.0.0" Manufacturer="Livemap" UpgradeCode="16bd7be4-bdfa-45c1-8406-8b2cb38df691">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+        <MajorUpgrade DowngradeErrorMessage="A newer version of Livemap is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <!-- Add standard UI that allows feature selection -->
+        <UIRef Id="WixUI_Mondo" />
+        <UIRef Id="WixUI_ErrorProgressText" />
+
+        <!-- Hide the license agreement dialog by setting a dummy license or skipping it if possible, 
+             or just provide a generic EULA. WixUI_Mondo requires a License.rtf usually. 
+             WixUI_FeatureTree also requires it. Let's use WixUI_FeatureTree and skip EULA if possible, 
+             or just use WixUI_Advanced? Actually, providing a simple License.rtf is easy, 
+             but we can also just define the WixVariable for it. -->
+
+        <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+        <Feature Id="ProductFeature" Title="Livemap Core" Description="The main Livemap application binaries." Level="1" ConfigurableDirectory="INSTALLFOLDER" Absent="disallow">
+            <ComponentGroupRef Id="ProductComponents" />
+            <ComponentRef Id="ApplicationShortcut" />
+        </Feature>
+
+        <Feature Id="AutoStartFeature" Title="Run on Startup" Description="Automatically start the Livemap Collector and Viewer when Windows boots." Level="1">
+            <ComponentRef Id="AutoStart" />
+        </Feature>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="INSTALLFOLDER" Name="Livemap" />
+            </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="Livemap"/>
+            </Directory>
+        </Directory>
+
+        <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+            <Component Id="BgpViewer" Guid="3c518b2c-687f-4402-bde1-123456789abc">
+                <File Id="BgpViewerExe" Source="build\bgp-viewer.exe" KeyPath="yes" />
+            </Component>
+            <Component Id="BgpCollector" Guid="4d518b2c-687f-4402-bde1-123456789def">
+                <File Id="BgpCollectorExe" Source="build\bgp-collector.exe" KeyPath="yes" />
+            </Component>
+            <Component Id="BgpIndexer" Guid="5e518b2c-687f-4402-bde1-123456789abc">
+                <File Id="BgpIndexerExe" Source="build\bgp-indexer.exe" KeyPath="yes" />
+            </Component>
+            <Component Id="Assets" Guid="6f518b2c-687f-4402-bde1-123456789abc">
+                <File Id="DbipCityLiteMmdb" Source="build\dbip-city-lite.mmdb" KeyPath="yes" />
+            </Component>
+        </ComponentGroup>
+
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="7a518b2c-687f-4402-bde1-123456789abc">
+                <Shortcut Id="ApplicationStartMenuShortcut" 
+                          Name="Livemap Viewer"
+                          Description="Livemap BGP Viewer"
+                          Target="[#BgpViewerExe]"
+                          WorkingDirectory="INSTALLFOLDER"/>
+                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\Livemap" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="INSTALLFOLDER">
+            <Component Id="AutoStart" Guid="8b518b2c-687f-4402-bde1-123456789abc">
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapViewer" Type="string" Value="&quot;[#BgpViewerExe]&quot;" KeyPath="yes"/>
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapCollector" Type="string" Value="&quot;[#BgpCollectorExe]&quot; --mmdb &quot;[INSTALLFOLDER]dbip-city-lite.mmdb&quot;" />
+            </Component>
+        </DirectoryRef>
+    </Product>
+</Wix>
