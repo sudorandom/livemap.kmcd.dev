@@ -956,8 +956,14 @@ func (e *Engine) StartMetricsLoop() {
 		run()
 	}()
 
-	for range ticker.C {
-		run()
+	defer ticker.Stop()
+	for {
+		select {
+		case <-e.ctx.Done():
+			return
+		case <-ticker.C:
+			run()
+		}
 	}
 }
 

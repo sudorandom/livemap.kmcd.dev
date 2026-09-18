@@ -271,17 +271,17 @@ pub struct PendingEvent {
 }
 
 pub struct BgpkitCache {
-    pub as2org: HashMap<u32, Option<String>>,
-    pub as2name: HashMap<u32, Option<String>>,
-    pub rpki_cache: LruCache<(u32, String), i32>,
+    pub as2org: dashmap::DashMap<u32, Option<String>>,
+    pub as2name: dashmap::DashMap<u32, Option<String>>,
+    pub rpki_cache: dashmap::DashMap<(u32, String), i32>,
 }
 
 impl Default for BgpkitCache {
     fn default() -> Self {
         Self {
-            as2org: HashMap::new(),
-            as2name: HashMap::new(),
-            rpki_cache: LruCache::new(std::num::NonZeroUsize::new(200_000).unwrap()),
+            as2org: dashmap::DashMap::new(),
+            as2name: dashmap::DashMap::new(),
+            rpki_cache: dashmap::DashMap::new(),
         }
     }
 }
@@ -291,7 +291,7 @@ pub struct Classifier {
     pub seen_db: Option<DiskTrie>,
     pub state_db: Option<Arc<Db>>,
     pub bgpkit: RwLock<Option<bgpkit_commons::BgpkitCommons>>,
-    pub bgpkit_cache: Mutex<BgpkitCache>,
+    pub bgpkit_cache: BgpkitCache,
     pub provider_db: Mutex<HashMap<u32, HashSet<u32>>>,
 }
 
@@ -346,7 +346,7 @@ impl Classifier {
             seen_db,
             state_db,
             bgpkit: RwLock::new(None),
-            bgpkit_cache: Mutex::new(BgpkitCache::default()),
+            bgpkit_cache: BgpkitCache::default(),
             provider_db: Mutex::new(HashMap::new()),
         }
     }
@@ -1472,11 +1472,8 @@ impl Classifier {
         if asn == 0 {
             return None;
         }
-        {
-            let cache = self.bgpkit_cache.lock();
-            if let Some(res) = cache.as2name.get(&asn) {
-                return res.clone();
-            }
+        if let Some(res) = self.bgpkit_cache.as2name.get(&asn) {
+            return res.clone();
         }
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
@@ -1505,10 +1502,7 @@ impl Classifier {
                 }
             });
 
-            {
-                let mut cache = self.bgpkit_cache.lock();
-                cache.as2name.insert(asn, name.clone());
-            }
+            self.bgpkit_cache.as2name.insert(asn, name.clone());
             return name;
         }
         None
@@ -1518,11 +1512,8 @@ impl Classifier {
         if asn == 0 {
             return None;
         }
-        {
-            let cache = self.bgpkit_cache.lock();
-            if let Some(res) = cache.as2org.get(&asn) {
-                return res.clone();
-            }
+        if let Some(res) = self.bgpkit_cache.as2org.get(&asn) {
+            return res.clone();
         }
         let bgpkit_guard = self.bgpkit.read();
         if let Some(ref bgpkit) = *bgpkit_guard {
@@ -1532,20 +1523,16 @@ impl Classifier {
                 .flatten()
                 .and_then(|i| i.as2org.map(|o| o.org_name));
 
-            {
-                let mut cache = self.bgpkit_cache.lock();
-                cache.as2org.insert(asn, org.clone());
-            }
+            self.bgpkit_cache.as2org.insert(asn, org.clone());
             return org;
         }
         None
     }
 
     pub fn clear_cache(&self) {
-        let mut cache = self.bgpkit_cache.lock();
-        cache.as2org.clear();
-        cache.as2name.clear();
-        cache.rpki_cache.clear();
+        self.bgpkit_cache.as2org.clear();
+        self.bgpkit_cache.as2name.clear();
+        self.bgpkit_cache.rpki_cache.clear();
     }
 
     fn parse_path(&self, path_str: &str) -> Vec<u32> {
@@ -1558,11 +1545,8 @@ impl Classifier {
     }
 
     fn rpki_validate(&self, asn: u32, prefix: &str) -> i32 {
-        {
-            let mut cache = self.bgpkit_cache.lock();
-            if let Some(res) = cache.rpki_cache.get(&(asn, prefix.to_string())) {
-                return *res;
-            }
+        if let Some(res) = self.bgpkit_cache.rpki_cache.get(&(asn, prefix.to_string())) {
+            return *res;
         }
 
         let bgpkit_guard = self.bgpkit.read();
@@ -1574,10 +1558,9 @@ impl Classifier {
                 bgpkit_commons::rpki::RpkiValidation::Invalid => 2,
                 bgpkit_commons::rpki::RpkiValidation::Unknown => 3,
             };
-            {
-                let mut cache = self.bgpkit_cache.lock();
-                cache.rpki_cache.put((asn, prefix.to_string()), res);
-            }
+            self.bgpkit_cache
+                .rpki_cache
+                .insert((asn, prefix.to_string()), res);
             return res;
         }
         0

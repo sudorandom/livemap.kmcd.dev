@@ -192,7 +192,7 @@ type Engine struct {
 	droppedQueue  atomic.Uint64
 	droppedStale  atomic.Uint64
 
-	eventCh chan *bgpEvent
+	eventCh chan bgpEvent
 }
 
 func (e *Engine) Now() time.Time {
@@ -260,7 +260,7 @@ func NewEngine(width, height int, scale float64) *Engine {
 		targetCY:               float64(height) / 2,
 		tourRegionIndex:        -1, // Start with full map
 		tourRegionStayDuration: 10 * time.Second,
-		eventCh:                make(chan *bgpEvent, 250000),
+		eventCh:                make(chan bgpEvent, 250000),
 		criticalCooldown:       make(map[string]time.Time),
 		streamDirty:            true,
 	}
@@ -977,9 +977,10 @@ type batchKey struct {
 }
 
 func (e *Engine) runEventWorker() {
-	batch := make([]*bgpEvent, 0, 1000)
+	batch := make([]bgpEvent, 0, 1000)
 	localBatch := make(map[batchKey]int)
 	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
 	for {
 		select {
 		case ev, ok := <-e.eventCh:
@@ -1000,7 +1001,7 @@ func (e *Engine) runEventWorker() {
 	}
 }
 
-func (e *Engine) processEventBatch(batch []*bgpEvent, localBatch map[batchKey]int) {
+func (e *Engine) processEventBatch(batch []bgpEvent, localBatch map[batchKey]int) {
 	clear(localBatch)
 
 	for _, ev := range batch {
@@ -1034,7 +1035,7 @@ func (e *Engine) processEventBatch(batch []*bgpEvent, localBatch map[batchKey]in
 
 func (e *Engine) recordEvent(lat, lng float64, cc, city string, eventType bgp.EventType, classificationType bgp.ClassificationType, prefix string, asn, historicalASN uint32, leakDetail *bgp.LeakDetail, anomalyDetails *bgp.AnomalyDetails) {
 	select {
-	case e.eventCh <- &bgpEvent{lat, lng, cc, city, eventType, classificationType, prefix, asn, historicalASN, leakDetail, anomalyDetails}:
+	case e.eventCh <- bgpEvent{lat, lng, cc, city, eventType, classificationType, prefix, asn, historicalASN, leakDetail, anomalyDetails}:
 	default:
 		// Drop event if engine is too busy
 	}
@@ -1970,14 +1971,20 @@ func (e *Engine) generateFlarePixels(size int) []byte {
 // clustering, and paces their release into the visual queue to ensure smooth animations.
 func (e *Engine) StartBufferLoop() {
 	ticker := time.NewTicker(100 * time.Millisecond)
-	for range ticker.C {
-		nextBatch := e.drainCityBuffer()
+	defer ticker.Stop()
+	for {
+		select {
+		case <-e.ctx.Done():
+			return
+		case <-ticker.C:
+			nextBatch := e.drainCityBuffer()
 
-		if len(nextBatch) == 0 {
-			continue
+			if len(nextBatch) == 0 {
+				continue
+			}
+
+			e.scheduleVisualPulses(nextBatch)
 		}
-
-		e.scheduleVisualPulses(nextBatch)
 	}
 }
 

@@ -1,3 +1,6 @@
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use bgpkit_parser::models::Asn;
 use bgpkit_parser::parse_ris_live_message;
 use bgpkit_parser::parser::bmp::messages::BmpMessageBody;
@@ -973,11 +976,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let refresh_op = tokio::task::spawn_blocking(
                             move || -> (bgpkit_commons::BgpkitCommons, Option<anyhow::Error>) {
                                 let res = match name {
-                                    "as_info" => {
-                                        bgpkit_to_update.load_asinfo(true, true, true, true).map_err(|e| anyhow::anyhow!("{}", e))
-                                    }
-                                    "rpki" => bgpkit_to_update.load_rpki(None).map_err(|e| anyhow::anyhow!("{}", e)),
-                                    "bogons" => bgpkit_to_update.load_bogons().map_err(|e| anyhow::anyhow!("{}", e)),
+                                    "as_info" => bgpkit_to_update
+                                        .load_asinfo(true, true, true, true)
+                                        .map_err(|e| anyhow::anyhow!("{}", e)),
+                                    "rpki" => bgpkit_to_update
+                                        .load_rpki(None)
+                                        .map_err(|e| anyhow::anyhow!("{}", e)),
+                                    "bogons" => bgpkit_to_update
+                                        .load_bogons()
+                                        .map_err(|e| anyhow::anyhow!("{}", e)),
                                     _ => Err(anyhow::anyhow!("Unknown dataset")),
                                 };
                                 match res {
@@ -1988,17 +1995,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         let mut aggregate_buffer: HashMap<AggregationKey, u32> = HashMap::new();
         let mut last_emitted_transitions: HashMap<String, i64> = HashMap::new();
-        
+
         let mut batched = Vec::with_capacity(5000);
         let mut transitions = Vec::new();
         let mut rw_updates = Vec::new();
         let mut local_as_names: HashMap<u32, String> = HashMap::new();
         let mut local_as_orgs: HashMap<u32, Option<String>> = HashMap::new();
-        
+
         loop {
             tokio::select! {
                 Some(first_msg) = rx.recv() => {
-                    let now = Utc::now().timestamp(); 
+                    let now = Utc::now().timestamp();
                     batched.push(first_msg);
                     while let Ok(msg) = rx.try_recv() { batched.push(msg); if batched.len() >= 5000 { break; } }
                     let mut max_lag = 0;

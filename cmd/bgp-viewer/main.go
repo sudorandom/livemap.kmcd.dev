@@ -56,8 +56,6 @@ func startBackgroundTasks(engine *bgpengine.Engine) {
 
 		go engine.StartMetricsLoop()
 	}()
-
-	go engine.StartMemoryWatcher()
 }
 
 func runWindowLoop(engine *bgpengine.Engine) {
