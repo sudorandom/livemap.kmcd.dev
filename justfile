@@ -24,7 +24,7 @@ viewer:
 	go run ./cmd/bgp-viewer/
 
 collector:
-	RUST_BACKTRACE=1 cargo run --bin bgp-collector -- --mmdb ./assets/dbip-city-lite-2026-03.mmdb
+	RUST_BACKTRACE=1 cargo run --release --bin bgp-collector -- --mmdb ./assets/dbip-city-lite-2026-03.mmdb
 
 indexer:
 	RUST_LOG=info RUST_BACKTRACE=1 cargo run --bin bgp-indexer -- ./web/public/data

@@ -338,13 +338,13 @@ impl LiveMap for LiveMapService {
     }
 }
 
-async fn process_ris_live_message(
+fn process_ris_live_message_sync(
     text: String,
     classifier: Arc<Classifier>,
     geo: Arc<Geolocation>,
     tx: mpsc::Sender<(PendingEvent, bool)>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = tokio::task::spawn_blocking(move || {
+    handle: tokio::runtime::Handle,
+) {
         let bgp_msg = match parse_ris_live_message(&text) {
             Ok(msg) => msg,
             Err(_) => {
@@ -461,7 +461,7 @@ async fn process_ris_live_message(
                 let p = elem.prefix.to_string();
                 let c = classifier.clone();
                 let t = tx.clone();
-                tokio::spawn(async move {
+                handle.spawn(async move {
                     tokio::time::sleep(Duration::from_secs(10)).await;
                     let check_now = Utc::now().timestamp();
                     if let Some(event) = c.check_outage(&p, check_now) {
@@ -470,9 +470,6 @@ async fn process_ris_live_message(
                 });
             }
         }
-    })
-    .await;
-    Ok(())
 }
 
 async fn consume_ris_live(
@@ -494,7 +491,6 @@ async fn consume_ris_live(
                 continue;
             }
             info!("Subscribed to RIS Live with: {}", subscription);
-            let sem = Arc::new(tokio::sync::Semaphore::new(50));
             let (mut ws_tx, mut ws_rx) = socket.split();
             let mut hb = tokio::time::interval(Duration::from_secs(30));
             tokio::select! {
@@ -503,8 +499,8 @@ async fn consume_ris_live(
                     while let Some(msg_res) = ws_rx.next().await {
                         match msg_res {
                             Ok(WsMessage::Text(text)) => {
-                                let c = classifier.clone(); let t = tx.clone(); let s = sem.clone(); let g = geo.clone();
-                                tokio::spawn(async move { let _p = s.acquire().await.ok(); let _ = process_ris_live_message(text.to_string(), c, g, t).await; });
+                                let c = classifier.clone(); let t = tx.clone(); let g = geo.clone(); let handle = tokio::runtime::Handle::current();
+                                rayon::spawn(move || { process_ris_live_message_sync(text.to_string(), c, g, t, handle); });
                             }
                             Ok(_) => {},
                             Err(e) => return Err(e),
@@ -519,13 +515,13 @@ async fn consume_ris_live(
     }
 }
 
-async fn process_routeviews_message(
+fn process_routeviews_message_sync(
     payload: Vec<u8>,
     classifier: Arc<Classifier>,
     geo: Arc<Geolocation>,
     tx: mpsc::Sender<(PendingEvent, bool)>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = tokio::task::spawn_blocking(move || {
+    handle: tokio::runtime::Handle,
+) {
         let mut bytes = Bytes::copy_from_slice(&payload);
         let header = match parse_openbmp_header(&mut bytes) {
             Ok(h) => h,
@@ -652,8 +648,8 @@ async fn process_routeviews_message(
                     let p = elem.prefix.to_string();
                     let c = classifier.clone();
                     let t = tx.clone();
-                    tokio::spawn(async move {
-                        tokio::time::sleep(Duration::from_secs(10)).await;
+                    handle.spawn(async move {
+                    tokio::time::sleep(Duration::from_secs(10)).await;
                         let check_now = Utc::now().timestamp();
                         if let Some(event) = c.check_outage(&p, check_now) {
                             let _ = t.send((event, true)).await;
@@ -662,9 +658,6 @@ async fn process_routeviews_message(
                 }
             }
         }
-    })
-    .await;
-    Ok(())
 }
 
 async fn consume_routeviews(
@@ -698,7 +691,6 @@ async fn consume_routeviews(
                 pattern
             );
             backoff = Duration::from_secs(5);
-            let sem = Arc::new(tokio::sync::Semaphore::new(200));
             loop {
                 match consumer.recv().await {
                     Ok(msg) => {
@@ -707,10 +699,9 @@ async fn consume_routeviews(
                             let c = classifier.clone();
                             let t = tx.clone();
                             let g = geo.clone();
-                            let s = sem.clone();
-                            tokio::spawn(async move {
-                                let _p = s.acquire().await.ok();
-                                let _ = process_routeviews_message(p_owned, c, g, t).await;
+                            let handle = tokio::runtime::Handle::current();
+                            rayon::spawn(move || {
+                                process_routeviews_message_sync(p_owned, c, g, t, handle);
                             });
                         }
                     }
