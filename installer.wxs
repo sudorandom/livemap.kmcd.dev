@@ -81,10 +81,10 @@
 
         <DirectoryRef Id="INSTALLFOLDER">
             <Component Id="AutoStartViewer" Guid="8b518b2c-687f-4402-bde1-123456789abc">
-                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapViewer" Type="string" Value="&quot;[INSTALLFOLDER]bgp-viewer.exe&quot;" KeyPath="yes"/>
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapViewer" Type="expandable" Value="cmd.exe /c &quot;mkdir &quot;%LOCALAPPDATA%\Livemap&quot; &amp; &quot;[INSTALLFOLDER]bgp-viewer.exe&quot; &gt;&gt; &quot;%LOCALAPPDATA%\Livemap\viewer.log&quot; 2&gt;&amp;1&quot;" KeyPath="yes"/>
             </Component>
             <Component Id="AutoStartCollector" Guid="9c629c3d-7980-5513-cef2-234567890bcd">
-                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapCollector" Type="expandable" Value="&quot;[INSTALLFOLDER]bgp-collector.exe&quot; --mmdb &quot;[INSTALLFOLDER]dbip-city-lite.mmdb&quot; --db-dir &quot;%LOCALAPPDATA%\Livemap\db&quot;" KeyPath="yes"/>
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="LivemapCollector" Type="expandable" Value="cmd.exe /c &quot;mkdir &quot;%LOCALAPPDATA%\Livemap&quot; &amp; &quot;[INSTALLFOLDER]bgp-collector.exe&quot; --mmdb &quot;[INSTALLFOLDER]dbip-city-lite.mmdb&quot; --db-dir &quot;%LOCALAPPDATA%\Livemap\db&quot; &gt;&gt; &quot;%LOCALAPPDATA%\Livemap\collector.log&quot; 2&gt;&amp;1&quot;" KeyPath="yes"/>
             </Component>
         </DirectoryRef>
     </Product>
