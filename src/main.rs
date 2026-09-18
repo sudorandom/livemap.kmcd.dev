@@ -724,6 +724,10 @@ struct Args {
     /// Listen address for the gRPC server
     #[arg(short, long, default_value = "127.0.0.1:50051")]
     listen: String,
+
+    /// Directory to store databases
+    #[arg(long, default_value = "db")]
+    db_dir: String,
 }
 
 fn entry_to_transition(e: &WindowEntry, class: ClassificationType) -> StateTransition {
@@ -787,13 +791,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .format_timestamp_millis()
         .init();
     info!("Starting server...");
-    let sled_db = sled::open("db/sled").expect("Failed to open sled database");
+    std::fs::create_dir_all(&args.db_dir).expect("Failed to create db directory");
+    let sled_path = format!("{}/sled", args.db_dir);
+    let state_db_path = format!("{}/state.db", args.db_dir);
+    let sled_db = sled::open(&sled_path).expect("Failed to open sled database");
     let seen_tree = sled_db.open_tree("seen").expect("Failed to open seen tree");
     let checkpoint_db = sled_db
         .open_tree("checkpoints")
         .expect("Failed to open checkpoints tree");
     let db = Arc::new(Db::new(
-        "db/state.db",
+        &state_db_path,
         Some(DiskTrie::new(seen_tree.clone())),
     ));
     let db_for_classifier = db.clone();
