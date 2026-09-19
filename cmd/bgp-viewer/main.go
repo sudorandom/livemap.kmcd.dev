@@ -29,9 +29,6 @@ func init() {
 	defaultW, defaultH := 1920, 1080
 	defaultScale := 380.0
 
-	importRuntime := false
-	_ = importRuntime
-
 	if runtime.GOOS == "windows" {
 		defaultW, defaultH = 3840, 2160
 		defaultScale = 760.0
