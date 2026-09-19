@@ -357,19 +357,16 @@ func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, 
 
 	var streamTitle string
 	var headerColor color.RGBA
-	var tabStr string
 
 	switch e.currentLeftViewIndex {
 	case 0:
 		streamTitle = "MAJOR ROUTING ANOMALIES"
 		headerColor = color.RGBA{255, 50, 50, 255}
-		tabStr = "1/2"
 		e.renderMajorAnomaliesView(localX, localY, actualW, boxH, fontSize)
 
 	case 1:
 		streamTitle = "TOP FLAPPIEST NETWORKS (24H)"
 		headerColor = ColorBad
-		tabStr = "2/2"
 		e.renderFlappiestView(localX, localY, actualW, boxH, fontSize)
 	}
 
@@ -384,13 +381,7 @@ func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, 
 	textOp.ColorScale.Scale(1, 1, 1, 0.7)
 	text.Draw(e.streamBuffer, streamTitle, e.titleFace, textOp)
 
-	// 4. Draw tab pagination indicator in upper-right
-	tabOp := &text.DrawOptions{}
-	tabOp.GeoM.Translate(actualW-45, localY-fontSize-5)
-	tabOp.ColorScale.Scale(1, 1, 1, 0.3)
-	text.Draw(e.streamBuffer, "["+tabStr+"]", e.subMonoFace, tabOp)
-
-	// 5. Draw directly to screen - with fade effect!
+	// 4. Draw directly to screen - with fade effect!
 	bufOp := &ebiten.DrawImageOptions{}
 	bufOp.GeoM.Translate(margin, yBase)
 	bufOp.ColorScale.ScaleAlpha(fadeAlpha)
