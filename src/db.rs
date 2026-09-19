@@ -117,7 +117,7 @@ impl Db {
                  CREATE INDEX IF NOT EXISTS idx_recent_alerts_ts ON recent_alerts(timestamp);
                  CREATE INDEX IF NOT EXISTS idx_recent_alerts_score ON recent_alerts(classification, anomaly_score);"
             );
-            
+
             let _ = conn.execute(
                 "ALTER TABLE prefix_state ADD COLUMN origin_asn INTEGER DEFAULT 0",
                 [],
