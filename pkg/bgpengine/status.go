@@ -306,6 +306,11 @@ func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, 
 	// Default to whatever we were currently aiming for
 	desiredView := e.targetLeftViewIndex
 
+	// If both are empty, don't draw anything!
+	if len(e.CriticalStream) == 0 && len(e.topFlappiestNetworks) == 0 && e.topStatsFlappiestASN == 0 {
+		return
+	}
+
 	timeSincePromoted := now.Sub(e.lastCriticalPromotedAt)
 
 	if timeSincePromoted < 15*time.Second && len(e.CriticalStream) > 0 {
@@ -316,11 +321,12 @@ func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, 
 		desiredView = (e.targetLeftViewIndex + 1) % 2
 	}
 
-	// If there are no major anomalies, default to flappiest networks
-	if len(e.CriticalStream) == 0 && (len(e.topFlappiestNetworks) > 0 || e.topStatsFlappiestASN != 0) {
+	// If one is empty, force the other
+	if desiredView == 0 && len(e.CriticalStream) == 0 {
 		desiredView = 1
+	} else if desiredView == 1 && len(e.topFlappiestNetworks) == 0 && e.topStatsFlappiestASN == 0 {
+		desiredView = 0
 	}
-
 	if e.targetLeftViewIndex != desiredView {
 		e.targetLeftViewIndex = desiredView
 		e.leftViewChangedAt = now
@@ -417,7 +423,7 @@ func (e *Engine) renderMajorAnomaliesView(localX, localY, boxW, boxH, fontSize f
 		for i, ce := range e.CriticalStream {
 			nextY := e.drawCriticalEvent(ce, localX, currentY, boxW, eventFontSize)
 			if i < len(e.CriticalStream)-1 {
-				currentY = nextY + 14.0 // Spacing between events without a line
+				currentY = nextY + 24.0 // Spacing between events without a line
 			} else {
 				currentY = nextY + 10.0
 			}
@@ -437,7 +443,7 @@ func (e *Engine) renderMajorAnomaliesView(localX, localY, boxW, boxH, fontSize f
 		}
 		elapsed := now.Sub(e.streamScrollStart).Seconds()
 
-		topPause := 4.0
+		topPause := 10.0
 		scrollDuration := maxScroll / 25.0
 		if scrollDuration < 3.0 {
 			scrollDuration = 3.0
@@ -451,8 +457,9 @@ func (e *Engine) renderMajorAnomaliesView(localX, localY, boxW, boxH, fontSize f
 			scrollOffset = 0.0
 		} else if tCycle < topPause+scrollDuration {
 			progress := (tCycle - topPause) / scrollDuration
-			ease := 0.5 - 0.5*math.Cos(progress*math.Pi)
-			scrollOffset = ease * maxScroll
+			// Ease in-out
+			progress = progress * progress * (3 - 2*progress)
+			scrollOffset = maxScroll * progress
 		} else if tCycle < topPause+scrollDuration+bottomPause {
 			scrollOffset = maxScroll
 		} else {
@@ -464,7 +471,7 @@ func (e *Engine) renderMajorAnomaliesView(localX, localY, boxW, boxH, fontSize f
 
 	// 3. Draw the clip buffer into streamBuffer
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, localY+5+e.streamOffset-scrollOffset)
+	op.GeoM.Translate(0, localY+5-scrollOffset)
 	e.streamBuffer.DrawImage(e.streamClipBuffer, op)
 }
 
@@ -599,8 +606,8 @@ func (e *Engine) renderFlappiestView(localX, localY, boxW, boxH, fontSize float6
 		return
 	}
 
-	currY := localY + 12.0
-	itemH := fontSize * 2.8
+	currY := localY + 15.0
+	itemH := fontSize * 3.8
 
 	for i := 0; i < numItems; i++ {
 		if currY+itemH > boxH-15.0 {

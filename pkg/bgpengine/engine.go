@@ -112,7 +112,6 @@ type Engine struct {
 	criticalQueue              []*CriticalEvent
 	lastCriticalAddedAt        time.Time
 	lastCriticalPromotedAt     time.Time
-	streamOffset               float64
 	streamScrollStart          time.Time
 	streamContentH             float64
 	streamDirty                bool
@@ -1338,15 +1337,7 @@ func (e *Engine) updateCriticalStream() {
 	e.streamMu.Lock()
 	defer e.streamMu.Unlock()
 
-	// 1. Animate offset towards 0
-	if math.Abs(e.streamOffset) > 0.1 {
-		e.streamOffset *= 0.85
-		// Do not dirty the stream here, it's just a visual offset now!
-		e.streamUpdatedAt = time.Now()
-	} else if e.streamOffset != 0 {
-		e.streamOffset = 0
-		e.streamUpdatedAt = time.Now()
-	}
+	// 1. (Legacy visual offset removed)
 
 	// Clean up resolved events from queue first
 	activeQueue := e.criticalQueue[:0]
@@ -1404,12 +1395,8 @@ func (e *Engine) updateCriticalStream() {
 			e.CriticalStream = e.CriticalStream[:50]
 		}
 
-		// Push the stream down visually by approx the height of one event
-		e.streamOffset += 80.0
 		e.streamDirty = true
-		e.streamUpdatedAt = time.Now()
 		e.lastCriticalPromotedAt = time.Now()
-		e.streamScrollStart = time.Now()
 	}
 
 	// Cap queue size to prevent memory buildup during massive storms
