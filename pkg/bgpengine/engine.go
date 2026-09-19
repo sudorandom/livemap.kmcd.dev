@@ -145,7 +145,6 @@ type Engine struct {
 	flappiestChangedAt time.Time
 	flappyY            float64
 	flappyVelocity     float64
-	flappiestBuffer    *ebiten.Image
 
 	ctx       context.Context
 	cancelCtx context.CancelFunc

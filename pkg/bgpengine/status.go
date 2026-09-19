@@ -327,7 +327,7 @@ func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, 
 	}
 
 	timeSinceChange := now.Sub(e.leftViewChangedAt).Seconds()
-	fadeAlpha := float32(1.0)
+	var fadeAlpha float32
 	fadeDuration := 0.5 // 0.5s fade out, 0.5s fade in
 
 	if timeSinceChange < fadeDuration {
