@@ -66,19 +66,9 @@ pub struct FlappyNetwork {
 
 impl Db {
     pub fn new(path: &str, seen_db: Option<crate::classifier::DiskTrie>) -> Self {
-        let manager = SqliteConnectionManager::file(path).with_init(|c| {
-            c.execute_batch(
-                "PRAGMA busy_timeout = 5000;
-                 PRAGMA journal_mode = WAL;
-                 PRAGMA synchronous = NORMAL;
-                 PRAGMA wal_autocheckpoint = 1000;
-                 PRAGMA journal_size_limit = 67108864;",
-            )
-        });
-        let pool = Pool::new(manager).expect("Failed to create SQLite pool");
-
-        if let Ok(conn) = pool.get() {
-            conn.execute_batch(
+        // Initialize schema and WAL mode on a single connection to prevent r2d2 concurrent init deadlocks on Windows
+        if let Ok(conn) = rusqlite::Connection::open(path) {
+            let _ = conn.execute_batch(
                 "PRAGMA busy_timeout = 5000;
                  PRAGMA journal_mode = WAL;
                  PRAGMA synchronous = NORMAL;
@@ -125,10 +115,9 @@ impl Db {
                      data BLOB
                  );
                  CREATE INDEX IF NOT EXISTS idx_recent_alerts_ts ON recent_alerts(timestamp);
-                 CREATE INDEX IF NOT EXISTS idx_recent_alerts_score ON recent_alerts(classification, anomaly_score);
-                 ",
-            )
-            .expect("Failed to initialize SQLite schema");
+                 CREATE INDEX IF NOT EXISTS idx_recent_alerts_score ON recent_alerts(classification, anomaly_score);"
+            );
+            
             let _ = conn.execute(
                 "ALTER TABLE prefix_state ADD COLUMN origin_asn INTEGER DEFAULT 0",
                 [],
@@ -147,6 +136,16 @@ impl Db {
                 [],
             );
         }
+
+        let manager = SqliteConnectionManager::file(path).with_init(|c| {
+            c.execute_batch(
+                "PRAGMA busy_timeout = 5000;
+                 PRAGMA synchronous = NORMAL;
+                 PRAGMA wal_autocheckpoint = 1000;
+                 PRAGMA journal_size_limit = 67108864;",
+            )
+        });
+        let pool = Pool::new(manager).expect("Failed to create SQLite pool");
 
         let (write_tx, mut write_rx) = mpsc::channel::<DbWriteOp>(20000);
         let pool_clone = pool.clone();

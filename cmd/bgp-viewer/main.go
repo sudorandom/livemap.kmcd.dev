@@ -12,17 +12,34 @@ import (
 )
 
 var (
-	renderWidth        = flag.Int("width", 1920, "Render width")
-	renderHeight       = flag.Int("height", 1080, "Render height")
+	renderWidth        *int
+	renderHeight       *int
 	windowWidth        = flag.Int("win-width", 0, "Window width (0 for same as render)")
 	windowHeight       = flag.Int("win-height", 0, "Window height (0 for same as render)")
-	scaleFlag          = flag.Float64("scale", 380.0, "Map scale factor")
+	scaleFlag          *float64
 	tpsFlag            = flag.Int("tps", 30, "Ticks per second")
 	hideWindowControls = flag.Bool("hide-controls", false, "Hide window title bar and controls")
 	floating           = flag.Bool("floating", false, "Keep window on top")
 	hideUI             = flag.Bool("hide-ui", false, "Start with UI hidden (toggle with 'H')")
 	minimalUI          = flag.Bool("minimal-ui", false, "Start with minimal UI (toggle with 'M')")
 )
+
+func init() {
+	defaultW, defaultH := 1920, 1080
+	defaultScale := 380.0
+
+	importRuntime := false
+	_ = importRuntime
+
+	if runtime.GOOS == "windows" {
+		defaultW, defaultH = 3840, 2160
+		defaultScale = 760.0
+	}
+
+	renderWidth = flag.Int("width", defaultW, "Render width")
+	renderHeight = flag.Int("height", defaultH, "Render height")
+	scaleFlag = flag.Float64("scale", defaultScale, "Map scale factor")
+}
 
 func main() {
 	flag.Parse()
