@@ -66,8 +66,10 @@ pub struct FlappyNetwork {
 
 impl Db {
     pub fn new(path: &str, seen_db: Option<crate::classifier::DiskTrie>) -> Self {
+        log::info!("Db::new: Opening synchronous SQLite connection for schema init...");
         // Initialize schema and WAL mode on a single connection to prevent r2d2 concurrent init deadlocks on Windows
         if let Ok(conn) = rusqlite::Connection::open(path) {
+            log::info!("Db::new: Synchronous connection opened. Executing schema batch...");
             let _ = conn.execute_batch(
                 "PRAGMA busy_timeout = 5000;
                  PRAGMA journal_mode = WAL;
@@ -118,6 +120,7 @@ impl Db {
                  CREATE INDEX IF NOT EXISTS idx_recent_alerts_score ON recent_alerts(classification, anomaly_score);"
             );
 
+            log::info!("Db::new: Schema batch complete. Running ALTER TABLE migrations...");
             let _ = conn.execute(
                 "ALTER TABLE prefix_state ADD COLUMN origin_asn INTEGER DEFAULT 0",
                 [],
@@ -135,8 +138,11 @@ impl Db {
                 "ALTER TABLE rpki_stats ADD COLUMN not_found_ipv6 INTEGER DEFAULT 0",
                 [],
             );
+            log::info!("Db::new: Synchronous schema init complete. Closing connection.");
+            let _ = conn.close();
         }
 
+        log::info!("Db::new: Creating SqliteConnectionManager for r2d2 pool...");
         let manager = SqliteConnectionManager::file(path).with_init(|c| {
             c.execute_batch(
                 "PRAGMA busy_timeout = 5000;
@@ -145,7 +151,9 @@ impl Db {
                  PRAGMA journal_size_limit = 67108864;",
             )
         });
+        log::info!("Db::new: Creating r2d2 SQLite pool (this may block while connections open)...");
         let pool = Pool::new(manager).expect("Failed to create SQLite pool");
+        log::info!("Db::new: r2d2 SQLite pool created successfully.");
 
         let (write_tx, mut write_rx) = mpsc::channel::<DbWriteOp>(20000);
         let pool_clone = pool.clone();

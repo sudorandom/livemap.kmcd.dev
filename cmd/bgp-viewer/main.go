@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"runtime/debug"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	_ "github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -42,7 +43,12 @@ func init() {
 func main() {
 	flag.Parse()
 
-	log.Printf("Initializing BGP Viewer (%dx%d, Scale: %.1f)...", *renderWidth, *renderHeight, *scaleFlag)
+	version := "unknown"
+	if info, ok := debug.ReadBuildInfo(); ok {
+		version = info.Main.Version
+	}
+
+	log.Printf("Initializing BGP Viewer (v%s, %dx%d, Scale: %.1f)...", version, *renderWidth, *renderHeight, *scaleFlag)
 
 	engine := bgpengine.NewEngine(*renderWidth, *renderHeight, *scaleFlag)
 	engine.HideUI = *hideUI

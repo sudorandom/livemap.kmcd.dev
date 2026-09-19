@@ -804,15 +804,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .format_timestamp_millis()
         .init();
-    info!("Starting server...");
+    info!("Starting server (v{})...", env!("CARGO_PKG_VERSION"));
     std::fs::create_dir_all(&args.db_dir).expect("Failed to create db directory");
     let sled_path = format!("{}/sled", args.db_dir);
     let state_db_path = format!("{}/state.db", args.db_dir);
+    info!("Opening sled database at {}...", sled_path);
     let sled_db = sled::open(&sled_path).expect("Failed to open sled database");
+    info!("Opening sled trees...");
     let seen_tree = sled_db.open_tree("seen").expect("Failed to open seen tree");
     let checkpoint_db = sled_db
         .open_tree("checkpoints")
         .expect("Failed to open checkpoints tree");
+    info!("Opening SQLite state DB at {}...", state_db_path);
     let db = Arc::new(Db::new(
         &state_db_path,
         Some(DiskTrie::new(seen_tree.clone())),
