@@ -307,7 +307,7 @@ func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, 
 	desiredView := e.targetLeftViewIndex
 
 	timeSincePromoted := now.Sub(e.lastCriticalPromotedAt)
-	
+
 	if timeSincePromoted < 15*time.Second && len(e.CriticalStream) > 0 {
 		// Prioritize Major Anomalies if a critical event was recently promoted
 		desiredView = 0
@@ -771,7 +771,7 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 
 		// Center the entire RPKI widget (label + bar) between both panels
 		midX := (leftPanelRight + summaryX) / 2.0
-		componentStartX := midX - (labelOffset + barW)/2.0
+		componentStartX := midX - (labelOffset+barW)/2.0
 		v4X := componentStartX + labelOffset
 
 		barY_v6 := float64(e.Height) - margin - barH

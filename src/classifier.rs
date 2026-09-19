@@ -294,7 +294,8 @@ pub struct Classifier {
     pub bgpkit_cache: BgpkitCache,
     pub provider_db: Mutex<HashMap<u32, HashSet<u32>>>,
     pub country_total_prefixes: dashmap::DashMap<String, parking_lot::RwLock<HashMap<String, i64>>>,
-    pub country_anomalous_prefixes: dashmap::DashMap<String, parking_lot::RwLock<HashMap<String, i64>>>,
+    pub country_anomalous_prefixes:
+        dashmap::DashMap<String, parking_lot::RwLock<HashMap<String, i64>>>,
     pub upstream_transits: dashmap::DashMap<u32, std::sync::atomic::AtomicU64>,
     pub max_prepended_path: parking_lot::RwLock<Option<PrependingRecord>>,
 }

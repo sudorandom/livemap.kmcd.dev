@@ -337,18 +337,15 @@ impl LiveMap for LiveMapService {
             rpki_invalid_ipv6: self.state.top_rpki_invalid_ipv6.load(Ordering::Relaxed),
             rpki_not_found_ipv6: self.state.top_rpki_not_found_ipv6.load(Ordering::Relaxed),
             top_volatile_countries: self.state.top_volatile_countries.read().clone(),
-            max_prepended_path: self
-                .classifier
-                .max_prepended_path
-                .read()
-                .as_ref()
-                .map(|p| livemap_proto::PrependingStats {
+            max_prepended_path: self.classifier.max_prepended_path.read().as_ref().map(|p| {
+                livemap_proto::PrependingStats {
                     asn: p.asn,
                     as_name: self.classifier.get_as_name(p.asn).unwrap_or_default(),
                     prefix: p.prefix.clone(),
                     path_length: p.path_length,
                     prepend_count: p.prepend_count,
-                }),
+                }
+            }),
             top_upstream_transits: self.state.top_upstream_transits.read().clone(),
         }))
     }
