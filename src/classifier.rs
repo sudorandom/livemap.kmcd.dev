@@ -293,6 +293,18 @@ pub struct Classifier {
     pub bgpkit: RwLock<Option<bgpkit_commons::BgpkitCommons>>,
     pub bgpkit_cache: BgpkitCache,
     pub provider_db: Mutex<HashMap<u32, HashSet<u32>>>,
+    pub country_total_prefixes: dashmap::DashMap<String, parking_lot::RwLock<HashMap<String, i64>>>,
+    pub country_anomalous_prefixes: dashmap::DashMap<String, parking_lot::RwLock<HashMap<String, i64>>>,
+    pub upstream_transits: dashmap::DashMap<u32, std::sync::atomic::AtomicU64>,
+    pub max_prepended_path: parking_lot::RwLock<Option<PrependingRecord>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrependingRecord {
+    pub asn: u32,
+    pub prefix: String,
+    pub path_length: u32,
+    pub prepend_count: u32,
 }
 
 pub struct AggregatedStats {
@@ -348,6 +360,10 @@ impl Classifier {
             bgpkit: RwLock::new(None),
             bgpkit_cache: BgpkitCache::default(),
             provider_db: Mutex::new(HashMap::new()),
+            country_total_prefixes: dashmap::DashMap::new(),
+            country_anomalous_prefixes: dashmap::DashMap::new(),
+            upstream_transits: dashmap::DashMap::new(),
+            max_prepended_path: parking_lot::RwLock::new(None),
         }
     }
 
@@ -491,6 +507,30 @@ impl Classifier {
         } else {
             historical_origin_asn
         };
+        if !ctx.is_withdrawal {
+            self.record_path_stats(&ctx.path_str, &prefix, resolved_asn);
+        }
+        if let Some(ref c) = country {
+            if !c.is_empty() {
+                let country_code = c.as_str();
+                if let Some(map) = self.country_total_prefixes.get(country_code) {
+                    let should_update = {
+                        let r = map.read();
+                        match r.get(prefix.as_str()) {
+                            Some(&last_ts) => ctx.now - last_ts > 300,
+                            None => true,
+                        }
+                    };
+                    if should_update {
+                        map.write().insert(prefix.clone(), ctx.now);
+                    }
+                } else {
+                    let map = parking_lot::RwLock::new(HashMap::new());
+                    map.write().insert(prefix.clone(), ctx.now);
+                    self.country_total_prefixes.insert((**c).clone(), map);
+                }
+            }
+        }
         state.lat = lat;
         state.lon = lon;
         state.city = city.clone();
@@ -508,6 +548,25 @@ impl Classifier {
             country.clone(),
             old_classified_type,
         );
+
+        let is_new_anomaly_transition = state.classified_type != old_classified_type
+            && state.classified_type != ClassificationType::None
+            && state.classified_type != ClassificationType::Discovery;
+
+        if is_new_anomaly_transition || transition_count > 0 {
+            if let Some(ref c) = country {
+                if !c.is_empty() {
+                    let country_code = c.as_str();
+                    if let Some(map) = self.country_anomalous_prefixes.get(country_code) {
+                        map.write().insert(prefix.clone(), ctx.now);
+                    } else {
+                        let map = parking_lot::RwLock::new(HashMap::new());
+                        map.write().insert(prefix.clone(), ctx.now);
+                        self.country_anomalous_prefixes.insert((**c).clone(), map);
+                    }
+                }
+            }
+        }
 
         if result.is_none() && state.classified_type != old_classified_type {
             result = Some(PendingEvent {
@@ -1242,6 +1301,53 @@ impl Classifier {
             // and `c` is explicitly NOT a Tier1 (Tier1s are never customers)
             if (self.is_tier1(p) || self.is_large_network(p)) && !self.is_tier1(c) {
                 db.entry(p).or_default().insert(c);
+            }
+        }
+    }
+
+    fn record_path_stats(&self, path_str: &str, prefix: &str, origin_asn: u32) {
+        let raw_path: Vec<u32> = path_str
+            .split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        if raw_path.len() >= 2 {
+            let mut unique = raw_path.clone();
+            unique.dedup();
+            if unique.len() >= 2 {
+                let upstream = unique[unique.len() - 2];
+                if upstream != origin_asn && upstream != 0 {
+                    self.upstream_transits
+                        .entry(upstream)
+                        .or_insert_with(|| std::sync::atomic::AtomicU64::new(0))
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+            }
+        }
+
+        if raw_path.len() >= 6 {
+            let mut counts = HashMap::new();
+            for &asn in &raw_path {
+                if asn != 0 {
+                    *counts.entry(asn).or_insert(0u32) += 1;
+                }
+            }
+            let max_prepends = counts.values().copied().max().unwrap_or(1);
+            let path_len = raw_path.len() as u32;
+            let mut cur = self.max_prepended_path.write();
+            let should_update = match *cur {
+                Some(ref p) => {
+                    path_len > p.path_length
+                        || (path_len == p.path_length && max_prepends > p.prepend_count)
+                }
+                None => true,
+            };
+            if should_update {
+                *cur = Some(PrependingRecord {
+                    asn: origin_asn,
+                    prefix: prefix.to_string(),
+                    path_length: path_len,
+                    prepend_count: max_prepends,
+                });
             }
         }
     }

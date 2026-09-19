@@ -66,13 +66,24 @@ pub struct FlappyNetwork {
 
 impl Db {
     pub fn new(path: &str, seen_db: Option<crate::classifier::DiskTrie>) -> Self {
-        let manager = SqliteConnectionManager::file(path);
+        let manager = SqliteConnectionManager::file(path).with_init(|c| {
+            c.execute_batch(
+                "PRAGMA busy_timeout = 5000;
+                 PRAGMA journal_mode = WAL;
+                 PRAGMA synchronous = NORMAL;
+                 PRAGMA wal_autocheckpoint = 1000;
+                 PRAGMA journal_size_limit = 67108864;",
+            )
+        });
         let pool = Pool::new(manager).expect("Failed to create SQLite pool");
 
         if let Ok(conn) = pool.get() {
             conn.execute_batch(
-                "PRAGMA journal_mode = WAL;
+                "PRAGMA busy_timeout = 5000;
+                 PRAGMA journal_mode = WAL;
                  PRAGMA synchronous = NORMAL;
+                 PRAGMA wal_autocheckpoint = 1000;
+                 PRAGMA journal_size_limit = 67108864;
                  CREATE TABLE IF NOT EXISTS prefix_state (
                      prefix TEXT PRIMARY KEY,
                      state TEXT,
@@ -369,6 +380,7 @@ impl Db {
                 FROM events e1 
                 WHERE event_type = 6 AND ts >= ?1 
                 GROUP BY asn 
+                HAVING c >= 5
                 ORDER BY c DESC 
                 LIMIT 5";
             if let Ok(mut stmt) = conn.prepare_cached(query) {
@@ -513,6 +525,7 @@ impl Db {
             let day_ago = chrono::Utc::now().timestamp() - 86400;
             let _ = conn.execute("DELETE FROM events WHERE ts < ?1", [day_ago]);
             let _ = conn.execute("DELETE FROM recent_alerts WHERE timestamp < ?1", [day_ago]);
+            let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
         }
     }
 

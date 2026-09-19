@@ -87,6 +87,31 @@ message GetSummaryResponse {
     uint64 rpki_valid_ipv6 = 24;
     uint64 rpki_invalid_ipv6 = 25;
     uint64 rpki_not_found_ipv6 = 26;
+    repeated CountryInstabilityStats top_volatile_countries = 27;
+    PrependingStats max_prepended_path = 28;
+    repeated UpstreamTransitStats top_upstream_transits = 29;
+}
+
+message CountryInstabilityStats {
+    string country_code = 1;
+    uint32 event_count = 2;
+    float percentage = 3;
+    uint32 total_count = 4;
+}
+
+message PrependingStats {
+    uint32 asn = 1;
+    string as_name = 2;
+    string prefix = 3;
+    uint32 path_length = 4;
+    uint32 prepend_count = 5;
+}
+
+message UpstreamTransitStats {
+    uint32 asn = 1;
+    string as_name = 2;
+    uint32 route_count = 3;
+    float percentage = 4;
 }
 
 message FlappiestNetworkStats {

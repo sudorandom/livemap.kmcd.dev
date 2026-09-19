@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file livemap/v1/livemap.proto.
  */
 export const file_livemap_v1_livemap: GenFile = /*@__PURE__*/
-  fileDesc("ChhsaXZlbWFwL3YxL2xpdmVtYXAucHJvdG8SCmxpdmVtYXAudjEiIwoHR2VvRGF0YRILCgNsYXQYASABKAISCwoDbG9uGAIgASgCInYKD0FnZ3JlZ2F0ZWRFdmVudBIgCgNnZW8YASABKAsyEy5saXZlbWFwLnYxLkdlb0RhdGESMgoOY2xhc3NpZmljYXRpb24YAiABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEg0KBWNvdW50GAMgASgNIkYKF1N1YnNjcmliZUV2ZW50c1Jlc3BvbnNlEisKBmV2ZW50cxgBIAMoCzIbLmxpdmVtYXAudjEuQWdncmVnYXRlZEV2ZW50IhgKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QiEwoRR2V0U3VtbWFyeVJlcXVlc3Qi/QEKE0NsYXNzaWZpY2F0aW9uQ291bnQSMgoOY2xhc3NpZmljYXRpb24YASABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEg0KBWNvdW50GAIgASgNEhsKE21lc3NhZ2VzX3Blcl9zZWNvbmQYAyABKAISEQoJYXNuX2NvdW50GAQgASgNEhQKDHByZWZpeF9jb3VudBgFIAEoDRIZChFpcHY0X3ByZWZpeF9jb3VudBgHIAEoDRIZChFpcHY2X3ByZWZpeF9jb3VudBgIIAEoDRISCgppcHY0X2NvdW50GAkgASgEEhMKC3RvdGFsX2NvdW50GAogASgEIjQKEENvbXBvc2l0aW9uRW50cnkSDAoEdHlwZRgBIAEoCRISCgpwZXJjZW50YWdlGAIgASgCIt8FChJHZXRTdW1tYXJ5UmVzcG9uc2USGwoTbWVzc2FnZXNfcGVyX3NlY29uZBgBIAEoAhIRCglhc25fY291bnQYAiABKA0SFAoMcHJlZml4X2NvdW50GAMgASgNEj4KFWNsYXNzaWZpY2F0aW9uX2NvdW50cxgFIAMoCzIfLmxpdmVtYXAudjEuQ2xhc3NpZmljYXRpb25Db3VudBIZChFpcHY0X3ByZWZpeF9jb3VudBgGIAEoDRIZChFpcHY2X3ByZWZpeF9jb3VudBgHIAEoDRISCgppcHY0X2NvdW50GAggASgEEhkKEWlucHV0X2NoYW5uZWxfbGVuGAkgASgNEh4KFmlucHV0X2NoYW5uZWxfY2FwYWNpdHkYCiABKA0SFwoPbWF4X2xhZ19zZWNvbmRzGAsgASgNEhoKEmxvYWRpbmdfaGlzdG9yaWNhbBgMIAEoCBI3ChFldmVudF9jb21wb3NpdGlvbhgNIAMoCzIcLmxpdmVtYXAudjEuQ29tcG9zaXRpb25FbnRyeRIwChBsYXN0X3Jwa2lfc3RhdHVzGA4gASgOMhYubGl2ZW1hcC52MS5SUEtJU3RhdHVzEkIKF2ZsYXBwaWVzdF9uZXR3b3JrX3N0YXRzGBcgAygLMiEubGl2ZW1hcC52MS5GbGFwcGllc3ROZXR3b3JrU3RhdHMSGAoQbGFyZ2VzdF9vcmdfbmFtZRgSIAEoCRIeChZsYXJnZXN0X29yZ19pcHY0X2NvdW50GBMgASgEEhcKD3Jwa2lfdmFsaWRfaXB2NBgUIAEoBBIZChFycGtpX2ludmFsaWRfaXB2NBgVIAEoBBIbChNycGtpX25vdF9mb3VuZF9pcHY0GBYgASgEEhcKD3Jwa2lfdmFsaWRfaXB2NhgYIAEoBBIZChFycGtpX2ludmFsaWRfaXB2NhgZIAEoBBIbChNycGtpX25vdF9mb3VuZF9pcHY2GBogASgEInIKFUZsYXBwaWVzdE5ldHdvcmtTdGF0cxILCgNhc24YASABKA0SFAoMbmV0d29ya19uYW1lGAIgASgJEhIKCmV2ZW50X3JhdGUYAyABKAISEgoKZmxhcF9jb3VudBgEIAEoDRIOCgZwcmVmaXgYBSABKAki3wEKCkxlYWtEZXRhaWwSEQoJbGVha190eXBlGAEgASgNEhIKCmxlYWtlcl9hc24YAiABKA0SEgoKdmljdGltX2FzbhgDIAEoDRIWCg5sZWFrZXJfYXNfbmFtZRgEIAEoCRIWCg52aWN0aW1fYXNfbmFtZRgFIAEoCRIyChJsZWFrZXJfcnBraV9zdGF0dXMYBiABKA4yFi5saXZlbWFwLnYxLlJQS0lTdGF0dXMSMgoSdmljdGltX3Jwa2lfc3RhdHVzGAcgASgOMhYubGl2ZW1hcC52MS5SUEtJU3RhdHVzIqIDCg9TdGF0ZVRyYW5zaXRpb24SEwoLaW5jaWRlbnRfaWQYASABKAkSDgoGcHJlZml4GAIgASgJEgsKA2FzbhgDIAEoDRIPCgdhc19uYW1lGAQgASgJEiAKA2dlbxgFIAEoCzITLmxpdmVtYXAudjEuR2VvRGF0YRIMCgRjaXR5GAYgASgJEg8KB2NvdW50cnkYByABKAkSLQoJbmV3X3N0YXRlGAggASgOMhoubGl2ZW1hcC52MS5DbGFzc2lmaWNhdGlvbhItCglvbGRfc3RhdGUYCSABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEhIKCnN0YXJ0X3RpbWUYCiABKAMSEAoIZW5kX3RpbWUYCyABKAMSKwoLbGVha19kZXRhaWwYDCABKAsyFi5saXZlbWFwLnYxLkxlYWtEZXRhaWwSFAoMb3JnYW5pemF0aW9uGA0gASgJEhcKD2Fub21hbHlfZGV0YWlscxgOIAEoCRIrCgtycGtpX3N0YXR1cxgPIAEoDjIWLmxpdmVtYXAudjEuUlBLSVN0YXR1cyJbCg1BbGVydExvY2F0aW9uEgwKBGNpdHkYASABKAkSDwoHY291bnRyeRgCIAEoCRILCgNsYXQYAyABKAISCwoDbG9uGAQgASgCEhEKCXJhZGl1c19rbRgFIAEoAiLGAwoFQWxlcnQSKQoKYWxlcnRfdHlwZRgBIAEoDjIVLmxpdmVtYXAudjEuQWxlcnRUeXBlEisKCGxvY2F0aW9uGAIgASgLMhkubGl2ZW1hcC52MS5BbGVydExvY2F0aW9uEgsKA2FzbhgDIAEoDRIPCgdjb3VudHJ5GAQgASgJEjIKDmNsYXNzaWZpY2F0aW9uGAUgASgOMhoubGl2ZW1hcC52MS5DbGFzc2lmaWNhdGlvbhIUCgxldmVudHNfY291bnQYBiABKA0SDQoFZGVsdGEYByABKAUSEQoJdGltZXN0YW1wGAggASgDEhkKEWltcGFjdGVkX2lwdjRfaXBzGAkgASgEEh4KFmltcGFjdGVkX2lwdjZfcHJlZml4ZXMYCiABKA0SGwoTcGVyY2VudGFnZV9pbmNyZWFzZRgLIAEoAhIPCgdhc19uYW1lGAwgASgJEhQKDG9yZ2FuaXphdGlvbhgNIAEoCRIRCglhc25fY291bnQYDiABKA0SFQoNYW5vbWFseV9zY29yZRgPIAEoAhIyCg1zYW1wbGVfZXZlbnRzGBAgAygLMhsubGl2ZW1hcC52MS5TdGF0ZVRyYW5zaXRpb24iFQoTU3RyZWFtQWxlcnRzUmVxdWVzdCI4ChRTdHJlYW1BbGVydHNSZXNwb25zZRIgCgVhbGVydBgBIAEoCzIRLmxpdmVtYXAudjEuQWxlcnQiGAoWR2V0UmVjZW50QWxlcnRzUmVxdWVzdCI8ChdHZXRSZWNlbnRBbGVydHNSZXNwb25zZRIhCgZhbGVydHMYASADKAsyES5saXZlbWFwLnYxLkFsZXJ0IlIKHVN0cmVhbVN0YXRlVHJhbnNpdGlvbnNSZXF1ZXN0EjEKDXRhcmdldF9zdGF0ZXMYASADKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uIlEKHlN0cmVhbVN0YXRlVHJhbnNpdGlvbnNSZXNwb25zZRIvCgp0cmFuc2l0aW9uGAEgASgLMhsubGl2ZW1hcC52MS5TdGF0ZVRyYW5zaXRpb24iLAobR2V0RmxhcHBpZXN0TmV0d29ya3NSZXF1ZXN0Eg0KBWxpbWl0GAEgASgNIl0KHEdldEZsYXBwaWVzdE5ldHdvcmtzUmVzcG9uc2USPQoSZmxhcHBpZXN0X25ldHdvcmtzGAEgAygLMiEubGl2ZW1hcC52MS5GbGFwcGllc3ROZXR3b3JrU3RhdHMqwAIKDkNsYXNzaWZpY2F0aW9uEh4KGkNMQVNTSUZJQ0FUSU9OX1VOU1BFQ0lGSUVEEAASGAoUQ0xBU1NJRklDQVRJT05fQk9HT04QARIZChVDTEFTU0lGSUNBVElPTl9ISUpBQ0sQAhIdChlDTEFTU0lGSUNBVElPTl9ST1VURV9MRUFLEAMSGQoVQ0xBU1NJRklDQVRJT05fT1VUQUdFEAQSIgoeQ0xBU1NJRklDQVRJT05fRERPU19NSVRJR0FUSU9OEAUSFwoTQ0xBU1NJRklDQVRJT05fRkxBUBAGEh8KG0NMQVNTSUZJQ0FUSU9OX1BBVEhfSFVOVElORxAIEhwKGENMQVNTSUZJQ0FUSU9OX0RJU0NPVkVSWRAJEiMKH0NMQVNTSUZJQ0FUSU9OX01JTk9SX1JPVVRFX0xFQUsQCip0CgpSUEtJU3RhdHVzEhsKF1JQS0lfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRUlBLSV9TVEFUVVNfVkFMSUQQARIXChNSUEtJX1NUQVRVU19JTlZBTElEEAISGQoVUlBLSV9TVEFUVVNfTk9UX0ZPVU5EEAMqlQEKCUFsZXJ0VHlwZRIaChZBTEVSVF9UWVBFX1VOU1BFQ0lGSUVEEAASGgoWQUxFUlRfVFlQRV9CWV9MT0NBVElPThABEhUKEUFMRVJUX1RZUEVfQllfQVNOEAISGQoVQUxFUlRfVFlQRV9CWV9DT1VOVFJZEAMSHgoaQUxFUlRfVFlQRV9CWV9PUkdBTklaQVRJT04QBDLKBAoOTGl2ZU1hcFNlcnZpY2USXAoPU3Vic2NyaWJlRXZlbnRzEiIubGl2ZW1hcC52MS5TdWJzY3JpYmVFdmVudHNSZXF1ZXN0GiMubGl2ZW1hcC52MS5TdWJzY3JpYmVFdmVudHNSZXNwb25zZTABEksKCkdldFN1bW1hcnkSHS5saXZlbWFwLnYxLkdldFN1bW1hcnlSZXF1ZXN0Gh4ubGl2ZW1hcC52MS5HZXRTdW1tYXJ5UmVzcG9uc2UScQoWU3RyZWFtU3RhdGVUcmFuc2l0aW9ucxIpLmxpdmVtYXAudjEuU3RyZWFtU3RhdGVUcmFuc2l0aW9uc1JlcXVlc3QaKi5saXZlbWFwLnYxLlN0cmVhbVN0YXRlVHJhbnNpdGlvbnNSZXNwb25zZTABElMKDFN0cmVhbUFsZXJ0cxIfLmxpdmVtYXAudjEuU3RyZWFtQWxlcnRzUmVxdWVzdBogLmxpdmVtYXAudjEuU3RyZWFtQWxlcnRzUmVzcG9uc2UwARJaCg9HZXRSZWNlbnRBbGVydHMSIi5saXZlbWFwLnYxLkdldFJlY2VudEFsZXJ0c1JlcXVlc3QaIy5saXZlbWFwLnYxLkdldFJlY2VudEFsZXJ0c1Jlc3BvbnNlEmkKFEdldEZsYXBwaWVzdE5ldHdvcmtzEicubGl2ZW1hcC52MS5HZXRGbGFwcGllc3ROZXR3b3Jrc1JlcXVlc3QaKC5saXZlbWFwLnYxLkdldEZsYXBwaWVzdE5ldHdvcmtzUmVzcG9uc2VCmAEKDmNvbS5saXZlbWFwLnYxQgxMaXZlbWFwUHJvdG9QAVovZ2l0aHViLmNvbS9zdWRvcmFuZG9tL2JncC1zdHJlYW0vcGtnL2xpdmVtYXAvdjGiAgNMWFiqAgpMaXZlbWFwLlYxygIKTGl2ZW1hcFxWMeICFkxpdmVtYXBcVjFcR1BCTWV0YWRhdGHqAgtMaXZlbWFwOjpWMWIGcHJvdG8z");
+  fileDesc("ChhsaXZlbWFwL3YxL2xpdmVtYXAucHJvdG8SCmxpdmVtYXAudjEiIwoHR2VvRGF0YRILCgNsYXQYASABKAISCwoDbG9uGAIgASgCInYKD0FnZ3JlZ2F0ZWRFdmVudBIgCgNnZW8YASABKAsyEy5saXZlbWFwLnYxLkdlb0RhdGESMgoOY2xhc3NpZmljYXRpb24YAiABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEg0KBWNvdW50GAMgASgNIkYKF1N1YnNjcmliZUV2ZW50c1Jlc3BvbnNlEisKBmV2ZW50cxgBIAMoCzIbLmxpdmVtYXAudjEuQWdncmVnYXRlZEV2ZW50IhgKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QiEwoRR2V0U3VtbWFyeVJlcXVlc3Qi/QEKE0NsYXNzaWZpY2F0aW9uQ291bnQSMgoOY2xhc3NpZmljYXRpb24YASABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEg0KBWNvdW50GAIgASgNEhsKE21lc3NhZ2VzX3Blcl9zZWNvbmQYAyABKAISEQoJYXNuX2NvdW50GAQgASgNEhQKDHByZWZpeF9jb3VudBgFIAEoDRIZChFpcHY0X3ByZWZpeF9jb3VudBgHIAEoDRIZChFpcHY2X3ByZWZpeF9jb3VudBgIIAEoDRISCgppcHY0X2NvdW50GAkgASgEEhMKC3RvdGFsX2NvdW50GAogASgEIjQKEENvbXBvc2l0aW9uRW50cnkSDAoEdHlwZRgBIAEoCRISCgpwZXJjZW50YWdlGAIgASgCIp4HChJHZXRTdW1tYXJ5UmVzcG9uc2USGwoTbWVzc2FnZXNfcGVyX3NlY29uZBgBIAEoAhIRCglhc25fY291bnQYAiABKA0SFAoMcHJlZml4X2NvdW50GAMgASgNEj4KFWNsYXNzaWZpY2F0aW9uX2NvdW50cxgFIAMoCzIfLmxpdmVtYXAudjEuQ2xhc3NpZmljYXRpb25Db3VudBIZChFpcHY0X3ByZWZpeF9jb3VudBgGIAEoDRIZChFpcHY2X3ByZWZpeF9jb3VudBgHIAEoDRISCgppcHY0X2NvdW50GAggASgEEhkKEWlucHV0X2NoYW5uZWxfbGVuGAkgASgNEh4KFmlucHV0X2NoYW5uZWxfY2FwYWNpdHkYCiABKA0SFwoPbWF4X2xhZ19zZWNvbmRzGAsgASgNEhoKEmxvYWRpbmdfaGlzdG9yaWNhbBgMIAEoCBI3ChFldmVudF9jb21wb3NpdGlvbhgNIAMoCzIcLmxpdmVtYXAudjEuQ29tcG9zaXRpb25FbnRyeRIwChBsYXN0X3Jwa2lfc3RhdHVzGA4gASgOMhYubGl2ZW1hcC52MS5SUEtJU3RhdHVzEkIKF2ZsYXBwaWVzdF9uZXR3b3JrX3N0YXRzGBcgAygLMiEubGl2ZW1hcC52MS5GbGFwcGllc3ROZXR3b3JrU3RhdHMSGAoQbGFyZ2VzdF9vcmdfbmFtZRgSIAEoCRIeChZsYXJnZXN0X29yZ19pcHY0X2NvdW50GBMgASgEEhcKD3Jwa2lfdmFsaWRfaXB2NBgUIAEoBBIZChFycGtpX2ludmFsaWRfaXB2NBgVIAEoBBIbChNycGtpX25vdF9mb3VuZF9pcHY0GBYgASgEEhcKD3Jwa2lfdmFsaWRfaXB2NhgYIAEoBBIZChFycGtpX2ludmFsaWRfaXB2NhgZIAEoBBIbChNycGtpX25vdF9mb3VuZF9pcHY2GBogASgEEkMKFnRvcF92b2xhdGlsZV9jb3VudHJpZXMYGyADKAsyIy5saXZlbWFwLnYxLkNvdW50cnlJbnN0YWJpbGl0eVN0YXRzEjcKEm1heF9wcmVwZW5kZWRfcGF0aBgcIAEoCzIbLmxpdmVtYXAudjEuUHJlcGVuZGluZ1N0YXRzEj8KFXRvcF91cHN0cmVhbV90cmFuc2l0cxgdIAMoCzIgLmxpdmVtYXAudjEuVXBzdHJlYW1UcmFuc2l0U3RhdHMibQoXQ291bnRyeUluc3RhYmlsaXR5U3RhdHMSFAoMY291bnRyeV9jb2RlGAEgASgJEhMKC2V2ZW50X2NvdW50GAIgASgNEhIKCnBlcmNlbnRhZ2UYAyABKAISEwoLdG90YWxfY291bnQYBCABKA0iawoPUHJlcGVuZGluZ1N0YXRzEgsKA2FzbhgBIAEoDRIPCgdhc19uYW1lGAIgASgJEg4KBnByZWZpeBgDIAEoCRITCgtwYXRoX2xlbmd0aBgEIAEoDRIVCg1wcmVwZW5kX2NvdW50GAUgASgNIl0KFFVwc3RyZWFtVHJhbnNpdFN0YXRzEgsKA2FzbhgBIAEoDRIPCgdhc19uYW1lGAIgASgJEhMKC3JvdXRlX2NvdW50GAMgASgNEhIKCnBlcmNlbnRhZ2UYBCABKAIicgoVRmxhcHBpZXN0TmV0d29ya1N0YXRzEgsKA2FzbhgBIAEoDRIUCgxuZXR3b3JrX25hbWUYAiABKAkSEgoKZXZlbnRfcmF0ZRgDIAEoAhISCgpmbGFwX2NvdW50GAQgASgNEg4KBnByZWZpeBgFIAEoCSLfAQoKTGVha0RldGFpbBIRCglsZWFrX3R5cGUYASABKA0SEgoKbGVha2VyX2FzbhgCIAEoDRISCgp2aWN0aW1fYXNuGAMgASgNEhYKDmxlYWtlcl9hc19uYW1lGAQgASgJEhYKDnZpY3RpbV9hc19uYW1lGAUgASgJEjIKEmxlYWtlcl9ycGtpX3N0YXR1cxgGIAEoDjIWLmxpdmVtYXAudjEuUlBLSVN0YXR1cxIyChJ2aWN0aW1fcnBraV9zdGF0dXMYByABKA4yFi5saXZlbWFwLnYxLlJQS0lTdGF0dXMiogMKD1N0YXRlVHJhbnNpdGlvbhITCgtpbmNpZGVudF9pZBgBIAEoCRIOCgZwcmVmaXgYAiABKAkSCwoDYXNuGAMgASgNEg8KB2FzX25hbWUYBCABKAkSIAoDZ2VvGAUgASgLMhMubGl2ZW1hcC52MS5HZW9EYXRhEgwKBGNpdHkYBiABKAkSDwoHY291bnRyeRgHIAEoCRItCgluZXdfc3RhdGUYCCABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEi0KCW9sZF9zdGF0ZRgJIAEoDjIaLmxpdmVtYXAudjEuQ2xhc3NpZmljYXRpb24SEgoKc3RhcnRfdGltZRgKIAEoAxIQCghlbmRfdGltZRgLIAEoAxIrCgtsZWFrX2RldGFpbBgMIAEoCzIWLmxpdmVtYXAudjEuTGVha0RldGFpbBIUCgxvcmdhbml6YXRpb24YDSABKAkSFwoPYW5vbWFseV9kZXRhaWxzGA4gASgJEisKC3Jwa2lfc3RhdHVzGA8gASgOMhYubGl2ZW1hcC52MS5SUEtJU3RhdHVzIlsKDUFsZXJ0TG9jYXRpb24SDAoEY2l0eRgBIAEoCRIPCgdjb3VudHJ5GAIgASgJEgsKA2xhdBgDIAEoAhILCgNsb24YBCABKAISEQoJcmFkaXVzX2ttGAUgASgCIsYDCgVBbGVydBIpCgphbGVydF90eXBlGAEgASgOMhUubGl2ZW1hcC52MS5BbGVydFR5cGUSKwoIbG9jYXRpb24YAiABKAsyGS5saXZlbWFwLnYxLkFsZXJ0TG9jYXRpb24SCwoDYXNuGAMgASgNEg8KB2NvdW50cnkYBCABKAkSMgoOY2xhc3NpZmljYXRpb24YBSABKA4yGi5saXZlbWFwLnYxLkNsYXNzaWZpY2F0aW9uEhQKDGV2ZW50c19jb3VudBgGIAEoDRINCgVkZWx0YRgHIAEoBRIRCgl0aW1lc3RhbXAYCCABKAMSGQoRaW1wYWN0ZWRfaXB2NF9pcHMYCSABKAQSHgoWaW1wYWN0ZWRfaXB2Nl9wcmVmaXhlcxgKIAEoDRIbChNwZXJjZW50YWdlX2luY3JlYXNlGAsgASgCEg8KB2FzX25hbWUYDCABKAkSFAoMb3JnYW5pemF0aW9uGA0gASgJEhEKCWFzbl9jb3VudBgOIAEoDRIVCg1hbm9tYWx5X3Njb3JlGA8gASgCEjIKDXNhbXBsZV9ldmVudHMYECADKAsyGy5saXZlbWFwLnYxLlN0YXRlVHJhbnNpdGlvbiIVChNTdHJlYW1BbGVydHNSZXF1ZXN0IjgKFFN0cmVhbUFsZXJ0c1Jlc3BvbnNlEiAKBWFsZXJ0GAEgASgLMhEubGl2ZW1hcC52MS5BbGVydCIYChZHZXRSZWNlbnRBbGVydHNSZXF1ZXN0IjwKF0dldFJlY2VudEFsZXJ0c1Jlc3BvbnNlEiEKBmFsZXJ0cxgBIAMoCzIRLmxpdmVtYXAudjEuQWxlcnQiUgodU3RyZWFtU3RhdGVUcmFuc2l0aW9uc1JlcXVlc3QSMQoNdGFyZ2V0X3N0YXRlcxgBIAMoDjIaLmxpdmVtYXAudjEuQ2xhc3NpZmljYXRpb24iUQoeU3RyZWFtU3RhdGVUcmFuc2l0aW9uc1Jlc3BvbnNlEi8KCnRyYW5zaXRpb24YASABKAsyGy5saXZlbWFwLnYxLlN0YXRlVHJhbnNpdGlvbiIsChtHZXRGbGFwcGllc3ROZXR3b3Jrc1JlcXVlc3QSDQoFbGltaXQYASABKA0iXQocR2V0RmxhcHBpZXN0TmV0d29ya3NSZXNwb25zZRI9ChJmbGFwcGllc3RfbmV0d29ya3MYASADKAsyIS5saXZlbWFwLnYxLkZsYXBwaWVzdE5ldHdvcmtTdGF0cyrAAgoOQ2xhc3NpZmljYXRpb24SHgoaQ0xBU1NJRklDQVRJT05fVU5TUEVDSUZJRUQQABIYChRDTEFTU0lGSUNBVElPTl9CT0dPThABEhkKFUNMQVNTSUZJQ0FUSU9OX0hJSkFDSxACEh0KGUNMQVNTSUZJQ0FUSU9OX1JPVVRFX0xFQUsQAxIZChVDTEFTU0lGSUNBVElPTl9PVVRBR0UQBBIiCh5DTEFTU0lGSUNBVElPTl9ERE9TX01JVElHQVRJT04QBRIXChNDTEFTU0lGSUNBVElPTl9GTEFQEAYSHwobQ0xBU1NJRklDQVRJT05fUEFUSF9IVU5USU5HEAgSHAoYQ0xBU1NJRklDQVRJT05fRElTQ09WRVJZEAkSIwofQ0xBU1NJRklDQVRJT05fTUlOT1JfUk9VVEVfTEVBSxAKKnQKClJQS0lTdGF0dXMSGwoXUlBLSV9TVEFUVVNfVU5TUEVDSUZJRUQQABIVChFSUEtJX1NUQVRVU19WQUxJRBABEhcKE1JQS0lfU1RBVFVTX0lOVkFMSUQQAhIZChVSUEtJX1NUQVRVU19OT1RfRk9VTkQQAyqVAQoJQWxlcnRUeXBlEhoKFkFMRVJUX1RZUEVfVU5TUEVDSUZJRUQQABIaChZBTEVSVF9UWVBFX0JZX0xPQ0FUSU9OEAESFQoRQUxFUlRfVFlQRV9CWV9BU04QAhIZChVBTEVSVF9UWVBFX0JZX0NPVU5UUlkQAxIeChpBTEVSVF9UWVBFX0JZX09SR0FOSVpBVElPThAEMsoECg5MaXZlTWFwU2VydmljZRJcCg9TdWJzY3JpYmVFdmVudHMSIi5saXZlbWFwLnYxLlN1YnNjcmliZUV2ZW50c1JlcXVlc3QaIy5saXZlbWFwLnYxLlN1YnNjcmliZUV2ZW50c1Jlc3BvbnNlMAESSwoKR2V0U3VtbWFyeRIdLmxpdmVtYXAudjEuR2V0U3VtbWFyeVJlcXVlc3QaHi5saXZlbWFwLnYxLkdldFN1bW1hcnlSZXNwb25zZRJxChZTdHJlYW1TdGF0ZVRyYW5zaXRpb25zEikubGl2ZW1hcC52MS5TdHJlYW1TdGF0ZVRyYW5zaXRpb25zUmVxdWVzdBoqLmxpdmVtYXAudjEuU3RyZWFtU3RhdGVUcmFuc2l0aW9uc1Jlc3BvbnNlMAESUwoMU3RyZWFtQWxlcnRzEh8ubGl2ZW1hcC52MS5TdHJlYW1BbGVydHNSZXF1ZXN0GiAubGl2ZW1hcC52MS5TdHJlYW1BbGVydHNSZXNwb25zZTABEloKD0dldFJlY2VudEFsZXJ0cxIiLmxpdmVtYXAudjEuR2V0UmVjZW50QWxlcnRzUmVxdWVzdBojLmxpdmVtYXAudjEuR2V0UmVjZW50QWxlcnRzUmVzcG9uc2USaQoUR2V0RmxhcHBpZXN0TmV0d29ya3MSJy5saXZlbWFwLnYxLkdldEZsYXBwaWVzdE5ldHdvcmtzUmVxdWVzdBooLmxpdmVtYXAudjEuR2V0RmxhcHBpZXN0TmV0d29ya3NSZXNwb25zZUKYAQoOY29tLmxpdmVtYXAudjFCDExpdmVtYXBQcm90b1ABWi9naXRodWIuY29tL3N1ZG9yYW5kb20vYmdwLXN0cmVhbS9wa2cvbGl2ZW1hcC92MaICA0xYWKoCCkxpdmVtYXAuVjHKAgpMaXZlbWFwXFYx4gIWTGl2ZW1hcFxWMVxHUEJNZXRhZGF0YeoCC0xpdmVtYXA6OlYxYgZwcm90bzM");
 
 /**
  * GeoData represents geographic coordinates.
@@ -318,6 +318,21 @@ export type GetSummaryResponse = Message<"livemap.v1.GetSummaryResponse"> & {
    * @generated from field: uint64 rpki_not_found_ipv6 = 26;
    */
   rpkiNotFoundIpv6: bigint;
+
+  /**
+   * @generated from field: repeated livemap.v1.CountryInstabilityStats top_volatile_countries = 27;
+   */
+  topVolatileCountries: CountryInstabilityStats[];
+
+  /**
+   * @generated from field: livemap.v1.PrependingStats max_prepended_path = 28;
+   */
+  maxPrependedPath?: PrependingStats | undefined;
+
+  /**
+   * @generated from field: repeated livemap.v1.UpstreamTransitStats top_upstream_transits = 29;
+   */
+  topUpstreamTransits: UpstreamTransitStats[];
 };
 
 /**
@@ -326,6 +341,107 @@ export type GetSummaryResponse = Message<"livemap.v1.GetSummaryResponse"> & {
  */
 export const GetSummaryResponseSchema: GenMessage<GetSummaryResponse> = /*@__PURE__*/
   messageDesc(file_livemap_v1_livemap, 7);
+
+/**
+ * @generated from message livemap.v1.CountryInstabilityStats
+ */
+export type CountryInstabilityStats = Message<"livemap.v1.CountryInstabilityStats"> & {
+  /**
+   * @generated from field: string country_code = 1;
+   */
+  countryCode: string;
+
+  /**
+   * @generated from field: uint32 event_count = 2;
+   */
+  eventCount: number;
+
+  /**
+   * @generated from field: float percentage = 3;
+   */
+  percentage: number;
+
+  /**
+   * @generated from field: uint32 total_count = 4;
+   */
+  totalCount: number;
+};
+
+/**
+ * Describes the message livemap.v1.CountryInstabilityStats.
+ * Use `create(CountryInstabilityStatsSchema)` to create a new message.
+ */
+export const CountryInstabilityStatsSchema: GenMessage<CountryInstabilityStats> = /*@__PURE__*/
+  messageDesc(file_livemap_v1_livemap, 8);
+
+/**
+ * @generated from message livemap.v1.PrependingStats
+ */
+export type PrependingStats = Message<"livemap.v1.PrependingStats"> & {
+  /**
+   * @generated from field: uint32 asn = 1;
+   */
+  asn: number;
+
+  /**
+   * @generated from field: string as_name = 2;
+   */
+  asName: string;
+
+  /**
+   * @generated from field: string prefix = 3;
+   */
+  prefix: string;
+
+  /**
+   * @generated from field: uint32 path_length = 4;
+   */
+  pathLength: number;
+
+  /**
+   * @generated from field: uint32 prepend_count = 5;
+   */
+  prependCount: number;
+};
+
+/**
+ * Describes the message livemap.v1.PrependingStats.
+ * Use `create(PrependingStatsSchema)` to create a new message.
+ */
+export const PrependingStatsSchema: GenMessage<PrependingStats> = /*@__PURE__*/
+  messageDesc(file_livemap_v1_livemap, 9);
+
+/**
+ * @generated from message livemap.v1.UpstreamTransitStats
+ */
+export type UpstreamTransitStats = Message<"livemap.v1.UpstreamTransitStats"> & {
+  /**
+   * @generated from field: uint32 asn = 1;
+   */
+  asn: number;
+
+  /**
+   * @generated from field: string as_name = 2;
+   */
+  asName: string;
+
+  /**
+   * @generated from field: uint32 route_count = 3;
+   */
+  routeCount: number;
+
+  /**
+   * @generated from field: float percentage = 4;
+   */
+  percentage: number;
+};
+
+/**
+ * Describes the message livemap.v1.UpstreamTransitStats.
+ * Use `create(UpstreamTransitStatsSchema)` to create a new message.
+ */
+export const UpstreamTransitStatsSchema: GenMessage<UpstreamTransitStats> = /*@__PURE__*/
+  messageDesc(file_livemap_v1_livemap, 10);
 
 /**
  * @generated from message livemap.v1.FlappiestNetworkStats
@@ -364,7 +480,7 @@ export type FlappiestNetworkStats = Message<"livemap.v1.FlappiestNetworkStats"> 
  * Use `create(FlappiestNetworkStatsSchema)` to create a new message.
  */
 export const FlappiestNetworkStatsSchema: GenMessage<FlappiestNetworkStats> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 8);
+  messageDesc(file_livemap_v1_livemap, 11);
 
 /**
  * LeakDetail contains information specific to route leaks.
@@ -413,7 +529,7 @@ export type LeakDetail = Message<"livemap.v1.LeakDetail"> & {
  * Use `create(LeakDetailSchema)` to create a new message.
  */
 export const LeakDetailSchema: GenMessage<LeakDetail> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 9);
+  messageDesc(file_livemap_v1_livemap, 12);
 
 /**
  * StateTransition represents a change in classification for a prefix.
@@ -502,7 +618,7 @@ export type StateTransition = Message<"livemap.v1.StateTransition"> & {
  * Use `create(StateTransitionSchema)` to create a new message.
  */
 export const StateTransitionSchema: GenMessage<StateTransition> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 10);
+  messageDesc(file_livemap_v1_livemap, 13);
 
 /**
  * @generated from message livemap.v1.AlertLocation
@@ -539,7 +655,7 @@ export type AlertLocation = Message<"livemap.v1.AlertLocation"> & {
  * Use `create(AlertLocationSchema)` to create a new message.
  */
 export const AlertLocationSchema: GenMessage<AlertLocation> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 11);
+  messageDesc(file_livemap_v1_livemap, 14);
 
 /**
  * Alert represents a significant spike in anomalies.
@@ -637,7 +753,7 @@ export type Alert = Message<"livemap.v1.Alert"> & {
  * Use `create(AlertSchema)` to create a new message.
  */
 export const AlertSchema: GenMessage<Alert> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 12);
+  messageDesc(file_livemap_v1_livemap, 15);
 
 /**
  * @generated from message livemap.v1.StreamAlertsRequest
@@ -650,7 +766,7 @@ export type StreamAlertsRequest = Message<"livemap.v1.StreamAlertsRequest"> & {
  * Use `create(StreamAlertsRequestSchema)` to create a new message.
  */
 export const StreamAlertsRequestSchema: GenMessage<StreamAlertsRequest> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 13);
+  messageDesc(file_livemap_v1_livemap, 16);
 
 /**
  * @generated from message livemap.v1.StreamAlertsResponse
@@ -667,7 +783,7 @@ export type StreamAlertsResponse = Message<"livemap.v1.StreamAlertsResponse"> & 
  * Use `create(StreamAlertsResponseSchema)` to create a new message.
  */
 export const StreamAlertsResponseSchema: GenMessage<StreamAlertsResponse> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 14);
+  messageDesc(file_livemap_v1_livemap, 17);
 
 /**
  * @generated from message livemap.v1.GetRecentAlertsRequest
@@ -680,7 +796,7 @@ export type GetRecentAlertsRequest = Message<"livemap.v1.GetRecentAlertsRequest"
  * Use `create(GetRecentAlertsRequestSchema)` to create a new message.
  */
 export const GetRecentAlertsRequestSchema: GenMessage<GetRecentAlertsRequest> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 15);
+  messageDesc(file_livemap_v1_livemap, 18);
 
 /**
  * @generated from message livemap.v1.GetRecentAlertsResponse
@@ -697,7 +813,7 @@ export type GetRecentAlertsResponse = Message<"livemap.v1.GetRecentAlertsRespons
  * Use `create(GetRecentAlertsResponseSchema)` to create a new message.
  */
 export const GetRecentAlertsResponseSchema: GenMessage<GetRecentAlertsResponse> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 16);
+  messageDesc(file_livemap_v1_livemap, 19);
 
 /**
  * StreamStateTransitionsRequest is the request for state transition updates.
@@ -716,7 +832,7 @@ export type StreamStateTransitionsRequest = Message<"livemap.v1.StreamStateTrans
  * Use `create(StreamStateTransitionsRequestSchema)` to create a new message.
  */
 export const StreamStateTransitionsRequestSchema: GenMessage<StreamStateTransitionsRequest> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 17);
+  messageDesc(file_livemap_v1_livemap, 20);
 
 /**
  * StreamStateTransitionsResponse is the response for state transition updates.
@@ -735,7 +851,7 @@ export type StreamStateTransitionsResponse = Message<"livemap.v1.StreamStateTran
  * Use `create(StreamStateTransitionsResponseSchema)` to create a new message.
  */
 export const StreamStateTransitionsResponseSchema: GenMessage<StreamStateTransitionsResponse> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 18);
+  messageDesc(file_livemap_v1_livemap, 21);
 
 /**
  * @generated from message livemap.v1.GetFlappiestNetworksRequest
@@ -752,7 +868,7 @@ export type GetFlappiestNetworksRequest = Message<"livemap.v1.GetFlappiestNetwor
  * Use `create(GetFlappiestNetworksRequestSchema)` to create a new message.
  */
 export const GetFlappiestNetworksRequestSchema: GenMessage<GetFlappiestNetworksRequest> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 19);
+  messageDesc(file_livemap_v1_livemap, 22);
 
 /**
  * @generated from message livemap.v1.GetFlappiestNetworksResponse
@@ -769,7 +885,7 @@ export type GetFlappiestNetworksResponse = Message<"livemap.v1.GetFlappiestNetwo
  * Use `create(GetFlappiestNetworksResponseSchema)` to create a new message.
  */
 export const GetFlappiestNetworksResponseSchema: GenMessage<GetFlappiestNetworksResponse> = /*@__PURE__*/
-  messageDesc(file_livemap_v1_livemap, 20);
+  messageDesc(file_livemap_v1_livemap, 23);
 
 /**
  * Classification defines the types of BGP anomalies or events.

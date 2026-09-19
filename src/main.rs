@@ -143,6 +143,8 @@ struct AppState {
     top_rpki_valid_ipv6: AtomicU64,
     top_rpki_invalid_ipv6: AtomicU64,
     top_rpki_not_found_ipv6: AtomicU64,
+    top_volatile_countries: RwLock<Vec<livemap_proto::CountryInstabilityStats>>,
+    top_upstream_transits: RwLock<Vec<livemap_proto::UpstreamTransitStats>>,
 }
 
 struct LiveMapService {
@@ -334,6 +336,20 @@ impl LiveMap for LiveMapService {
             rpki_valid_ipv6: self.state.top_rpki_valid_ipv6.load(Ordering::Relaxed),
             rpki_invalid_ipv6: self.state.top_rpki_invalid_ipv6.load(Ordering::Relaxed),
             rpki_not_found_ipv6: self.state.top_rpki_not_found_ipv6.load(Ordering::Relaxed),
+            top_volatile_countries: self.state.top_volatile_countries.read().clone(),
+            max_prepended_path: self
+                .classifier
+                .max_prepended_path
+                .read()
+                .as_ref()
+                .map(|p| livemap_proto::PrependingStats {
+                    asn: p.asn,
+                    as_name: self.classifier.get_as_name(p.asn).unwrap_or_default(),
+                    prefix: p.prefix.clone(),
+                    path_length: p.path_length,
+                    prepend_count: p.prepend_count,
+                }),
+            top_upstream_transits: self.state.top_upstream_transits.read().clone(),
         }))
     }
 }
@@ -811,48 +827,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(DiskTrie::new(seen_tree)),
         Some(db_for_classifier),
     ));
-    info!("Loading BGPKIT AS data in foreground...");
+    info!("Loading BGPKIT AS data in background (initially)...");
     let db_fg = db.clone();
-    let bgpkit = tokio::task::spawn_blocking(move || {
-        let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
-        let start_asinfo = Instant::now();
+    let classifier_fg = classifier.clone();
+    tokio::spawn(async move {
+        let bgpkit = tokio::task::spawn_blocking(move || {
+            let mut bgpkit = bgpkit_commons::BgpkitCommons::new();
+            let start_asinfo = Instant::now();
 
-        info!("Loading BGPKIT AS info using new_from_cached...");
-        if let Err(e) = bgpkit.load_asinfo_cached() {
-            warn!(
-                "Failed to load BGPKIT AS info from cache: {}. Falling back to live download.",
-                e
-            );
-            if let Err(live_e) = bgpkit.load_asinfo(true, true, true, true) {
-                warn!("Failed to load fresh BGPKIT AS info: {}", live_e);
+            info!("Loading BGPKIT AS info using new_from_cached...");
+            if let Err(e) = bgpkit.load_asinfo_cached() {
+                warn!(
+                    "Failed to load BGPKIT AS info from cache: {}. Falling back to live download.",
+                    e
+                );
+                if let Err(live_e) = bgpkit.load_asinfo(true, true, true, true) {
+                    warn!("Failed to load fresh BGPKIT AS info: {}", live_e);
+                } else {
+                    info!(
+                        "Fresh BGPKIT AS info loaded (took {}s).",
+                        start_asinfo.elapsed().as_secs()
+                    );
+                    db_fg.set_refresh_timestamp("as_info", "success", Utc::now().timestamp());
+                }
             } else {
                 info!(
-                    "Fresh BGPKIT AS info loaded (took {}s).",
+                    "BGPKIT AS info loaded from cache (took {}s).",
                     start_asinfo.elapsed().as_secs()
                 );
-                db_fg.set_refresh_timestamp("as_info", "success", Utc::now().timestamp());
             }
-        } else {
-            info!(
-                "BGPKIT AS info loaded from cache (took {}s).",
-                start_asinfo.elapsed().as_secs()
-            );
+
+            if let Err(e) = bgpkit.load_bogons() {
+                warn!("Failed to load bogons: {}", e);
+            } else {
+                db_fg.set_refresh_timestamp("bogons", "success", Utc::now().timestamp());
+            }
+
+            bgpkit
+        })
+        .await;
+
+        if let Ok(bgpkit) = bgpkit {
+            // Assign to classifier
+            let mut guard = classifier_fg.bgpkit.write();
+            // Don't overwrite if the RPKI background task already finished (unlikely but possible)
+            if guard.is_none() {
+                *guard = Some(bgpkit);
+            }
         }
-
-        if let Err(e) = bgpkit.load_bogons() {
-            warn!("Failed to load bogons: {}", e);
-        } else {
-            db_fg.set_refresh_timestamp("bogons", "success", Utc::now().timestamp());
-        }
-
-        bgpkit
-    })
-    .await?;
-
-    // Assign to classifier
-    {
-        *classifier.bgpkit.write() = Some(bgpkit);
-    }
+    });
 
     let classifier_bg = classifier.clone();
     let db_bg = db.clone();
@@ -1089,6 +1112,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         top_rpki_valid_ipv6: AtomicU64::new(iv6v),
         top_rpki_invalid_ipv6: AtomicU64::new(iv6i),
         top_rpki_not_found_ipv6: AtomicU64::new(iv6n),
+        top_volatile_countries: RwLock::new(Vec::new()),
+        top_upstream_transits: RwLock::new(Vec::new()),
     });
     let c1 = classifier.clone();
     let g1 = geo.clone();
@@ -1173,6 +1198,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let mut new_flappiest = Vec::new();
                 for f in ts.flappiest_networks {
+                    if f.flap_count < 5 {
+                        continue;
+                    }
                     let network_name = c_stats
                         .get_as_name(f.asn)
                         .unwrap_or_else(|| format!("AS{}", f.asn));

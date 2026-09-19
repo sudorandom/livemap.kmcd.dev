@@ -111,8 +111,14 @@ type Engine struct {
 	CriticalStream             []*CriticalEvent
 	criticalQueue              []*CriticalEvent
 	lastCriticalAddedAt        time.Time
+	lastCriticalPromotedAt     time.Time
 	streamOffset               float64
+	streamScrollStart          time.Time
+	streamContentH             float64
 	streamDirty                bool
+	currentLeftViewIndex       int
+	targetLeftViewIndex        int
+	leftViewChangedAt          time.Time
 	streamMu                   sync.Mutex
 	impactDirty                bool
 	loadingHistorical          bool
@@ -121,6 +127,7 @@ type Engine struct {
 	topStatsFlappiestPrefix    string
 	topStatsFlappyEventRate    float32
 	topStatsFlappiestFlapCount uint32
+	topFlappiestNetworks       []*livemap.FlappiestNetworkStats
 	topStatsLargestOrg         string
 	topStatsRPKIValidIPv4      uint64
 	topStatsRPKIInvalidIPv4    uint64
@@ -1313,13 +1320,15 @@ func (e *Engine) isEventSignificant(ce *CriticalEvent) bool {
 		return false
 	}
 
-	// Must meet one of these criteria to be considered significant:
-	// - At least 5000 IPv4 addresses
-	// - At least 500 IPv6 prefixes
-	if ce.ImpactedIPs >= 5000 {
+	// Always show specific critical types regardless of raw IP count
+	if ce.Anom == bgp.NameHardOutage || ce.Anom == bgp.NameHijack || strings.Contains(strings.ToLower(ce.Anom), "outage") {
 		return true
 	}
-	if ce.ImpactedIPv6Prefixes >= 500 {
+
+	// For route leaks and others, require a substantial impact to be "critical":
+	// - At least 5,000 IPv4 addresses
+	// - At least 500 IPv6 prefixes
+	if ce.ImpactedIPs >= 5000 || ce.ImpactedIPv6Prefixes >= 500 {
 		return true
 	}
 
@@ -1359,35 +1368,54 @@ func (e *Engine) updateCriticalStream() {
 		}
 	}
 
-	// 2. Promote from queue if enough time has passed
-	if len(e.criticalQueue) > 0 && time.Since(e.lastCriticalAddedAt) > 100*time.Millisecond {
-		var ev *CriticalEvent
-		evIdx := -1
+	// 2. Promote all significant events from queue immediately.
+	// Auto-scroll will allow the user to see and read all of them.
+	hasNew := false
+	for len(e.criticalQueue) > 0 {
+		ce := e.criticalQueue[0]
+		e.criticalQueue = e.criticalQueue[1:]
 
-		for i, ce := range e.criticalQueue {
-			if e.isEventSignificant(ce) {
-				ev = ce
-				evIdx = i
-				break
+		if e.isEventSignificant(ce) {
+			e.CriticalStream = append([]*CriticalEvent{ce}, e.CriticalStream...)
+			hasNew = true
+		}
+	}
+
+	if hasNew {
+		// Sort so that Outages and Hijacks are prioritized at the top, while keeping newer events first
+		sort.SliceStable(e.CriticalStream, func(i, j int) bool {
+			getPri := func(anom string) int {
+				switch anom {
+				case bgp.NameHardOutage, bgp.NameHijack:
+					return 3
+				case bgp.NameDDoSMitigation:
+					return 2
+				case bgp.NameRouteLeak, bgp.NameMinorRouteLeak:
+					return 1
+				default:
+					return 0
+				}
 			}
+			pi := getPri(e.CriticalStream[i].Anom)
+			pj := getPri(e.CriticalStream[j].Anom)
+			return pi > pj
+		})
+
+		if len(e.CriticalStream) > 50 {
+			e.CriticalStream = e.CriticalStream[:50]
 		}
 
-		if ev != nil {
-			// Remove from queue
-			e.criticalQueue = append(e.criticalQueue[:evIdx], e.criticalQueue[evIdx+1:]...)
+		// Push the stream down visually by approx the height of one event
+		e.streamOffset += 80.0
+		e.streamDirty = true
+		e.streamUpdatedAt = time.Now()
+		e.lastCriticalPromotedAt = time.Now()
+		e.streamScrollStart = time.Now()
+	}
 
-			// Insert at the front
-			e.CriticalStream = append([]*CriticalEvent{ev}, e.CriticalStream...)
-			if len(e.CriticalStream) > 5 {
-				e.CriticalStream = e.CriticalStream[:5]
-			}
-
-			// Push the stream down visually by approx the height of one event
-			e.streamOffset += 100.0
-			e.streamDirty = true
-			e.streamUpdatedAt = time.Now()
-			e.lastCriticalAddedAt = time.Now()
-		}
+	// Cap queue size to prevent memory buildup during massive storms
+	if len(e.criticalQueue) > 50 {
+		e.criticalQueue = e.criticalQueue[len(e.criticalQueue)-50:]
 	}
 }
 

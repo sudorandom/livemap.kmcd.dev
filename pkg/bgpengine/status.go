@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/sudorandom/bgp-stream/pkg/bgp"
+	livemap "github.com/sudorandom/bgp-stream/pkg/livemap/v1"
 	"github.com/sudorandom/bgp-stream/pkg/utils"
 )
 
@@ -36,35 +37,23 @@ func (e *Engine) DrawBGPStatus(screen *ebiten.Image) {
 		boxW = 560.0
 	}
 
-	// 1. Left Column: Critical Event Stream
-	// Positioned starting halfway down the map
-	streamY := float64(e.Height) * 0.50
-	if e.Width > 2000 {
-		streamY = float64(e.Height) * 0.50
-	}
-
+	// 1. Left Column: Interchanging Stream (Major Routing Anomalies <-> Top Flappiest Networks)
 	e.streamMu.Lock()
-	if len(e.CriticalStream) > 0 {
-		// Extend to near the bottom of the view
-		maxStreamH := float64(e.Height) - margin - streamY
-		streamH := e.calculateStreamBoxHeight(fontSize, maxStreamH)
-		e.drawCriticalStream(screen, margin-10, streamY, boxW*1.4, streamH, fontSize)
-	}
+	maxStreamH := (float64(e.Height) - margin*2) * 0.45
+	yBase := float64(e.Height) - (margin - 10) - maxStreamH
+	e.drawLeftPanel(screen, margin-10, yBase, boxW*1.4, maxStreamH, fontSize)
 	e.streamMu.Unlock()
 
 	e.metricsMu.Lock()
 	defer e.metricsMu.Unlock()
 
-	// 3. Bottom Center: Now Playing
+	// 2. Top Right: Now Playing
 	e.drawNowPlaying(screen, margin, boxW, fontSize, e.face)
 
-	// 4. Bottom Right: Legend, Anomaly Summary & Trendlines
+	// 3. Bottom Right: Legend, Anomaly Summary & Trendlines
 	e.drawLegendAndTrends(screen)
 
-	// 5. Left Bottom / Above Now Playing: Flappiest Network
-	e.drawFlappiestNetwork(screen, margin, boxW, fontSize)
-
-	// 6. RPKI Status side-by-side vertical bars (Right Edge)
+	// 4. Bottom Center: RPKI Status centered horizontally between Left Panel and Right Panel
 	e.drawRPKIStatus(screen, margin, boxW, fontSize)
 
 	e.drawDisconnected(screen)
@@ -306,103 +295,192 @@ func (e *Engine) drawAnomalySummaryContent(localX, localY, scaledBoxW, fontSize 
 	}
 }
 
-func (e *Engine) calculateStreamBoxHeight(fontSize, maxHeight float64) float64 {
-	// Always return the full available height to extend to the bottom
-	return maxHeight
+func (e *Engine) drawLeftPanel(screen *ebiten.Image, margin, yBase, boxW, boxH, fontSize float64) {
+	actualW := boxW * 1.1
+	if e.streamBuffer == nil || e.streamBuffer.Bounds().Dx() != int(actualW) || e.streamBuffer.Bounds().Dy() != int(boxH) {
+		e.streamBuffer = ebiten.NewImage(int(actualW), int(boxH))
+	}
+
+	now := e.Now()
+
+	// Default to whatever we were currently aiming for
+	desiredView := e.targetLeftViewIndex
+
+	timeSincePromoted := now.Sub(e.lastCriticalPromotedAt)
+	
+	if timeSincePromoted < 15*time.Second && len(e.CriticalStream) > 0 {
+		// Prioritize Major Anomalies if a critical event was recently promoted
+		desiredView = 0
+	} else if now.Sub(e.leftViewChangedAt) > 25*time.Second {
+		// Otherwise, rotate views every 25 seconds
+		desiredView = (e.targetLeftViewIndex + 1) % 2
+	}
+
+	// If there are no major anomalies, default to flappiest networks
+	if len(e.CriticalStream) == 0 && (len(e.topFlappiestNetworks) > 0 || e.topStatsFlappiestASN != 0) {
+		desiredView = 1
+	}
+
+	if e.targetLeftViewIndex != desiredView {
+		e.targetLeftViewIndex = desiredView
+		e.leftViewChangedAt = now
+	}
+
+	timeSinceChange := now.Sub(e.leftViewChangedAt).Seconds()
+	fadeAlpha := float32(1.0)
+	fadeDuration := 0.5 // 0.5s fade out, 0.5s fade in
+
+	if timeSinceChange < fadeDuration {
+		// Fading out old view
+		fadeAlpha = float32(1.0 - (timeSinceChange / fadeDuration))
+	} else if timeSinceChange < fadeDuration*2.0 {
+		// Switch to new view and fade in
+		if e.currentLeftViewIndex != e.targetLeftViewIndex {
+			e.currentLeftViewIndex = e.targetLeftViewIndex
+			e.streamDirty = true
+		}
+		fadeAlpha = float32((timeSinceChange - fadeDuration) / fadeDuration)
+	} else {
+		// Fully visible
+		if e.currentLeftViewIndex != e.targetLeftViewIndex {
+			e.currentLeftViewIndex = e.targetLeftViewIndex
+			e.streamDirty = true
+		}
+		fadeAlpha = 1.0
+	}
+
+	localX, localY := 10.0, fontSize+15.0
+
+	// 1. Recompose the stream buffer
+	e.streamBuffer.Clear()
+	vector.FillRect(e.streamBuffer, 0, 0, float32(actualW), float32(boxH), color.RGBA{0, 0, 0, 110}, false)
+
+	var streamTitle string
+	var headerColor color.RGBA
+	var tabStr string
+
+	switch e.currentLeftViewIndex {
+	case 0:
+		streamTitle = "MAJOR ROUTING ANOMALIES"
+		headerColor = color.RGBA{255, 50, 50, 255}
+		tabStr = "1/2"
+		e.renderMajorAnomaliesView(localX, localY, actualW, boxH, fontSize)
+
+	case 1:
+		streamTitle = "TOP FLAPPIEST NETWORKS (24H)"
+		headerColor = ColorBad
+		tabStr = "2/2"
+		e.renderFlappiestView(localX, localY, actualW, boxH, fontSize)
+	}
+
+	// 2. Draw solid black header to occlude any scrolling text
+	vector.FillRect(e.streamBuffer, 0, 0, float32(actualW), float32(localY+5), color.RGBA{0, 0, 0, 255}, false)
+	vector.StrokeRect(e.streamBuffer, 0, 0, float32(actualW), float32(boxH), 1, color.RGBA{36, 42, 53, 255}, false)
+
+	// 3. Draw Header accent and title
+	vector.FillRect(e.streamBuffer, 0, 0, 4, float32(fontSize+10), headerColor, false)
+	textOp := &text.DrawOptions{}
+	textOp.GeoM.Translate(localX+5, localY-fontSize-5)
+	textOp.ColorScale.Scale(1, 1, 1, 0.7)
+	text.Draw(e.streamBuffer, streamTitle, e.titleFace, textOp)
+
+	// 4. Draw tab pagination indicator in upper-right
+	tabOp := &text.DrawOptions{}
+	tabOp.GeoM.Translate(actualW-45, localY-fontSize-5)
+	tabOp.ColorScale.Scale(1, 1, 1, 0.3)
+	text.Draw(e.streamBuffer, "["+tabStr+"]", e.subMonoFace, tabOp)
+
+	// 5. Draw directly to screen - with fade effect!
+	bufOp := &ebiten.DrawImageOptions{}
+	bufOp.GeoM.Translate(margin, yBase)
+	bufOp.ColorScale.ScaleAlpha(fadeAlpha)
+	screen.DrawImage(e.streamBuffer, bufOp)
 }
 
-func (e *Engine) drawCriticalStream(screen *ebiten.Image, margin, yBase, boxW, boxH, fontSize float64) {
-	if e.streamBuffer == nil || e.streamBuffer.Bounds().Dx() != int(boxW*1.1) || e.streamBuffer.Bounds().Dy() != int(boxH) {
-		e.streamBuffer = ebiten.NewImage(int(boxW*1.1), int(boxH))
-		// Make the clip buffer a bit taller to allow for events moving down
-		e.streamClipBuffer = ebiten.NewImage(int(boxW*1.1), int(boxH+100))
+func (e *Engine) renderMajorAnomaliesView(localX, localY, boxW, boxH, fontSize float64) {
+	if len(e.CriticalStream) == 0 {
+		textOp := &text.DrawOptions{}
+		textOp.GeoM.Translate(localX+5, localY+15)
+		textOp.ColorScale.Scale(1, 1, 1, 0.3)
+		text.Draw(e.streamBuffer, "Waiting for major anomalies...", e.subMonoFace, textOp)
+		return
+	}
+
+	eventFontSize := fontSize * 0.75
+	visibleH := boxH - localY - 15.0
+
+	clipH := int(boxH * 2.5)
+	if clipH < 2000 {
+		clipH = 2000
+	}
+	if e.streamClipBuffer == nil || e.streamClipBuffer.Bounds().Dx() != int(boxW) || e.streamClipBuffer.Bounds().Dy() < clipH {
+		e.streamClipBuffer = ebiten.NewImage(int(boxW), clipH)
 		e.streamDirty = true
 	}
 
-	boxW *= 1.1
-	localX, localY := 10.0, fontSize+15.0
-
-	// 1. Redraw the text to clip buffer ONLY when content changes
+	// 1. Redraw events to clip buffer only when dirty
 	if e.streamDirty {
 		e.streamClipBuffer.Clear()
-		currentY := 0.0 // Do not use streamOffset here!
+		currentY := 0.0
 
-		displayStream := e.CriticalStream
-		if len(displayStream) > 0 {
-			for i, ce := range displayStream {
-				nextY := e.drawCriticalEvent(ce, localX, currentY, boxW, fontSize)
-
-				if i < len(displayStream)-1 && nextY+12 < boxH+100 {
-					vector.StrokeLine(e.streamClipBuffer, float32(localX+10), float32(nextY+10), float32(boxW-10), float32(nextY+10), 2, color.RGBA{255, 255, 255, 30}, false)
-				}
-				currentY = nextY + 25.0
-				if currentY > boxH+100 {
-					break
-				}
+		for i, ce := range e.CriticalStream {
+			nextY := e.drawCriticalEvent(ce, localX, currentY, boxW, eventFontSize)
+			if i < len(e.CriticalStream)-1 {
+				currentY = nextY + 14.0 // Spacing between events without a line
+			} else {
+				currentY = nextY + 10.0
 			}
 		}
 		e.streamDirty = false
+		e.streamContentH = currentY
 	}
 
-	// 2. Recompose the stream buffer every frame (cheap)
-	e.streamBuffer.Clear()
-	vector.FillRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), color.RGBA{0, 0, 0, 100}, false)
+	// 2. Auto-scrolling logic:
+	// If total content height exceeds visible space, scroll down to reveal entries that can't be seen.
+	scrollOffset := 0.0
+	if e.streamContentH > visibleH {
+		maxScroll := e.streamContentH - visibleH
+		now := e.Now()
+		if e.streamScrollStart.IsZero() {
+			e.streamScrollStart = now
+		}
+		elapsed := now.Sub(e.streamScrollStart).Seconds()
 
-	if len(e.CriticalStream) == 0 {
-		textOp := &text.DrawOptions{}
-		textOp.GeoM.Translate(localX+5, localY+5)
-		textOp.ColorScale.Scale(1, 1, 1, 0.3)
-		text.Draw(e.streamBuffer, "Waiting for major anomalies...", e.subMonoFace, textOp)
-	} else {
-		op := &ebiten.DrawImageOptions{}
-		// Apply offset here, visually shifting the prerendered text
-		op.GeoM.Translate(0, localY+5+e.streamOffset)
-		e.streamBuffer.DrawImage(e.streamClipBuffer, op)
-	}
+		topPause := 4.0
+		scrollDuration := maxScroll / 25.0
+		if scrollDuration < 3.0 {
+			scrollDuration = 3.0
+		}
+		bottomPause := 4.0
+		returnDuration := 2.0
+		cycleDuration := topPause + scrollDuration + bottomPause + returnDuration
 
-	// 3. Draw the title background to occlude any scrolling text
-	vector.FillRect(e.streamBuffer, 0, 0, float32(boxW), float32(localY+5), color.RGBA{0, 0, 0, 255}, false) // Solid black header
-	vector.StrokeRect(e.streamBuffer, 0, 0, float32(boxW), float32(boxH), 1, color.RGBA{36, 42, 53, 255}, false)
-
-	// 4. Draw the Title
-	streamTitle := "RECENT MAJOR ANOMALIES"
-	vector.FillRect(e.streamBuffer, 0, 0, 4, float32(fontSize+10), color.RGBA{255, 50, 50, 255}, false)
-	textOp := &text.DrawOptions{}
-	textOp.GeoM.Translate(localX+5, localY-fontSize-5)
-	textOp.ColorScale.Scale(1, 1, 1, 0.5)
-	text.Draw(e.streamBuffer, streamTitle, e.titleFace, textOp)
-
-	now := e.Now()
-	timeSinceUpdate := now.Sub(e.streamUpdatedAt)
-	alpha := 1.0
-	if timeSinceUpdate > 25*time.Second {
-		alpha = 1.0 - (timeSinceUpdate.Seconds()-25.0)/5.0
-		if alpha <= 0 {
-			return
+		tCycle := math.Mod(elapsed, cycleDuration)
+		if tCycle < topPause {
+			scrollOffset = 0.0
+		} else if tCycle < topPause+scrollDuration {
+			progress := (tCycle - topPause) / scrollDuration
+			ease := 0.5 - 0.5*math.Cos(progress*math.Pi)
+			scrollOffset = ease * maxScroll
+		} else if tCycle < topPause+scrollDuration+bottomPause {
+			scrollOffset = maxScroll
+		} else {
+			progress := (tCycle - topPause - scrollDuration - bottomPause) / returnDuration
+			ease := 0.5 + 0.5*math.Cos(progress*math.Pi)
+			scrollOffset = ease * maxScroll
 		}
 	}
 
-	isGlitching := now.Sub(e.streamUpdatedAt) < 300*time.Millisecond
-	intensity := 0.0
-	if isGlitching {
-		intensity = 1.0 - (now.Sub(e.streamUpdatedAt).Seconds() / 0.3)
-	}
-	// Glitch out as the panel disappears (only the final 500ms of the fade)
-	if timeSinceUpdate > 29500*time.Millisecond {
-		glitchProgress := (timeSinceUpdate.Seconds() - 29.5) / 0.5 // 0→1 over 500ms
-		intensity = glitchProgress
-		isGlitching = true
-	}
-
-	e.drawGlitchImage(screen, e.streamBuffer, margin-10, yBase, intensity, isGlitching, alpha)
+	// 3. Draw the clip buffer into streamBuffer
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, localY+5+e.streamOffset-scrollOffset)
+	e.streamBuffer.DrawImage(e.streamClipBuffer, op)
 }
 
 func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float64) float64 {
-	indent := 20.0
+	indent := 10.0
 	rightEdge := boxW - 15.0
-	// We are now drawing into streamClipBuffer which represents only the events area
 	textOp := &text.DrawOptions{}
-	// Draw Anomaly Type Label (e.g. [OUTAGE])
 
 	if ce.CachedTypeWidth == 0 && e.subMonoFace != nil {
 		ce.CachedTypeWidth, _ = text.Measure(ce.CachedTypeLabel, e.subMonoFace, 0)
@@ -412,23 +490,23 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 
 	title := ce.CachedTypeLabel
 	if ce.Resolved {
-		title = "[RESOLVED]" + title
+		title = "[RESOLVED] " + title
 	}
 
 	textOp.GeoM.Translate(x, y)
 	if ce.Resolved {
 		textOp.ColorScale.Scale(0, 1, 0, 0.9)
 	} else {
-		textOp.ColorScale.Scale(cr, cg, cb, 0.9)
+		textOp.ColorScale.Scale(cr, cg, cb, 0.95)
 	}
 
-	// Draw the Title (wrapped)
-	nextY := e.drawWrappedText(e.streamClipBuffer, title, e.subMonoFace, x, y, rightEdge-x, fontSize, textOp)
+	// 1. Draw Title (wrapped)
+	nextY := e.drawWrappedText(e.streamClipBuffer, title, e.subMonoFace, x, y, rightEdge-x, fontSize*1.1, textOp)
 	if nextY == y {
-		nextY = y + fontSize*1.1
+		nextY = y + fontSize*1.15
 	}
 
-	// Draw metrics (e.g. "% increase...") below title, also wrapped
+	// 2. Draw Impact / metrics line
 	if ce.CachedFirstLine != "" {
 		textOp.ColorScale.Reset()
 		if (ce.Anom == bgp.NameRouteLeak || ce.Anom == bgp.NameMinorRouteLeak) || ce.Anom == bgp.NameHardOutage || ce.Anom == bgp.NameDDoSMitigation || ce.Anom == bgp.NameHijack {
@@ -438,59 +516,147 @@ func (e *Engine) drawCriticalEvent(ce *CriticalEvent, x, y, boxW, fontSize float
 				textOp.ColorScale.Scale(0, 1, 1, 0.9) // Cyan
 			}
 		} else {
-			textOp.ColorScale.Scale(cr, cg, cb, 0.7)
+			textOp.ColorScale.Scale(cr, cg, cb, 0.75)
 		}
-		nextY = e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, x, nextY, rightEdge-x, fontSize, textOp)
+		nextY = e.drawWrappedText(e.streamClipBuffer, ce.CachedFirstLine, e.subMonoFace, x, nextY, rightEdge-x, fontSize*1.05, textOp)
 	}
 
-	labelCol := color.RGBA{180, 180, 180, 255} // Light gray
-	valueCol := color.RGBA{255, 255, 0, 255}   // Bright yellow
+	labelCol := color.RGBA{170, 170, 170, 255}
+	valueCol := color.RGBA{255, 230, 80, 255}
 
-	// Details for Route Leaks
+	// 3. Anomaly-specific details
 	switch {
 	case (ce.Anom == bgp.NameRouteLeak || ce.Anom == bgp.NameMinorRouteLeak || strings.Contains(strings.ToLower(ce.Anom), "route leak")) && !ce.IsAggregate:
 		if ce.LeakType != bgp.LeakUnknown {
-			// Leaker
 			nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
-
-			// Impacted
 			nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
-
-			// Networks line
 			nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 		}
 	case (ce.Anom == bgp.NameHardOutage || strings.Contains(strings.ToLower(ce.Anom), "outage")) && !ce.IsAggregate:
-		// ASN line
 		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedASNLabel, ce.CachedASNVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
-
-		// Networks line
 		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 	case (ce.Anom == bgp.NameDDoSMitigation || ce.Anom == bgp.NameHijack || strings.Contains(strings.ToLower(ce.Anom), "hijack") || strings.Contains(strings.ToLower(ce.Anom), "ddos")) && !ce.IsAggregate:
-		// Attacker / Source
 		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedLeakerLabel, ce.LeakerRPKI, ce.CachedLeakerVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
-
-		// Victim / Target
 		nextY = e.drawRPKILine(e.streamClipBuffer, ce.CachedVictimLabel, ce.VictimRPKI, ce.CachedVictimVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
-
-		// Networks line
 		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedNetLabel, ce.CachedNetVal, e.subMonoFace, x+indent, nextY, rightEdge-(x+indent), fontSize, labelCol, valueCol)
 	}
 
-	if ce.CachedLocVal != "" {
+	// 4. Location line
+	loc := ce.CachedLocVal
+	if loc == "" {
+		loc = ce.Locations
+	}
+	if loc != "" {
 		curIndent := indent
 		if ce.CachedLocLabel == "" {
 			curIndent = 0
 		}
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.CachedLocVal, e.subMonoFace, x+curIndent, nextY, rightEdge-(x+curIndent), fontSize, labelCol, valueCol)
-	} else if ce.Locations != "" {
-		curIndent := indent
-		if ce.CachedLocLabel == "" {
-			curIndent = 0
-		}
-		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, ce.Locations, e.subMonoFace, x+curIndent, nextY, rightEdge-(x+curIndent), fontSize, labelCol, valueCol)
+		nextY = e.drawLabeledLine(e.streamClipBuffer, ce.CachedLocLabel, loc, e.subMonoFace, x+curIndent, nextY, rightEdge-(x+curIndent), fontSize, labelCol, valueCol)
 	}
 
 	return nextY
+}
+
+func (e *Engine) renderFlappiestView(localX, localY, boxW, boxH, fontSize float64) {
+	numItems := len(e.topFlappiestNetworks)
+	if numItems == 0 && e.topStatsFlappiestASN == 0 {
+		noneOp := &text.DrawOptions{}
+		noneOp.GeoM.Translate(localX+5, localY+15)
+		noneOp.ColorScale.Scale(1, 1, 1, 0.4)
+		text.Draw(e.streamBuffer, "No flapping networks detected", e.subFace, noneOp)
+		return
+	}
+
+	if numItems > 8 {
+		numItems = 8
+	}
+	if numItems == 0 && e.topStatsFlappiestASN != 0 {
+		numItems = 1
+	}
+
+	now := e.Now()
+	timeSinceChanged := now.Sub(e.flappiestChangedAt).Seconds()
+	isAnimating := timeSinceChanged >= 0 && timeSinceChanged <= 3.0
+
+	if isAnimating && timeSinceChanged > 0.2 && timeSinceChanged < 2.8 && e.flappyImage != nil {
+		imgW := float64(e.flappyImage.Bounds().Dx())
+		imgH := float64(e.flappyImage.Bounds().Dy())
+		birdScale := (fontSize * 2.0) / imgW
+		scaledBirdH := imgH * birdScale
+		birdX := (boxW - imgW*birdScale) / 2.0
+		if e.flappyY == 0 {
+			e.flappyY = localY + 10.0
+		}
+		dt := 0.016 // Adjust to 60fps instead of 30fps
+		gravity := 450.0
+		e.flappyVelocity += gravity * dt
+		e.flappyY += e.flappyVelocity * dt
+		maxBirdY := boxH - scaledBirdH - 20.0
+		if e.flappyY > maxBirdY {
+			e.flappyY = maxBirdY
+			e.flappyVelocity = -250.0
+		}
+		minBirdY := localY + 10.0
+		if e.flappyY < minBirdY {
+			e.flappyY = minBirdY
+			e.flappyVelocity = 0
+		}
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Scale(birdScale, birdScale)
+		op.GeoM.Translate(birdX, e.flappyY)
+		e.streamBuffer.DrawImage(e.flappyImage, op)
+		return
+	}
+
+	currY := localY + 12.0
+	itemH := fontSize * 2.8
+
+	for i := 0; i < numItems; i++ {
+		if currY+itemH > boxH-15.0 {
+			break
+		}
+
+		var f *livemap.FlappiestNetworkStats
+		if i < len(e.topFlappiestNetworks) {
+			f = e.topFlappiestNetworks[i]
+		} else {
+			f = &livemap.FlappiestNetworkStats{
+				Asn:         e.topStatsFlappiestASN,
+				NetworkName: e.topStatsFlappiestOrg,
+				Prefix:      e.topStatsFlappiestPrefix,
+				FlapCount:   e.topStatsFlappiestFlapCount,
+				EventRate:   e.topStatsFlappyEventRate,
+			}
+		}
+
+		// Line 1: Rank + Prefix on left, Flap count on right
+		pfxOp := &text.DrawOptions{}
+		pfxOp.GeoM.Translate(localX, currY)
+		pfxOp.ColorScale.Scale(1, 1, 1, 0.95)
+		rankPrefix := fmt.Sprintf("%d. %s", i+1, f.GetPrefix())
+		text.Draw(e.streamBuffer, rankPrefix, e.boldFace, pfxOp)
+
+		flapStr := fmt.Sprintf("%s flaps", utils.FormatShortNumber(uint64(f.GetFlapCount())))
+		if f.GetEventRate() > 0 {
+			flapStr = fmt.Sprintf("%s flaps (%.1f/s)", utils.FormatShortNumber(uint64(f.GetFlapCount())), f.GetEventRate())
+		}
+		flapOp := &text.DrawOptions{}
+		tw, _ := text.Measure(flapStr, e.subMonoFace, 0)
+		flapOp.GeoM.Translate(boxW-15.0-tw, currY+fontSize*0.1)
+		flapOp.ColorScale.Scale(1, 0.8, 0, 0.9)
+		text.Draw(e.streamBuffer, flapStr, e.subMonoFace, flapOp)
+
+		// Line 2: Network name & ASN
+		netStr := fmt.Sprintf("%s (AS%d)", f.GetNetworkName(), f.GetAsn())
+		if f.GetNetworkName() == fmt.Sprintf("AS%d", f.GetAsn()) {
+			netStr = fmt.Sprintf("AS%d", f.GetAsn())
+		}
+		netOp := &text.DrawOptions{}
+		netOp.ColorScale.Scale(1, 1, 1, 0.6)
+		_ = e.drawWrappedText(e.streamBuffer, netStr, e.subFace, localX+15.0, currY+fontSize*1.25, boxW-30.0, fontSize*0.75, netOp)
+
+		currY += itemH
+	}
 }
 
 func (e *Engine) drawNowPlaying(screen *ebiten.Image, margin, boxW, fontSize float64, face *text.GoTextFace) {
@@ -552,139 +718,6 @@ func (e *Engine) drawNowPlaying(screen *ebiten.Image, margin, boxW, fontSize flo
 	e.drawGlitchImage(screen, e.nowPlayingBuffer, songX-10, songYBase-fontSize-15, intensity, isGlitching, 1.0)
 }
 
-func (e *Engine) drawFlappiestNetwork(screen *ebiten.Image, margin, boxW, fontSize float64) {
-	if e.topStatsFlappiestASN == 0 {
-		return
-	}
-
-	summaryFontSize := fontSize * 0.7
-	panelH := e.calculateSummaryBoxHeight(summaryFontSize)
-	panelW := boxW * 1.0
-
-	// Positioning: we want this to be to the left of the BGP summary
-	legendBoxW := 320.0
-	if e.Width > 2000 {
-		legendBoxW = 640.0
-	}
-	summaryW := legendBoxW * 1.5
-	summaryX := float64(e.Width) - margin - summaryW
-
-	panelX := summaryX - panelW - 20
-	panelY := float64(e.Height) - margin - panelH
-
-	now := e.Now()
-	timeSinceChanged := now.Sub(e.flappiestChangedAt).Seconds()
-	isAnimating := timeSinceChanged >= 0 && timeSinceChanged <= 3.0
-
-	// We use an off-screen buffer to easily apply glitch effects to the entire panel
-	if e.flappiestBuffer == nil || e.flappiestBuffer.Bounds().Dx() != int(panelW) || e.flappiestBuffer.Bounds().Dy() != int(panelH) {
-		e.flappiestBuffer = ebiten.NewImage(int(panelW), int(panelH))
-	}
-	e.flappiestBuffer.Clear()
-
-	localX, localY := 10.0, fontSize+15.0
-
-	// Draw Background to buffer
-	vector.FillRect(e.flappiestBuffer, 0, 0, float32(panelW), float32(panelH), color.RGBA{0, 0, 0, 100}, false)
-	vector.StrokeRect(e.flappiestBuffer, 0, 0, float32(panelW), float32(panelH), 1, color.RGBA{36, 42, 53, 255}, false)
-	vector.FillRect(e.flappiestBuffer, 0, 0, 4, float32(fontSize+10), ColorBad, false)
-
-	// Draw Title to buffer
-	textOp := &text.DrawOptions{}
-	textOp.GeoM.Translate(localX+5, localY-fontSize-5)
-	textOp.ColorScale.Scale(1, 1, 1, 0.5)
-	text.Draw(e.flappiestBuffer, "FLAPPIEST NETWORK", e.titleFace, textOp)
-
-	if isAnimating && timeSinceChanged > 0.2 && timeSinceChanged < 2.8 {
-		// Draw Flappy Bird
-		if e.flappyImage != nil {
-			// Get actual scaled bounds for bird
-			imgW := float64(e.flappyImage.Bounds().Dx())
-			imgH := float64(e.flappyImage.Bounds().Dy())
-			birdScale := (fontSize * 2.0) / imgW
-			scaledBirdH := imgH * birdScale
-
-			// Center the bird horizontally
-			birdX := (panelW - imgW*birdScale) / 2.0
-
-			// Set initial starting point right below ceiling
-			if e.flappyY == 0 {
-				e.flappyY = fontSize + 6.0
-			}
-
-			// Basic physics update using a more stable fixed step if needed, but dt is fine here
-			// if we restrict it.
-			dt := 0.033      // Fixed dt for stability (approx 30fps)
-			gravity := 500.0 // gravity constant
-			e.flappyVelocity += gravity * dt
-			e.flappyY += e.flappyVelocity * dt
-
-			// Bounce off bottom
-			maxBirdY := panelH - scaledBirdH - 10.0
-			if e.flappyY > maxBirdY {
-				e.flappyY = maxBirdY
-				e.flappyVelocity = -200.0 // flap up
-			}
-
-			// Ceiling check
-			minBirdY := fontSize + 5.0
-			if e.flappyY < minBirdY {
-				e.flappyY = minBirdY
-				e.flappyVelocity = 0
-			}
-
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Scale(birdScale, birdScale)
-			op.GeoM.Translate(birdX, e.flappyY)
-			e.flappiestBuffer.DrawImage(e.flappyImage, op)
-		}
-	} else {
-		// Draw normal content
-		// 1. Prefix - Top line, prominent and BOLD
-		prefixOp := &text.DrawOptions{}
-		prefixOp.GeoM.Translate(localX, localY+fontSize*0.1)
-		prefixOp.ColorScale.Scale(1, 1, 1, 0.9)
-		text.Draw(e.flappiestBuffer, e.topStatsFlappiestPrefix, e.boldFace, prefixOp)
-
-		// Add space between Prefix and the rest
-		networkY := localY + fontSize*1.4
-
-		// 2. Network: Organization (ASnnnn) - Wrapped below prefix
-		networkStr := fmt.Sprintf("Network: %s (AS%d)", e.topStatsFlappiestOrg, e.topStatsFlappiestASN)
-		if e.topStatsFlappiestOrg == fmt.Sprintf("AS%d", e.topStatsFlappiestASN) {
-			networkStr = fmt.Sprintf("Network: %s", e.topStatsFlappiestOrg)
-		}
-		networkOp := &text.DrawOptions{}
-		networkOp.ColorScale.Scale(1, 1, 1, 0.6)
-
-		// Use subFace and its size for correct wrapping and line spacing
-		nextY := e.drawWrappedText(e.flappiestBuffer, networkStr, e.subFace, localX, networkY, panelW-20.0, e.subFace.Size, networkOp)
-
-		// 3. X Flaps in the last 24 hours - Bottom of the group, BOLD and wrapped
-		flapStr := fmt.Sprintf("%s Flaps in the last 24 hours", utils.FormatShortNumber(uint64(e.topStatsFlappiestFlapCount)))
-		flapOp := &text.DrawOptions{}
-		flapOp.ColorScale.Scale(1, 1, 1, 0.8)
-
-		// Use subBoldFace to ensure the count is bolded and the line wraps correctly
-		_ = e.drawWrappedText(e.flappiestBuffer, flapStr, e.subBoldFace, localX, nextY, panelW-20.0, e.subBoldFace.Size, flapOp)
-	}
-
-	// Calculate glitch intensity
-	glitchIntensity := 0.0
-	isGlitching := false
-	if isAnimating {
-		if timeSinceChanged <= 0.2 {
-			isGlitching = true
-			glitchIntensity = 1.0 - (timeSinceChanged / 0.1)
-		} else if timeSinceChanged >= 2.8 {
-			isGlitching = true
-			glitchIntensity = (timeSinceChanged - 2.8) / 0.1
-		}
-	}
-
-	e.drawGlitchImage(screen, e.flappiestBuffer, panelX-10, panelY, glitchIntensity, isGlitching, 1.0)
-}
-
 func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize float64) {
 	totalV4 := e.topStatsRPKIValidIPv4 + e.topStatsRPKIInvalidIPv4 + e.topStatsRPKINotFoundIPv4
 	totalV6 := e.topStatsRPKIValidIPv6 + e.topStatsRPKIInvalidIPv6 + e.topStatsRPKINotFoundIPv6
@@ -701,31 +734,45 @@ func (e *Engine) drawRPKIStatus(screen *ebiten.Image, margin, boxW, fontSize flo
 	if e.rpkiDirty {
 		e.rpkiBuffer.Fill(color.Transparent)
 
-		// Bar dimensions (Horizontal now)
-		barW := float64(e.Width) * 0.25
+		// Bar dimensions (Horizontal)
+		barW := float64(e.Width) * 0.22
 		barH := 20.0
 		if e.Width > 2000 {
-			barW = float64(e.Width) * 0.2
+			barW = float64(e.Width) * 0.22
 			barH = 40.0
 		}
 
-		// Positioning (Bottom, between Anomaly Stream and Flappiest Network)
-		// Critical Stream boxW is multiplied by 1.1 internally, so actual width is boxW * 1.4 * 1.1
-		streamW := (boxW * 1.4 * 1.1)
+		// Centering between Left Panel (Critical Stream) and Right Panel (BGP State Summary)
+		streamW := boxW * 1.4
+		leftPanelRight := (margin - 10) + streamW
+
 		legendBoxW := 320.0
 		if e.Width > 2000 {
 			legendBoxW = 640.0
 		}
 		summaryW := legendBoxW * 1.5
-		panelW := boxW * 1.0
+		summaryX := float64(e.Width) - margin - summaryW
 
-		// Start RPKI safely after the anomaly stream (drawn at margin-10)
-		v4X := margin - 10 + streamW + 70
-		// Limit barW so it doesn't collide with flappiest panel
-		availableSpace := (float64(e.Width) - margin - summaryW - 20 - panelW - 20) - v4X
-		if barW > availableSpace {
-			barW = availableSpace
+		gap := summaryX - leftPanelRight
+		if gap < 0 {
+			gap = 0
 		}
+
+		labelOffset := 50.0
+		if e.Width > 2000 {
+			labelOffset = 100.0
+		}
+
+		// Ensure bar fits comfortably within available gap with padding
+		maxBarW := gap - labelOffset - 40.0
+		if barW > maxBarW && maxBarW > 100 {
+			barW = maxBarW
+		}
+
+		// Center the entire RPKI widget (label + bar) between both panels
+		midX := (leftPanelRight + summaryX) / 2.0
+		componentStartX := midX - (labelOffset + barW)/2.0
+		v4X := componentStartX + labelOffset
 
 		barY_v6 := float64(e.Height) - margin - barH
 		barY_v4 := barY_v6 - barH - fontSize - 15

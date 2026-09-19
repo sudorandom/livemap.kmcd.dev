@@ -221,6 +221,7 @@ func (e *Engine) updateFromSummary(resp *livemap.GetSummaryResponse) {
 	}
 
 	networkStatsSlice := resp.GetFlappiestNetworkStats()
+	e.topFlappiestNetworks = networkStatsSlice
 	var networkStats *livemap.FlappiestNetworkStats
 	if len(networkStatsSlice) > 0 {
 		networkStats = networkStatsSlice[0]
